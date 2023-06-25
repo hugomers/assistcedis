@@ -6,6 +6,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ZktecoController;
 
 
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -18,8 +19,13 @@ use App\Http\Controllers\ZktecoController;
 */
 //rutas monday
 Route::post('/syncstaff',[StaffController::class,'replystaff']);
+Route::post('/checklistiop',[StaffController::class,'checklistiop']);
 Route::post('/syncjustification',[StaffController::class,'justification']);
 //rutas zkteco
 Route::get('/pings',[ZktecoController::class,'pings']);
 Route::post('/add',[ZktecoController::class,'add']);
+Route::get('/maxuaid',[ZktecoController::class,'maxuaid']);
+Route::get('/report',[ZktecoController::class,'report']);
+
+Route::get('/suc',[GoogleController::class,'sucursales']);
 
