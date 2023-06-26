@@ -213,7 +213,7 @@ class StaffController extends Controller
                         $datetime_utc = strtotime($crated) - 3600;
                         date_default_timezone_set(date_default_timezone_get());
                         $created = date('Y-m-d H:i:s', $datetime_utc);
-                        $cated = date('Ymd His', $datetime_utc);
+                        $cated = date('YmdHis', $datetime_utc);
                         $evidence  = json_encode($row['column_values'][54]['text']);
                         $cal = [
                             "pg1" => $row['column_values'][3]['text'] ,
@@ -262,13 +262,13 @@ class StaffController extends Controller
                             "id_mon"=>$ids,
                             "calification"=> $cali."/"."100"
                             ];
-                        // $insert = DB::table('checklistiop')->insert($ins);
-                        // if($insert){
+                        $insert = DB::table('checklistiop')->insert($ins);
+                        if($insert){
                             $ens[] = $ids;
-                            // $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4653825876, column_id:"texto35", value: "'.$cali."/"."100".'") {id}}';
-                            // $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4653825876, column_values: "{\"estado1\" : {\"label\" : \"Enviado\"}}") {id}}';
-                            // $chan = $this->apimon($changtext);
-                            // $chans = $this->apimon($chagesta);
+                            $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4653825876, column_id:"texto35", value: "'.$cali."/"."100".'") {id}}';
+                            $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4653825876, column_values: "{\"estado1\" : {\"label\" : \"Enviado\"}}") {id}}';
+                            $chan = $this->apimon($changtext);
+                            $chans = $this->apimon($chagesta);
                             $inf = [
                                 'fecha'=>$cated,
                                 'puntuacion'=>$cali,
@@ -328,21 +328,16 @@ class StaffController extends Controller
                             ];
                             $pdf = $this->pdi($inf);
                             if($pdf['msg'] == "enviado"){
-                                 $data = $pdf['archivo'];
-                                 $document = file_get_contents($data);
-                                 $doc = base64_encode($document);
-
+                                //  $data = $pdf['archivo'];
+                                //  $document = file_get_contents($data);
+                                //  $doc = base64_encode($document);
                                  $chagemsg = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4653825876, column_values: "{\"estado43\" : {\"label\" : \"ENVIADO\"}}") {id}}';
                                  $chanms = $this->apimon($chagemsg);
-                                 $addfile = 'mutation {
-                                    add_file_to_column (item_id: '.$ids.', column_id: "archivo3", file: '.$doc.') {
-                                        id
-                                    }
-                                }';
-                                $chanfile = $this->apimon($addfile);
+                                //  $addfile = 'mutation ($file:file!) { add_file_to_column (item_id: '.$ids.', column_id: "archivo3", file: '.$doc.') {id}}';
+                                // $chanfile = $this->apimonfile($addfile); //en algun moento funcionara
                                 }
-                                return $chanfile;
-                        // }
+                                // return $chanfile;
+                        }
                     }else{
                         $fail[]="El admon ".$admon." no existe";
                     }
