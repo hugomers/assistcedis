@@ -19,3 +19,4 @@ Route::get('/', function () {
 });
 
 Route::get('/create-pdf-file', [StaffController::class, 'pdi']);
+Route::get('/finalop', [StaffController::class, 'finop']);

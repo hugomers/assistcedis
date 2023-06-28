@@ -58,7 +58,7 @@ class StaffController extends Controller
         $rcid  = $rows['column_values'][0]['text'];// id
         $suc = $rows['column_values'][1]['text'];// sucursal
         $posi = $rows['column_values'][2]['text'];//puesto
-        $pic = $rows['column_values'][15]['text'];//picture
+        $pic = $rows['column_values'][12]['text'];//picture
 
         $nsu = $suc == "OFICINA" || $suc == "MANTENIMIENTO" || $suc == "AUDITORIA/INVENTARIOS" ? "CEDIS" : $suc;//si son cualquiera de estos tres es cedis
         $sucursal = DB::table('stores')->where('name',$nsu)->first();//se busca sucursal
@@ -213,7 +213,7 @@ class StaffController extends Controller
                         $datetime_utc = strtotime($crated) - 3600;
                         date_default_timezone_set(date_default_timezone_get());
                         $created = date('Y-m-d H:i:s', $datetime_utc);
-                        $cated = date('YmdHis', $datetime_utc);
+                        $cated = date('Y-m-d H_i_s', $datetime_utc);
                         $evidence  = json_encode($row['column_values'][54]['text']);
                         $cal = [
                             "pg1" => $row['column_values'][3]['text'] ,
@@ -510,8 +510,8 @@ class StaffController extends Controller
         break;
             case "BRASIL 3":
         $carpaud = "C:\REPORTESCHKL\BRASIL3";
-        // $number = "+525537045056";
-        $number = "+525573461022";
+        $number = "+525537045056";
+        // $number = "+525573461022";
         break;
             case "APARTADO 1":
         $carpaud = "C:\REPORTESCHKL\APARTADO1";
@@ -591,4 +591,454 @@ class StaffController extends Controller
           return "enviado";
         }
   }
+
+  public function updatestaff(){
+    $todes = 'query {
+        boards (ids: 4658499281) {
+          columns {
+            id
+            title
+              }
+          }
+      }
+      ';
+    $col = $this->apimon($todes);//se buscan todos los ids de las columnas de tipo desplegable
+    $columnas = $col['data']['boards'][0]['columns'];//se genera
+    $result = array_filter($columnas, function ($element) {
+        return isset($element['title']) && $element['title'] === 'quien(es)';
+    });//se buscan solo los quw son son quienes
+
+    $colab = 'query {
+        items_by_column_values (board_id: 1520861792, column_id: "estatus", column_value: "ACTIVO") {
+        name,
+        column_values  {
+            id
+            title
+            text
+            }
+        }
+    }';//se genera query para buscar a los agentes
+    $exist = $this->apimon($colab);//se executa
+    $agentes = $exist['data']['items_by_column_values'];
+    foreach($agentes as $agente){
+        $agent[] = $agente['name']."-".$agente['column_values'][0]['text'];//se selecionan todos los agentes
+    }
+    foreach($result as $res){//inicia foreach de las columnas desplegables
+      $ids = $res['id'];//se sacan sus ids
+      $query = 'mutation {
+          change_simple_column_value (item_id:4658502171, board_id:4658499281, column_id:'.$ids.', value: "daleatucuerpo, alegriamakarena") {
+              id
+          }
+      }';//query de mutacion para sacar los agentes que tienen las columnas desplegables
+      $monval = $this->apimon($query);//se recibe
+      $eri = $monval['error_message'];//se reciben solo los agentes en string
+      $ror = substr($eri, strpos($eri,"{"));//se quita el mensaje de eroor
+      $err = explode(",",$ror);//se convierte en arreglo
+      $art = [];
+      foreach($err as $row){//se hace un foreach de el arreglo para generar los que son
+      $ala = substr($row,strpos($row,":"));//se quitan los dos puntos de su llave
+      $auma = str_replace(": ","",$ala);//se remplazan por nada para poder obtener solo los nombres y se almacena en la variable auma
+      $art []= str_replace("}","",$auma);
+      }
+      $idcol [] = ["id"=>$ids,"colaboradores"=>$art];
+    }
+    foreach($idcol as $iscol){
+      $adam = $iscol['id'];
+      $warlok = $iscol['colaboradores'];
+      $out = array_diff($agent,$warlok);//se hace diferencia de agentes contra aumas
+      $ars = implode(",",$out);
+      $inser = 'mutation {
+             change_simple_column_value(item_id:4658502171, board_id:4658499281, column_id: '.$adam.', value: "'.$ars.'", create_labels_if_missing: true) {
+               id
+               }
+        }';//se genera el query para insertar cada uno de los que faltan
+        $dependientes = $this->apimon($inser);//se insertan
+        };
+
+      // foreach($out as $inse){//se genera un foreach de cada uno de ellos para poder actualizarlos
+      //   $inser = 'mutation {
+      //       change_simple_column_value(item_id:4658502171, board_id:4658499281, column_id: '.$adam.', value: "'.$inse.'", create_labels_if_missing: true) {
+      //       id
+      //       }
+      //   }';//se genera el query para insertar cada uno de los que faltan
+      //   $dependientes = $this->apimon($inser);//se insertan
+      //   };
+    // }
+    return $ars;
+  }
+
+  public function updatestaffiop(){
+
+    $todes = 'query {
+        boards (ids: 4653825876) {
+          columns {
+            id
+            title
+              }
+          }
+      }
+      ';
+    $col = $this->apimon($todes);//se buscan todos los ids de las columnas de tipo desplegable
+    $columnas = $col['data']['boards'][0]['columns'];//se genera
+    $result = array_filter($columnas, function ($element) {
+        return isset($element['title']) && $element['title'] === 'quien(es)';
+    });//se buscan solo los quw son son quienes
+
+    $colab = 'query {
+        items_by_column_values (board_id: 1520861792, column_id: "estatus", column_value: "ACTIVO") {
+        name,
+        column_values  {
+            id
+            title
+            text
+            }
+        }
+    }';//se genera query para buscar a los agentes
+    $exist = $this->apimon($colab);//se executa
+    $agentes = $exist['data']['items_by_column_values'];
+    foreach($agentes as $agente){
+        $agent[] = $agente['name']."-".$agente['column_values'][0]['text'];//se selecionan todos los agentes
+    }
+    foreach($result as $res){//inicia foreach de las columnas desplegables
+      $ids = $res['id'];//se sacan sus ids
+      $query = 'mutation {
+          change_simple_column_value (item_id:4708651048, board_id:4653825876, column_id:'.$ids.', value: "daleatucuerpo, alegriamakarena") {
+              id
+          }
+      }';//query de mutacion para sacar los agentes que tienen las columnas desplegables
+      $monval = $this->apimon($query);//se recibe
+      $eri = $monval['error_message'];//se reciben solo los agentes en string
+      $ror = substr($eri, strpos($eri,"{"));//se quita el mensaje de eroor
+      $err = explode(",",$ror);//se convierte en arreglo
+      $art = [];
+      foreach($err as $row){//se hace un foreach de el arreglo para generar los que son
+      $ala = substr($row,strpos($row,":"));//se quitan los dos puntos de su llave
+      $auma = str_replace(": ","",$ala);//se remplazan por nada para poder obtener solo los nombres y se almacena en la variable auma
+      $art []= str_replace("}","",$auma);
+      }
+      $idcol [] = ["id"=>$ids,"colaboradores"=>$art];
+    }
+    foreach($idcol as $iscol){
+      $adam = $iscol['id'];
+      $warlok = $iscol['colaboradores'];
+      $out = array_diff($agent,$warlok);//se hace diferencia de agentes contra aumas
+      $ars = implode(",",$out);
+      $inser = 'mutation {
+             change_simple_column_value(item_id:4708651048, board_id:4653825876, column_id: '.$adam.', value: "'.$ars.'", create_labels_if_missing: true) {
+               id
+               }
+        }';//se genera el query para insertar cada uno de los que faltan
+        $dependientes = $this->apimon($inser);//se insertan
+        };
+
+    return $ars;
+  }
+
+
+  public function checklistfinop(){
+    $fail = [];
+    $ins = [];
+    $ens = [];
+
+    $query = 'query {
+        items_by_column_values (board_id: 4658499281, column_id: "estado", column_value: "SIN ENVIAR") {
+            id
+            column_values{
+                id
+                title
+                text
+            }
+        }
+    }';//se genera consulta graphql para api de monday
+    $monval = $this->apimon($query);
+    $rows = $monval['data']['items_by_column_values'];
+    if($rows){
+        foreach($rows as $row){
+            $ids = $row['id'];
+            $existid =DB::table('checklistfinop')->where('id_mon',$ids)->first();
+            if($existid){
+            }else{
+                $suc = $row['column_values'][1]['text'];
+                $idsuc = DB::table('stores')->where('name',$suc)->value('id');
+                if($idsuc){
+                    $admon = $row['column_values'][3]['text'];
+                    $idadm = DB::table('staff')->where('complete_name',$admon)->value('id');
+                    if($idadm){
+                        $crated = $row['column_values'][2]['text'];
+                        $datetime_utc = strtotime($crated) - 3600;
+                        date_default_timezone_set(date_default_timezone_get());
+                        $created = date('Y-m-d H:i:s', $datetime_utc);
+                        $cated = date('Y-m-d H_i_s', $datetime_utc);
+                        $evidence  = json_encode($row['column_values'][34]['text']);
+                        $cal = [
+                            "pg1" => $row['column_values'][4]['text'] ,
+                            "pg2" => $row['column_values'][7]['text'] ,
+                            "pg3" => $row['column_values'][10]['text'] ,
+                            "pg4" => $row['column_values'][13]['text'],
+                            "pg5" => $row['column_values'][16]['text'],
+                            "pg6" => $row['column_values'][19]['text'],
+                            "pg7" => $row['column_values'][22]['text'],
+                            "pg8" => $row['column_values'][25]['text'],
+                            "pg9" => $row['column_values'][28]['text'],
+                            "pg10" => $row['column_values'][31]['text']
+                        ];
+
+                        $cali = $this->calificacionfinop($cal);
+                        $ins = [
+                            "_store"=>$idsuc,
+                            "created"=>$created,
+                            "_admon"=>$idadm,
+                            "quiz"=>json_encode([
+                                $row['column_values'][4]['title'] =>  ["criterio"=>$row['column_values'][4]['text'] ,"observaciones"=>$row['column_values'][5]['text'],"quien"=>$row['column_values'][6]['text']],
+                                $row['column_values'][7]['title'] =>  ["criterio"=>$row['column_values'][7]['text'] ,"observaciones"=>$row['column_values'][8]['text'],"quien"=>$row['column_values'][9]['text']],
+                                $row['column_values'][10]['title'] =>  ["criterio"=>$row['column_values'][10]['text'] ,"observaciones"=>$row['column_values'][11]['text'],"quien"=>$row['column_values'][12]['text']],
+                                $row['column_values'][13]['title'] => ["criterio"=>$row['column_values'][13]['text'],"observaciones"=>$row['column_values'][14]['text'],"quien"=>$row['column_values'][15]['text']],
+                                $row['column_values'][16]['title'] => ["criterio"=>$row['column_values'][16]['text'],"observaciones"=>$row['column_values'][17]['text'],"quien"=>$row['column_values'][18]['text']],
+                                $row['column_values'][19]['title'] => ["criterio"=>$row['column_values'][19]['text'],"observaciones"=>$row['column_values'][20]['text'],"quien"=>$row['column_values'][21]['text']],
+                                $row['column_values'][22]['title'] => ["criterio"=>$row['column_values'][22]['text'],"observaciones"=>$row['column_values'][23]['text'],"quien"=>$row['column_values'][24]['text']],
+                                $row['column_values'][25]['title'] => ["criterio"=>$row['column_values'][25]['text'],"observaciones"=>$row['column_values'][26]['text'],"quien"=>$row['column_values'][27]['text']],
+                                $row['column_values'][28]['title'] => ["criterio"=>$row['column_values'][28]['text'],"observaciones"=>$row['column_values'][29]['text'],"quien"=>$row['column_values'][30]['text']],
+                                $row['column_values'][31]['title'] => ["criterio"=>$row['column_values'][31]['text'],"observaciones"=>$row['column_values'][32]['text'],"quien"=>$row['column_values'][33]['text']]]),
+                            "evidence"=>$evidence,
+                            "id_mon"=>$ids,
+                            "calification"=> $cali."/"."100"
+                            ];
+                        $insert = DB::table('checklistfinop')->insert($ins);
+                        if($insert){
+                            $ens[] = $ids;
+                            $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4658499281, column_id:"texto", value: "'.$cali."/"."100".'") {id}}';
+                            $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4658499281, column_values: "{\"estado\" : {\"label\" : \"ENVIADO\"}}") {id}}';
+                            $chan = $this->apimon($changtext);
+                            $chans = $this->apimon($chagesta);
+                            $inf = [
+                                'fecha'=>$cated,
+                                'puntuacion'=>$cali,
+                                'admin'=>$admon,
+                                'sucursal'=>$suc,
+                                'tot1'=>$row['column_values'][4]['text'],
+                                'obs1'=>$row['column_values'][5]['text'],
+                                'per1'=>$row['column_values'][6]['text'],
+                                'tot2'=>$row['column_values'][7]['text'],
+                                'obs2'=>$row['column_values'][8]['text'],
+                                'per2'=>$row['column_values'][9]['text'],
+                                'tot3'=>$row['column_values'][10]['text'],
+                                'obs3'=>$row['column_values'][11]['text'],
+                                'per3'=>$row['column_values'][12]['text'],
+                                'tot4'=>$row['column_values'][13]['text'],
+                                'obs4'=>$row['column_values'][14]['text'],
+                                'per4'=>$row['column_values'][15]['text'],
+                                'tot5'=>$row['column_values'][16]['text'],
+                                'obs5'=>$row['column_values'][17]['text'],
+                                'per5'=>$row['column_values'][18]['text'],
+                                'tot6'=>$row['column_values'][19]['text'],
+                                'obs6'=>$row['column_values'][20]['text'],
+                                'per6'=>$row['column_values'][21]['text'],
+                                'tot7'=>$row['column_values'][22]['text'],
+                                'obs7'=>$row['column_values'][23]['text'],
+                                'per7'=>$row['column_values'][24]['text'],
+                                'tot8'=>$row['column_values'][25]['text'],
+                                'obs8'=>$row['column_values'][26]['text'],
+                                'per8'=>$row['column_values'][27]['text'],
+                                'tot9'=>$row['column_values'][28]['text'],
+                                'obs9'=>$row['column_values'][29]['text'],
+                                'per9'=>$row['column_values'][30]['text'],
+                                'tot10'=>$row['column_values'][31]['text'],
+                                'obs10'=>$row['column_values'][32]['text'],
+                                'per10'=>$row['column_values'][33]['text']
+                            ];
+                            $pdf = $this->finop($inf);
+                            if($pdf['msg'] == "enviado"){
+                                //  $data = $pdf['archivo'];
+                                //  $document = file_get_contents($data);
+                                //  $doc = base64_encode($document);
+                                 $chagemsg = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4658499281, column_values: "{\"estado5\" : {\"label\" : \"ENVIADO\"}}") {id}}';
+                                 $chanms = $this->apimon($chagemsg);
+                                //  $addfile = 'mutation ($file:file!) { add_file_to_column (item_id: '.$ids.', column_id: "archivo3", file: '.$doc.') {id}}';
+                                // $chanfile = $this->apimonfile($addfile); //en algun moento funcionara
+                                }
+                                // return $chanfile;
+                        }
+                    }else{
+                        $fail[]="El admon ".$admon." no existe";
+                    }
+                }else{
+                    $fail[]="la sucursal ".$suc." no existe";
+                }
+            }
+        }
+        return response()->json("REGISTROS INSERTADOS = ".count($ens));//recorremos arreglos hasta los que ocuparemo
+    }else {
+        return response()->json("No hay registros");
+    }
+  }
+
+  public function calificacionfinop($cali){
+    $pg1 = $cali['pg1'] == "CUMPLE" ? 10 : 0;
+    $pg2 = $cali['pg2'] == "CUMPLE" ? 10 : 0;
+    $pg3 = $cali['pg3'] == "CUMPLE" ? 10 : 0;
+    $pg4 = $cali['pg4'] == "CUMPLE" ? 10 : 0;
+    $pg5 = $cali['pg5'] == "CUMPLE" ? 10 : 0;
+    $pg6 = $cali['pg6'] == "CUMPLE" ? 10 : 0;
+    $pg7 = $cali['pg7'] == "CUMPLE" ? 10 : 0;
+    $pg8 = $cali['pg8'] == "CUMPLE" ? 10 : 0;
+    $pg9 = $cali['pg9'] == "CUMPLE" ? 10 : 0;
+    $pg10 = $cali['pg10'] == "CUMPLE" ? 10 : 0;
+
+    $TOTAL =  $pg1 + $pg2 + $pg3 + $pg4 + $pg5 + $pg6 + $pg7 + $pg8 + $pg9 + $pg10;
+
+
+    return $TOTAL;
+  }
+
+  public function finop($inf){
+
+
+    $data = [
+      'fecha' => $inf['fecha'],
+      'puntuacion'=>$inf['puntuacion']." / 100",
+      'admin' => $inf['admin'],
+      'sucursal' => $inf['sucursal'],
+      'total'=> $inf['puntuacion']." /100 ",
+      'ppg1' => 'PISO VENTA LIMPIOS',
+      'tot1' => $inf['tot1'],
+      'per1' => $inf['per1'],
+      'obs1' => $inf['obs1'],
+      'ppg2' => 'ENTREGA DE RADIOS Y TELEFONOS',
+      'tot2' => $inf['tot2'],
+      'per2' => $inf['per2'],
+      'obs2' => $inf['obs2'],
+      'ppg3' => 'ENTREGA TELEFONOS PERSONALES',
+      'tot3' => $inf['tot3'],
+      'per3' => $inf['per3'],
+      'obs3' => $inf['obs3'],
+      'ppg4' => 'BANOS Y COMEDOR LIMPIOS',
+      'tot4' => $inf['tot4'],
+      'per4' => $inf['per4'],
+      'obs4' => $inf['obs4'],
+      'ppg5' => 'CIERRE SESION EN CAJAS',
+      'tot5' => $inf['tot5'],
+      'per5' => $inf['per5'],
+      'obs5' => $inf['obs5'],
+      'ppg6' => 'BODEGA LIMPIA Y ORDENADA',
+      'tot6' => $inf['tot6'],
+      'per6' => $inf['per6'],
+      'obs6' => $inf['obs6'],
+      'ppg7' => 'ENTREGA GAFETES A ADMINISTRATIVO',
+      'tot7' => $inf['tot7'],
+      'per7' => $inf['per7'],
+      'obs7' => $inf['obs7'],
+      'ppg8' => 'LLENADO DE BITACORA PARTE OPERACIONES',
+      'tot8' => $inf['tot8'],
+      'per8' => $inf['per8'],
+      'obs8' => $inf['obs8'],
+      'ppg9' => 'CAJAS LIMPIAS Y ORDENADAS',
+      'tot9' => $inf['tot9'],
+      'per9' => $inf['per9'],
+      'obs9' => $inf['obs9'],
+      'ppg10' => 'LLENADO DE BITACORA DE RETIRADAS Y CORTE ARCHIVADO',
+      'tot10' => $inf['tot10'],
+      'per10' => $inf['per10'],
+      'obs10' => $inf['obs10'],
+    ];
+    $pdf = View::make('finop', $data)->render();
+
+    $sucursal = $inf['sucursal'];
+
+    switch ($sucursal) {
+      case "SAN PABLO 1":
+      $carpaud = "C:\REPORTESCHKL\SANPABLO1";
+      $number = "+525534507385";
+      break;
+      case "SAN PABLO 2":
+      $carpaud = "C:\REPORTESCHKL\SANPABLO2";
+      $number = "+525537148456";
+      break;
+      case "SAN PABLO 3":
+      $carpaud = "C:\REPORTESCHKL\SANPABLO3";
+      $number = "+525537148456";
+      break;
+          case "SAN PABLO C":
+      $carpaud = "C:\REPORTESCHKL\SANPABLOC";
+      $number = "+525535538498";
+      break;
+          case "SOTANO":
+      $carpaud = "C:\REPORTESCHKL\SOTANO";
+      $number = "+525543918004";
+      break;
+          case "CORREO 1":
+      $carpaud = "C:\REPORTESCHKL\CORREO1";
+      $number = "+525539945073";
+      break;
+          case "CORREO 2":
+      $carpaud = "C:\REPORTESCHKL\CORREO2";
+      $number = "+525559024985";
+      break;
+          case "RAMON CORONA 1":
+      $carpaud = "C:\REPORTESCHKL\RAMONC1";
+      $number = "+525554699569";
+      break;
+          case "RAMON CORONA 2":
+      $carpaud = "C:\REPORTESCHKL\RAMONC2";
+      $number = "+525554699569";
+      break;
+          case "BOLIVIA":
+      $carpaud = "C:\REPORTESCHKL\BOLIVIA";
+      $number = "+525540139765";
+      break;
+          case "BRASIL 1":
+      $carpaud = "C:\REPORTESCHKL\BRASIL1";
+      $number = "+525539063473";
+      break;
+          case "BRASIL 2":
+      $carpaud = "C:\REPORTESCHKL\BRASIL2";
+      $number = "+525543956395";
+      break;
+          case "BRASIL 3":
+      $carpaud = "C:\REPORTESCHKL\BRASIL3";
+      $number = "+525537045056";
+      // $number = "+525573461022";
+      break;
+          case "APARTADO 1":
+      $carpaud = "C:\REPORTESCHKL\APARTADO1";
+      $number = "+525539110690";
+      break;
+          case "APARTADO 2":
+      $carpaud = "C:\REPORTESCHKL\APARTADO2";
+      $number = "+525561557873";
+      break;
+          case "PUEBLA":
+      $carpaud = "C:\REPORTESCHKL\PUEBLA";
+      $number = "+525541282698";
+      break;
+    }
+
+    $options = new Options();
+    $options->set('isRemoteEnabled',true);
+    $dompdf = new Dompdf($options);
+    $dompdf->loadHtml($pdf);
+    $dompdf->render();
+    $output = $dompdf->output();
+    $namefile = 'checklist'.$inf['fecha'].$inf['sucursal'].'.pdf';
+    $rutacompleta = $carpaud.'/'.'checklist'.$inf['fecha'].$inf['sucursal'].'.pdf';
+    file_put_contents($rutacompleta,$output);
+    $filename = $this->sendocument($rutacompleta,$namefile,$number);
+    if($filename == "enviado"){
+      $res = [
+          "msg"=>"enviado",
+          "archivo"=>$rutacompleta
+      ];
+    }else{
+      $res = [
+          "msg"=>"no enviado",
+          "archivo"=>$rutacompleta
+      ];
+    }
+
+    return $res;
 }
+}
+
+
+
+//mx100-cedis-mkrqpwcczk.dynamic-m.com:1025/Assist/public/api/webhook
+
