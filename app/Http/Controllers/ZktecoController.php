@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Rats\Zkteco\Lib\ZKTeco;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\StaffController;
 
 class ZktecoController extends Controller
 {
@@ -78,47 +79,82 @@ class ZktecoController extends Controller
 
     public function Report(){
         $goals = [];
-        $report = [];
-        $fail = [];
-        $ret = [];
+        $fail = [
+            "conexion"=>[],
+            "asistencia"=>[]
+        ];
+
+        $staff = new StaffController();
+        $reply = $staff->replystaff();
+        $registros = $reply;
+        $employes = DB::table('staff')->select('id_rc')->get();
+        foreach($employes as $employe){
+            $sta[] = $employe->id_rc;
+        }
+
         $devices = DB::table('assist_devices')->get();
+
         foreach($devices as $device){
-            $zkteco = $device->ip_address;
-            $zk = new ZKTeco($zkteco);
+            $sucursal = $device->_store;
+            $dispositivo = $device->id;
+            $ipaddress = $device->ip_address;
+            $maxuid = DB::table('assist')->selectraw('MAX(auid) as max')->where('_device',$dispositivo)->value('max');
+
+            $zk = new ZKTeco($ipaddress);
             if($zk->connect()){
-                $assists = $zk->getAttendance();
-                if($assists){
-                    $serie = ltrim(stristr($zk->serialNumber(),'='),'=');
-                    $sucursal = DB::table('assist_devices')->where('serial_number',$serie)->first();
-                    if($sucursal){
-                        foreach($assists as $assist){
-                            $auid = DB::table('assist')->where('auid',$assist['uid'])->where('_store',$sucursal->_store)->first();
-                            if(is_null($auid)){
-                                $user = DB::table('staff')->where('id_rc',intval($assist['id']))->value('id');
-                                if($user){
-                                    $report = [
-                                    "auid" => $assist['uid'],//id checada checador
-                                    "register" => $assist['timestamp'], //horario
-                                    "_staff" => $user,//id del usuario
-                                    "_store"=> $sucursal->_store,
-                                    "_types"=>$assist['type'],//entrada y salida
-                                    "_class"=>$assist['state'],
-                                    "_device"=>$sucursal->id,
-                                    ];
-                                    $insert = DB::table('assist')->insert($report);
-                                    $ret[] = $report;
-                                }else{$fail[]= "El id ".$assist['id']." no tiene usuario registro ".$assist['timestamp'];}
-                            }
-                        }
-                    }else{$fail[]=$device->nick_name." La Sucursal no existe la serie".$serie;}
-                    $goals [] = [ "sucursal"=>$device->nick_name ,"registros"=>count($ret), "regis"=>$ret, "fail"=>$fail];
-                }else{$fail [] = $device->nick_name." No hay registros por el momento";}
-            }else{$fail [] = $device->nick_name." No hay conexion a el checador";}
+                $checker = $zk->getAttendance();
+                $assists = array_filter($checker,function($element) use ($maxuid){
+                    return isset($element['uid']) && $element['uid'] > $maxuid;
+                });
+                $assists = array_filter($assists, function($element) use($sta){
+                    return isset($element['id']) && in_array($element['id'],$sta);
+                });
+                    $goals[] = ["sucursal"=>$sucursal,"registros"=>count($assists)];
+                    foreach($assists as $assist){
+                        $user = DB::table('staff')->where('id_rc',$assist['id'])->value('id');
+                        $report = [
+                            "auid" => $assist['uid'],//id checada checador
+                            "register" => $assist['timestamp'], //horario
+                            "_staff" => $user,//id del usuario
+                            "_store"=> $sucursal,
+                            "_types"=>$assist['type'],//entrada y salida
+                            "_class"=>$assist['state'],
+                            "_device"=>$dispositivo,
+                        ];
+                        $insert = DB::table('assist')->insert($report);
+                    }
+            }else{
+                $fail['conexion'][]= "El dispositivo de la sucursal ".$device->nick_name." no tiene conexion";
+            }
         }
         $res = [
-            "goal"=>$goals,
-            "fail"=>$fail
+            "goals"=>$goals,
+            "fail"=>$fail,
+            "registros_act"=>$registros
         ];
+
         return response()->json($res);
+    }
+    public function insturn(Request $request){
+        $assist = $request->all();
+
+        foreach($assist as $row){
+            $res = $row['id'];
+            $user = DB::table('staff')->where('id_rc',$res)->value('id');
+            if($user){
+                $ins = [
+                    "week"=>$row['semana'],
+                    "_staff"=>$user,
+                    "hour_hand"=>$row['turno']
+                ];
+                $insert = DB::table('assist_turn')->insert($ins);
+
+
+            }else{
+                $fail[]="El id ".$res." no existe";
+            }
+
+        }
+        return $insert;
     }
 }

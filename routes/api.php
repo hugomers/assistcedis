@@ -33,6 +33,7 @@ Route::get('/pings',[ZktecoController::class,'pings']);
 Route::post('/add',[ZktecoController::class,'add']);
 Route::get('/maxuaid',[ZktecoController::class,'maxuaid']);
 Route::get('/report',[ZktecoController::class,'report']);
+Route::post('/insturn', [ZktecoController::class, 'insturn']);
 
 Route::get('/suc',[GoogleController::class,'sucursales']);
 
