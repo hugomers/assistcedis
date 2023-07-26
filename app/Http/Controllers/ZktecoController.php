@@ -130,11 +130,12 @@ class ZktecoController extends Controller
         $res = [
             "goals"=>$goals,
             "fail"=>$fail,
-            "registros_act"=>$registros
+            // "registros_act"=>$registros
         ];
 
         return response()->json($res);
     }
+
     public function insturn(Request $request){
         $assist = $request->all();
 
@@ -143,7 +144,7 @@ class ZktecoController extends Controller
             $user = DB::table('staff')->where('id_rc',$res)->value('id');
             if($user){
                 $ins = [
-                    "week"=>$row['semana'],
+                    "_week"=>$row['semana'],
                     "_staff"=>$user,
                     "hour_hand"=>$row['turno']
                 ];
@@ -156,5 +157,58 @@ class ZktecoController extends Controller
 
         }
         return $insert;
+    }
+
+    public function completeReport(){
+        $goals = [];
+        $fail = [
+            "asistencias"=>[],
+            "conexion"=> [],
+            "insert"=> [],
+        ];
+        $devices = DB::table('assist_devices')->where('id',1)->get();
+        foreach($devices as $device){
+            $sucursal = $device->_store;
+            $dispositivo = $device->id;
+            $ip = $device->ip_address;
+            $zk = new ZKTeco($ip);
+            if($zk->connect()){
+                $assists = $zk->getAttendance();
+                if($assists){
+                    foreach($assists as $assist){
+                        $user = DB::table('staff')->where('id_rc',$assist['id'])->value('id');
+                        // $che [] = $assist;
+                        $report [] = [
+                            "auid" => $assist['uid'],//id checada checador
+                            "register" => $assist['timestamp'], //horario
+                            "_staff" => $user,//id del usuario
+                            "_store"=> $sucursal,
+                            "_types"=>$assist['type'],//entrada y salida
+                            "_class"=>$assist['state'],
+                            "_device"=>$dispositivo,
+                        ];
+
+                    }
+                    $goals[]=[
+                        "sucursal"=>$device->nick_name,
+                        "registros"=>$report
+                    ];
+                }else{
+                    $fail['asistencias'][]= "El dispositivo de la sucursal ".$device->nick_name." no tiene asistencias";
+                }
+            }else{
+                $fail['conexion'][]= "El dispositivo de la sucursal ".$device->nick_name." no tiene conexion";
+            }
+
+
+
+
+        }
+        $res = [
+            "goals"=>$goals,
+            "fails"=>$fail
+        ];
+
+        return $res;
     }
 }

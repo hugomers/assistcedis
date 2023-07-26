@@ -32,10 +32,11 @@
   <table>
     <thead>
       <tr>
+        <th>REVISION</th>
         <th>CHECK</th>
-        <th>PUNTOS</th>
-        <th>PERSONAL</th>
-        <th>OBSERVACION</th>
+        <th>PERSONAL INVOLUCRADO</th>
+        <th>PUNTOS FALLIDOS</th>
+        <th>OBSERVACIONES</th>
       </tr>
     </thead>
     <tbody>
@@ -43,106 +44,74 @@
             <td> {{$ppg1}} </td>
             <td> {{$tot1}} </td>
             <td> {{$per1}} </td>
+            <td> {{$pt1}} </td>
             <td> {{$obs1}} </td>
         </tr>
         <tr>
             <td> {{$ppg2}} </td>
             <td> {{$tot2}} </td>
             <td> {{$per2}} </td>
+            <td> {{$pt2}} </td>
             <td> {{$obs2}} </td>
         </tr>
         <tr>
             <td> {{$ppg3}} </td>
             <td> {{$tot3}} </td>
             <td> {{$per3}} </td>
+            <td> {{$pt3}} </td>
             <td> {{$obs3}} </td>
         </tr>
         <tr>
             <td> {{$ppg4}} </td>
             <td> {{$tot4}} </td>
             <td> {{$per4}} </td>
+            <td> {{$pt4}} </td>
             <td> {{$obs4}} </td>
         </tr>
         <tr>
             <td> {{$ppg5}} </td>
             <td> {{$tot5}} </td>
             <td> {{$per5}} </td>
+            <td> {{$pt5}} </td>
             <td> {{$obs5}} </td>
         </tr>
         <tr>
             <td> {{$ppg6}} </td>
             <td> {{$tot6}} </td>
             <td> {{$per6}} </td>
+            <td> {{$pt6}} </td>
             <td> {{$obs6}} </td>
         </tr>
         <tr>
             <td> {{$ppg7}} </td>
             <td> {{$tot7}} </td>
             <td> {{$per7}} </td>
+            <td> {{$pt7}} </td>
             <td> {{$obs7}} </td>
         </tr>
         <tr>
             <td> {{$ppg8}} </td>
             <td> {{$tot8}} </td>
             <td> {{$per8}} </td>
+            <td> {{$pt8}} </td>
             <td> {{$obs8}} </td>
         </tr>
         <tr>
             <td> {{$ppg9}} </td>
             <td> {{$tot9}} </td>
             <td> {{$per9}} </td>
+            <td> {{$pt9}} </td>
             <td> {{$obs9}} </td>
         </tr>
         <tr>
             <td> {{$ppg10}} </td>
             <td> {{$tot10}} </td>
             <td> {{$per10}} </td>
+            <td> {{$pt10}} </td>
             <td> {{$obs10}} </td>
         </tr>
-        <tr>
-            <td> {{$ppg11}} </td>
-            <td> {{$tot11}} </td>
-            <td> {{$per11}} </td>
-            <td> {{$obs11}} </td>
-        </tr>
-        <tr>
-            <td> {{$ppg12}} </td>
-            <td> {{$tot12}} </td>
-            <td> {{$per12}} </td>
-            <td> {{$obs12}} </td>
-        </tr>
-        <tr>
-            <td> {{$ppg13}} </td>
-            <td> {{$tot13}} </td>
-            <td> {{$per13}} </td>
-            <td> {{$obs13}} </td>
-        </tr>
-        <tr>
-            <td> {{$ppg14}} </td>
-            <td> {{$tot14}} </td>
-            <td> {{$per14}} </td>
-            <td> {{$obs14}} </td>
-        </tr>
-        <tr>
-            <td> {{$ppg15}} </td>
-            <td> {{$tot15}} </td>
-            <td> {{$per15}} </td>
-            <td> {{$obs15}} </td>
-        </tr>
-        <tr>
-            <td> {{$ppg16}} </td>
-            <td> {{$tot16}} </td>
-            <td> {{$per16}} </td>
-            <td> {{$obs16}} </td>
-        </tr>
-        <tr>
-            <td> {{$ppg17}} </td>
-            <td> {{$tot17}} </td>
-            <td> {{$per17}} </td>
-            <td> {{$obs17}} </td>
-        </tr>
         <td>TOTAL</td>
-        <td colspan="3" style="text-align: center;">{{$total}}</td>
+        <td colspan="4" style="text-align: center;">{{$total}}</td>
       </tr>
     </tbody>
   </table>

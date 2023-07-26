@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ZktecoController;
+use App\Http\Controllers\MondayController;
+use App\Http\Controllers\WappController;
+
 
 
 
@@ -22,7 +25,7 @@ Route::post('/syncstaff',[StaffController::class,'replystaff']);
 Route::post('/checklistiop',[StaffController::class,'checklistiop']);
 Route::post('/webhook',[StaffController::class,'webhook']);
 Route::post('/syncjustification',[StaffController::class,'justification']);
-Route::post('/updatestaff', [StaffController::class, 'updatestaff']);
+Route::post('/updatestaff', [StaffController::class, 'dropiopupd']);
 Route::post('/updatestaffiop', [StaffController::class, 'updatestaffiop']);
 Route::get('/checklistfinop', [StaffController::class, 'checklistfinop']);
 
@@ -37,3 +40,19 @@ Route::post('/insturn', [ZktecoController::class, 'insturn']);
 
 Route::get('/suc',[GoogleController::class,'sucursales']);
 
+Route::prefix('/Monday')->group(function(){
+    Route::get('/Cifras',[MondayController::class, 'Cifras']);
+    Route::post('/cheklistiop',[MondayController::class, 'cheklistiop']);
+    Route::post('/cheklistfinop',[MondayController::class, 'cheklistfinop']);
+    Route::post('/completestaff',[MondayController::class, 'completestaff']);
+    Route::post('/staff',[MondayController::class, 'staff']);
+    Route::post('/justification',[MondayController::class, 'justification']);
+});
+
+Route::prefix('/waap')->group(function(){
+    Route::post('/restock',[WappController::class, 'restock']);
+});
+
+Route::prefix('/zkt')->group(function(){
+    Route::get('/Reportcomplete',[ZktecoController::class, 'completeReport']);
+});
