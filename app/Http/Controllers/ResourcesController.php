@@ -22,6 +22,8 @@ class ResourcesController extends Controller
         $hora =date('H:i:s', strtotime($items['fecha']) - 3600);
         $horanom =date('H_i_s', strtotime($items['fecha']) - 3600);
         $fecha =date('Y-m-d', strtotime($items['fecha']));
+        $fechapdf = $items['fecha'];
+        $horapdf = $items['hora'];
         $sucursal = $items['sucursal'];
         switch($sucursal){
             case "SAN PABLO 1":
@@ -85,8 +87,8 @@ class ResourcesController extends Controller
 
         $carpaud = "C:\REPORTESCHKL\ACTASADMINISTRATIVA";
         $creapd = [
-            "hora"=>$hora,
-            "fecha"=>$fecha,
+            "hora"=>$horapdf,
+            "fecha"=>$fechapdf,
             "sucursal"=>$sucursal,
             "domicilio"=>$domicilio,
             "nombre"=>$nombre,
@@ -98,7 +100,7 @@ class ResourcesController extends Controller
         ];
             $pdf = View::make('actas', $creapd)->render();
 
-            $number = "5573461022";
+            // $number = "5573461022";
 
 
             $options = new Options();
@@ -126,8 +128,8 @@ class ResourcesController extends Controller
     }
 
     public function sendocument($archivo,$namefile){
-        // $number = "5539297483";
-        $number = "5573461022";
+        $number = "5539297483";
+        // $number = "5573461022";
 
         $data = file_get_contents($archivo);
         $file = base64_encode($data);

@@ -43,8 +43,13 @@
     <title>Actas aministrativas</title>
 </head>
 <body>
+    @if($sucursal == "PUEBLA")
+    <img class = "logo"  src="{{asset('img/candytos.png')}}">
+    <img class = "watermark"  src="{{asset('img/candytos.png')}}">
+    @else
     <img class = "logo"  src="{{asset('img/tipelog.png')}}">
     <img class = "watermark"  src="{{asset('img/tipelog.png')}}">
+    @endif
     <p></p>
     <h1>ACTA ADMINISTRATIVA</h1>
     <p></p>
