@@ -74,7 +74,7 @@ class StaffController extends Controller
                         }else{
                             $existid = DB::table('staff')->where('id_rc',$rcid)->first();//SE VERIFICA QUE NO EXISTA UN VALOR DUPLICADO EN EL ID DEL CHECADOR
                             if($existid){//si existe
-                                $fail['inserts'][]="ID_RC ya esta asignado a otro colaborador ".$rcid;//se contiene en fails
+                                $fail['inserts'][]=$existid->id_rc." ya esta asignado a otro colaborador ".$existid->complete_name;//se contiene en fails
                             }else{
                                 $insert = DB::table('staff')->insert(['complete_name'=>$user,'id_rc'=>$rcid,'_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);// si no tiene se inserta en la tabla
                                 $upins['inserts'][] ="Usuario ".$user." insertado";//se guarda en el arreglo de goals

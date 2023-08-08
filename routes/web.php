@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PDFController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\ResourcesController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -20,3 +22,4 @@ Route::get('/', function () {
 
 Route::get('/create-pdf-file', [StaffController::class, 'pdi']);
 Route::get('/finalop', [StaffController::class, 'finop']);
+Route::get('/actadmin',[ResourcesController::class,'' ]);

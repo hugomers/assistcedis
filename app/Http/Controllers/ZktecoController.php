@@ -92,7 +92,7 @@ class ZktecoController extends Controller
             $sta[] = $employe->id_rc;
         }
 
-        $devices = DB::table('assist_devices')->get();
+        $devices = DB::table('assist_devices')->where('id',4)->get();
 
         foreach($devices as $device){
             $sucursal = $device->_store;
@@ -102,14 +102,15 @@ class ZktecoController extends Controller
 
             $zk = new ZKTeco($ipaddress);
             if($zk->connect()){
-                $checker = $zk->getAttendance();
+                $checker[] = $zk->getAttendance();
+
                 $assists = array_filter($checker,function($element) use ($maxuid){
                     return isset($element['uid']) && $element['uid'] > $maxuid;
                 });
                 $assists = array_filter($assists, function($element) use($sta){
                     return isset($element['id']) && in_array($element['id'],$sta);
                 });
-                    $goals[] = ["sucursal"=>$sucursal,"registros"=>count($assists)];
+                    $goals[] = ["sucursal"=>$device->nick_name,"registros"=>count($assists)];
                     foreach($assists as $assist){
                         $user = DB::table('staff')->where('id_rc',$assist['id'])->value('id');
                         $report = [
@@ -160,55 +161,5 @@ class ZktecoController extends Controller
     }
 
     public function completeReport(){
-        $goals = [];
-        $fail = [
-            "asistencias"=>[],
-            "conexion"=> [],
-            "insert"=> [],
-        ];
-        $devices = DB::table('assist_devices')->where('id',1)->get();
-        foreach($devices as $device){
-            $sucursal = $device->_store;
-            $dispositivo = $device->id;
-            $ip = $device->ip_address;
-            $zk = new ZKTeco($ip);
-            if($zk->connect()){
-                $assists = $zk->getAttendance();
-                if($assists){
-                    foreach($assists as $assist){
-                        $user = DB::table('staff')->where('id_rc',$assist['id'])->value('id');
-                        // $che [] = $assist;
-                        $report [] = [
-                            "auid" => $assist['uid'],//id checada checador
-                            "register" => $assist['timestamp'], //horario
-                            "_staff" => $user,//id del usuario
-                            "_store"=> $sucursal,
-                            "_types"=>$assist['type'],//entrada y salida
-                            "_class"=>$assist['state'],
-                            "_device"=>$dispositivo,
-                        ];
-
-                    }
-                    $goals[]=[
-                        "sucursal"=>$device->nick_name,
-                        "registros"=>$report
-                    ];
-                }else{
-                    $fail['asistencias'][]= "El dispositivo de la sucursal ".$device->nick_name." no tiene asistencias";
-                }
-            }else{
-                $fail['conexion'][]= "El dispositivo de la sucursal ".$device->nick_name." no tiene conexion";
-            }
-
-
-
-
-        }
-        $res = [
-            "goals"=>$goals,
-            "fails"=>$fail
-        ];
-
-        return $res;
     }
 }

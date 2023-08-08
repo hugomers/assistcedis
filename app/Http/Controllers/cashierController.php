@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 
 class cashierController extends Controller
 {
-    public function tckreturn(){
 
-    }
+
 }

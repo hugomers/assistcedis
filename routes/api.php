@@ -6,6 +6,8 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ZktecoController;
 use App\Http\Controllers\MondayController;
 use App\Http\Controllers\WappController;
+use App\Http\Controllers\ResourcesController;
+;
 
 
 
@@ -55,4 +57,8 @@ Route::prefix('/waap')->group(function(){
 
 Route::prefix('/zkt')->group(function(){
     Route::get('/Reportcomplete',[ZktecoController::class, 'completeReport']);
+});
+
+Route::prefix('/resources')->group(function(){
+    Route::post('/actadmin',[ResourcesController::class, 'actasAdministrativas']);
 });
