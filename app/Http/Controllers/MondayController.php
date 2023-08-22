@@ -69,35 +69,45 @@ class MondayController extends Controller
     }
 
     /* INICIO METODOS CHECK LIST INICIO DE OPERACIONES */
-    public function cheklistiop(){
+    public function cheklistiop(Request $request){
         $pdf = [];
         $mysql = [];
+        $idmon = $request->id;
+        // $query = 'query {
+        //     items_by_column_values (board_id: 4738541896, column_id: "estado", column_value: "Sin Enviar") {
+        //         id
+        //         column_values{
+        //             id
+        //             title
+        //             text
+        //         }
+        //     }
+        // }';//se genera consulta graphql para api de monday
         $query = 'query {
-            items_by_column_values (board_id: 4738541896, column_id: "estado", column_value: "Sin Enviar") {
-                id
+            items (ids: ['.$idmon.']) {
+                id,
                 column_values{
                     id
                     title
                     text
                 }
-            }
+          }
         }';//se genera consulta graphql para api de monday
         $monval = $this->apimon($query);
-        $data = $monval['data']['items_by_column_values'];// se envia a mysql
+        $data = $monval['data']['items'];// se envia a mysql
         $mysql = $this->mysqliop($data);
-
         $pdfque = 'query {
-            items_by_column_values (board_id: 4738541896, column_id: "estado9", column_value: "Sin Enviar") {
-                id
+            items (ids: ['.$idmon.']) {
+                id,
                 column_values{
                     id
                     title
                     text
                 }
-            }
+          }
         }';//se genera consulta graphql para api de monday
         $pdfval = $this->apimon($pdfque);
-        $pdfdata = $pdfval['data']['items_by_column_values'];// se envia a pdf
+        $pdfdata = $pdfval['data']['items'];// se envia a pdf
         $pdf = $this->pdfiop($pdfdata);
         $res = [
             "pdf"=>$pdf,
@@ -385,35 +395,36 @@ class MondayController extends Controller
     /*FINAL DE METODOS CHECK LIST INICIO DE OPERACIONES */
 
     /* INICIO METODOS CHECK LIST FINAL DE OPERACIONES */
-    public function cheklistfinop(){
+    public function cheklistfinop(Request $request){
         $pdf = [];
         $mysql = [];
+        $idmon = $request->id;
         $query = 'query {
-            items_by_column_values (board_id: 4738652916, column_id: "estado", column_value: "Sin Enviar") {
-                id
+            items (ids: ['.$idmon.']) {
+                id,
                 column_values{
                     id
                     title
                     text
                 }
-            }
+          }
         }';//se genera consulta graphql para api de monday
         $monval = $this->apimon($query);
-        $data = $monval['data']['items_by_column_values'];// se envia a mysql
+        $data = $monval['data']['items'];// se envia a mysql
         $mysql = $this->mysqlfinop($data);
 
         $pdfque = 'query {
-            items_by_column_values (board_id: 4738652916, column_id: "estado7", column_value: "Sin Enviar") {
-                id
+            items (ids: ['.$idmon.']) {
+                id,
                 column_values{
                     id
                     title
                     text
                 }
-            }
+          }
         }';//se genera consulta graphql para api de monday
         $pdfval = $this->apimon($pdfque);
-        $pdfdata = $pdfval['data']['items_by_column_values'];// se envia a pdf
+        $pdfdata = $pdfval['data']['items'];// se envia a pdf
         $pdf = $this->pdffinop($pdfdata);
 
         $res = [
@@ -526,7 +537,7 @@ class MondayController extends Controller
                 break;
                 case "SAN PABLO 3":
                 $carpaud = "C:\REPORTESCHKL\SANPABLO3";
-                $number = "+52532605854";
+                $number = "+525532605854";
                 break;
                     case "SAN PABLO C":
                 $carpaud = "C:\REPORTESCHKL\SANPABLOC";

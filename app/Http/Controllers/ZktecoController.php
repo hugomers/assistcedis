@@ -92,7 +92,7 @@ class ZktecoController extends Controller
             $sta[] = $employe->id_rc;
         }
 
-        $devices = DB::table('assist_devices')->where('id',4)->get();
+        $devices = DB::table('assist_devices')->get();
 
         foreach($devices as $device){
             $sucursal = $device->_store;
@@ -161,5 +161,51 @@ class ZktecoController extends Controller
     }
 
     public function completeReport(){
+        $goals = [];
+        $fails = [];
+        $deviceszkt = DB::table('assist_devices')->select('id','nick_name','ip_address','_store')->get();
+        foreach($deviceszkt as $device){
+            $zk = new ZKTeco($device->ip_address);
+            if($zk->connect()){
+                // if($zk->clearAttendance()){
+                //     $goals[]  = ["sucursal"=>$device->nick_name];
+                // }
+                $assists = $zk->getAttendance();
+                if($assists){
+                    foreach($assists as $assist){
+                        $auid = DB::table('assist')->where('auid',$assist['uid'])->where('_store',$device->_store)->first();
+                        if(is_null($auid)){
+                            $user = DB::table('staff')->where('id_rc',intval($assist['id']))->value('id');
+                            if($user){
+                                $report = [
+                                    "auid" => $assist['uid'],//id checada checador
+                                    "register" => $assist['timestamp'], //horario
+                                    "_staff" => $user,//id del usuario
+                                    "_store"=> $device->_store,
+                                    "_types"=>$assist['type'],//entrada y salida
+                                    "_class"=>$assist['state'],
+                                    "_device"=>$device->id,
+                                ];
+                                $insert = DB::table('assist')->insert($report);
+                            }
+                        }
+                    }
+                    $goals[] =[
+                        "sucursal"=>$device->nick_name,
+                        "checadas"=>count($assists)
+                    ];
+                }else{
+                    $fails[] ="no hay checadas favor de revisar sucursal ".$device->nick_name;
+                }
+            }else{
+                $fails[]=$device->nick_name;
+            }
+        }
+
+        $res = [
+            "goal"=>$goals,
+            "fail"=>$fails
+        ];
+        return $res;
     }
 }
