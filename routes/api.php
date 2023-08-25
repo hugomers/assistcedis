@@ -7,6 +7,7 @@ use App\Http\Controllers\ZktecoController;
 use App\Http\Controllers\MondayController;
 use App\Http\Controllers\WappController;
 use App\Http\Controllers\ResourcesController;
+use App\Http\Controllers\AssistController;
 ;
 
 
@@ -61,4 +62,8 @@ Route::prefix('/zkt')->group(function(){
 
 Route::prefix('/resources')->group(function(){
     Route::post('/actadmin',[ResourcesController::class, 'actasAdministrativas']);
+});
+
+Route::prefix('/assist')->group(function(){
+    Route::get('/report',[AssistController::class, 'report']);
 });

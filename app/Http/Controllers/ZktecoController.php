@@ -206,6 +206,6 @@ class ZktecoController extends Controller
             "goal"=>$goals,
             "fail"=>$fails
         ];
-        return $res;
+        return view('reporte');
     }
 }
