@@ -8,6 +8,7 @@ use App\Http\Controllers\MondayController;
 use App\Http\Controllers\WappController;
 use App\Http\Controllers\ResourcesController;
 use App\Http\Controllers\AssistController;
+use App\Http\Controllers\ProductsController;
 ;
 
 
@@ -49,7 +50,9 @@ Route::prefix('/Monday')->group(function(){
     Route::post('/cheklistfinop',[MondayController::class, 'cheklistfinop']);
     Route::post('/completestaff',[MondayController::class, 'completestaff']);
     Route::post('/staff',[MondayController::class, 'staff']);
-    Route::post('/justification',[MondayController::class, 'justification']);
+    Route::get('/justification',[MondayController::class, 'justification']);
+    Route::get('/getids',[MondayController::class, 'findid']);
+
 });
 
 Route::prefix('/waap')->group(function(){
@@ -66,4 +69,8 @@ Route::prefix('/resources')->group(function(){
 
 Route::prefix('/assist')->group(function(){
     Route::get('/report',[AssistController::class, 'report']);
+});
+
+Route::prefix('/Products')->group(function(){
+    Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
 });

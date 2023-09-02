@@ -762,10 +762,14 @@ class MondayController extends Controller
         $iniop = $this->dropdowniop($colaboradores);
         $finop = $this->dropdownfinop($colaboradores);
         $just = $this->dropdownjust($colaboradores);
+        $clim = $this->dropdownclima($colaboradores);
+        $act = $this->dropdownactas($colaboradores);
         $res = [
             "inicio operaciones"=>$iniop,
             "final operaciones"=>$finop,
-            "justificaciones"=>$just
+            "justificaciones"=>$just,
+            "clima_laboral"=>$clim,
+            "actas_adm"=>$act
         ];
         return $res;
 
@@ -953,6 +957,122 @@ class MondayController extends Controller
         return $res;
 
     }
+
+    public function dropdownclima($colaboradores){
+        foreach($colaboradores as $colab){
+            $agentes [] = $colab['nombre'];
+        };
+        asort($agentes);
+
+        $todes = 'query {
+            boards (ids: 4813574060) {
+            columns {
+                id
+                title
+                }
+            }
+        }
+        ';
+        $col = $this->apimon($todes);//se buscan todos los ids de las columnas de tipo desplegable
+        $columnas = $col['data']['boards'][0]['columns'];//se genera
+        $arraynam = ["NOMBRE","JEFE DIRECTO","Si es mala indica el nombre con quien(es):","Si es muy a menudo indica el Nombre hacia quien(es):","Con quien(es)"];
+        $results = array_filter($columnas, function ($element) use($arraynam){
+            return isset($element['title']) && in_array($element['title'],$arraynam);
+        });//se buscan solo los quw son son quienes
+        foreach($results as $result){
+            $idcol = $result['id'];
+            $query = 'mutation {
+                change_simple_column_value (item_id:4813863697, board_id:4813574060, column_id:'.$idcol.', value: "jugitodenaranja") {
+                    id
+                }
+            }';
+            $monval  = $this->apimon($query);//se recibe
+            $errmsg = $monval['error_message'];
+            $errsub = substr($errmsg, strpos($errmsg,"{"));
+            $errs = explode(",",$errsub);
+            $val = [];
+            foreach($errs as $err){
+                $val [] = str_replace("}","",str_replace(": ","",substr($err,strpos($err,":"))));
+            }
+            $cols [] = [
+                "id"=>$idcol, "values"=>$val];
+        }
+
+        foreach($cols as $column){
+            $ids = $column['id'];
+            asort($column['values']);
+            $depen  = array_values($column['values']);
+            $agnts = array_values($agentes);
+            $out = array_values(array_diff($agnts,$depen));
+            $inp = implode(",",$out);
+            $inser = 'mutation {
+                change_simple_column_value(item_id:4813863697, board_id:4813574060, column_id: '.$ids.', value: "'.$inp.'", create_labels_if_missing: true) {
+                id
+                }
+        }';
+        $dependientes = $this->apimon($inser);
+        $res[] = ["idcolumn"=>$ids,"faltantes"=>$out];
+        }
+        return $res;
+    }
+
+    public function dropdownactas($colaboradores){
+        foreach($colaboradores as $colab){
+            $agentes [] = $colab['nombre'];
+        };
+        asort($agentes);
+
+        $todes = 'query {
+            boards (ids: 4933901663) {
+            columns {
+                id
+                title
+                }
+            }
+        }
+        ';
+        $col = $this->apimon($todes);//se buscan todos los ids de las columnas de tipo desplegable
+        $columnas = $col['data']['boards'][0]['columns'];//se genera
+        $arraynam = ["COLABORADOR"];
+        $results = array_filter($columnas, function ($element) use($arraynam){
+            return isset($element['title']) && in_array($element['title'],$arraynam);
+        });//se buscan solo los quw son son quienes
+        foreach($results as $result){
+            $idcol = $result['id'];
+            $query = 'mutation {
+                change_simple_column_value (item_id:4935905525, board_id:4933901663, column_id:'.$idcol.', value: "jugitodenaranja") {
+                    id
+                }
+            }';
+            $monval  = $this->apimon($query);//se recibe
+            $errmsg = $monval['error_message'];
+            $errsub = substr($errmsg, strpos($errmsg,"{"));
+            $errs = explode(",",$errsub);
+            $val = [];
+            foreach($errs as $err){
+                $val [] = str_replace("}","",str_replace(": ","",substr($err,strpos($err,":"))));
+            }
+            $cols [] = [
+                "id"=>$idcol, "values"=>$val];
+        }
+
+        foreach($cols as $column){
+            $ids = $column['id'];
+            asort($column['values']);
+            $depen  = array_values($column['values']);
+            $agnts = array_values($agentes);
+            $out = array_values(array_diff($agnts,$depen));
+            $inp = implode(",",$out);
+            $inser = 'mutation {
+                change_simple_column_value(item_id:4935905525, board_id:4933901663, column_id: '.$ids.', value: "'.$inp.'", create_labels_if_missing: true) {
+                id
+                }
+        }';
+        $dependientes = $this->apimon($inser);
+        $res[] = ["idcolumn"=>$ids,"faltantes"=>$out];
+        }
+        return $res;
+    }
     /* TERMINO DE  METODOS ACTUALIZAR PERSONAL DE LOS MENUS DESPLEGABLES DE FORMULARIOS (JUSTIFICACIONES, CHECKLIST INICIO, CHECKLIST FINAL)*/
 
     public function staff(){
@@ -1040,7 +1160,7 @@ class MondayController extends Controller
 
         }
 
-        return $nuevo;
+        return response()->json("Justificaciones Replicadas");
     }
 
     public function Cifras(){
@@ -1059,5 +1179,24 @@ class MondayController extends Controller
             }';
         $mon = $this->apimon($query);
         return $mon;
+    }
+
+    public function findid(Request $request){
+        $idtablero = $request->tablero;
+        $query = 'query {
+            boards (ids: '.$idtablero.') {
+                items {
+                id
+                name
+                column_values  {
+                    id
+                    title
+                    text
+                }
+                }
+            }
+            }';
+        $ids = $this->apimon($query);
+        return response()->json($ids);
     }
 }

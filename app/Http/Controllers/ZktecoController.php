@@ -191,21 +191,24 @@ class ZktecoController extends Controller
                         }
                     }
                     $goals[] =[
+                        "id"=>$device->id,
                         "sucursal"=>$device->nick_name,
-                        "checadas"=>count($assists)
+                        "conexion"=>"Conectado",
+                        "registroes"=>count($assists)
                     ];
-                }else{
-                    $fails[] ="no hay checadas favor de revisar sucursal ".$device->nick_name;
                 }
-            }else{
-                $fails[]=$device->nick_name;
+            }
+            else{
+                $goals[] =[
+                    "id"=>$device->id,
+                    "sucursal"=>$device->nick_name,
+                    "conexion"=>"SIN CONEXION",
+                    "registroes"=>0
+                ];
             }
         }
 
-        $res = [
-            "goal"=>$goals,
-            "fail"=>$fails
-        ];
-        return view('reporte');
+
+        return response()->json($goals,200);
     }
 }
