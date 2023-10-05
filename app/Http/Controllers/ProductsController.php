@@ -230,14 +230,14 @@ class ProductsController extends Controller
             $exec = curl_exec($ch);//se executa el curl
             $exc = json_decode($exec);//se decodifican los datos decodificados
             if(is_null($exc)){//si me regresa un null
-                // $stor['fails'] =["sucursal"=>$workpoint, "mssg"=>$exec];
-                $stor['fails'] =["sucursal"=>"PRUEBAS", "mssg"=>$exec];
+                $stor['fails'] =["sucursal"=>$workpoint, "mssg"=>$exec];
+                // $stor['fails'] =["sucursal"=>"PRUEBAS", "mssg"=>$exec];
 
             }else{
-                // $stor['goals'][] = $store->alias." cambios hechos";//de lo contrario se almacenan en sucursales
-                $stor['goals'][] = "PRUEBAS"." cambios hechos";//de lo contrario se almacenan en sucursales
-                // $stor['goals'] =["sucursal"=>$workpoint, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
-                $stor['goals'] =["sucursal"=>"PRUEBAS", "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
+                $stor['goals'][] = $store->alias." cambios hechos";//de lo contrario se almacenan en sucursales
+                // $stor['goals'][] = "PRUEBAS"." cambios hechos";//de lo contrario se almacenan en sucursales
+                $stor['goals'] =["sucursal"=>$workpoint, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
+                // $stor['goals'] =["sucursal"=>"PRUEBAS", "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
 
             }
             curl_close($ch);//cirre de curl
