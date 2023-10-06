@@ -255,7 +255,7 @@ class ProductsController extends Controller
             "dev"=>$dev,
             "obs"=>$obs
         ];
-        $getdev = $this->conecStores($from->dominio,'getdev',$import,$from->name);
+        $getdev = $this->conecStores('','getdev',$import,$from->name);
 
         return $getdev;
 
