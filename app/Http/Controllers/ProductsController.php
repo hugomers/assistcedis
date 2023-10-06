@@ -245,4 +245,23 @@ class ProductsController extends Controller
         return $stor;
     }
 
+    public function trapasDev(Request $request){
+        $from = DB::connection('vizapi')->table('workpoints')->where('alias',$request->origen)->first();
+        return $from;
+        $to = DB::connection('vizapi')->table('workpoints')->where('alias',$request->destino)->first();
+        $dev = $request->devolucion;
+        $obs = $request->observacion;
+        $import = [
+            "dev"=>$dev,
+            "obs"=>$obs
+        ];
+        $getdev = $this->conecStores($from->dominio,'getdev',$import,$from->name);
+
+        return $getdev;
+
+
+
+
+    }
+
 }

@@ -74,6 +74,7 @@ Route::prefix('/assist')->group(function(){
 Route::prefix('/Products')->group(function(){
     Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
     Route::post('/transfers',[ProductsController::class, 'transferStores']);
+    Route::post('/trapasDev',[ProductsController::class, 'trapasDev']);
     Route::post('/reportDepure',[ProductsController::class, 'reportDepure']);
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
 
