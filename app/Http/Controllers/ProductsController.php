@@ -204,17 +204,18 @@ class ProductsController extends Controller
 
         $products = $request->all();
         //modificar en mysql
-        foreach($products as $product){
-            $exist= DB::connection('vizapi')->table('products')->where('code',$product['NUEVO'])->first();
-            if($exist){
-                $updnw = DB::connection('vizapi')->table('products')->where('code',$product['NUEVO'])->update(['_status'=>1]);
-                $updan = DB::connection('vizapi')->table('products')->where('code',$product['ANTERIOR'])->update(['_status'=>4]);
-            }else{
-                $updant = DB::connection('vizapi')->table('products')->where('code',$product['ANTERIOR'])->update(['code'=>$product['NUEVO']]);
-            }
-        }
+        // foreach($products as $product){
+        //     $exist= DB::connection('vizapi')->table('products')->where('code',$product['NUEVO'])->first();
+        //     if($exist){
+        //         $updnw = DB::connection('vizapi')->table('products')->where('code',$product['NUEVO'])->update(['_status'=>1]);
+        //         $updan = DB::connection('vizapi')->table('products')->where('code',$product['ANTERIOR'])->update(['_status'=>4]);
+        //     }else{
+        //         $updant = DB::connection('vizapi')->table('products')->where('code',$product['ANTERIOR'])->update(['code'=>$product['NUEVO']]);
+        //     }
+        // }
         $workpoints =DB::connection('vizapi')->table('workpoints')->where('active',1)->get();
         foreach($workpoints as $wrk){
+            $domain = $wrk->dominio;
             $url = $domain."/storetools/public/api/Products/replacecode";//se optiene el inicio del dominio de la sucursal
             // $url = "192.168.10.61:1619"."/storetools/public/api/Products/replacecode";//se optiene el inicio del dominio de la sucursal
             $ch = curl_init($url);//inicio de curl
@@ -230,13 +231,13 @@ class ProductsController extends Controller
             $exec = curl_exec($ch);//se executa el curl
             $exc = json_decode($exec);//se decodifican los datos decodificados
             if(is_null($exc)){//si me regresa un null
-                $stor['fails'] =["sucursal"=>$workpoint, "mssg"=>$exec];
+                $stor['fails'] =["sucursal"=>$wrk->alias, "mssg"=>$exec];
                 // $stor['fails'] =["sucursal"=>"PRUEBAS", "mssg"=>$exec];
 
             }else{
-                $stor['goals'][] = $store->alias." cambios hechos";//de lo contrario se almacenan en sucursales
+                $stor['goals'][] = $wrk->alias." cambios hechos";//de lo contrario se almacenan en sucursales
                 // $stor['goals'][] = "PRUEBAS"." cambios hechos";//de lo contrario se almacenan en sucursales
-                $stor['goals'] =["sucursal"=>$workpoint, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
+                $stor['goals'] =["sucursal"=>$wrk->alias, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
                 // $stor['goals'] =["sucursal"=>"PRUEBAS", "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
 
             }
