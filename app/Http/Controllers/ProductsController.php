@@ -256,6 +256,7 @@ class ProductsController extends Controller
                 "FacturaR(Entrada)"=>null,
             ]
         ];
+        $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
         $from = DB::connection('vizapi')->table('workpoints')->where('alias',$request->origen)->first();
         $seguimiento['SucOrigen']=$from->name;
         $to = DB::connection('vizapi')->table('workpoints')->where('alias',$request->destino)->first();
@@ -265,7 +266,7 @@ class ProductsController extends Controller
         $import = [
             "dev"=>$dev
         ];
-        $getdev = $this->conecStores('192.168.10.154:1619','getdev',$import,$from->name);
+        $getdev = $this->conecStores($from->dominio,'getdev',$import,$from->name);//devolucion
         if($getdev['mssg']===false){
             $msg = [
                 "mssg"=>"No hay conexexion a la sucursal origen ".$from->name,
@@ -281,7 +282,7 @@ class ProductsController extends Controller
             "total"=>$obt->total,
             "products"=>$obt->productos
         ];
-        $abono = $this->conecStores('192.168.10.154:1619','abo',$impabo,$from->name);//el de cedis
+        $abono = $this->conecStores($cedis->dominio,'abo',$impabo,$from->name);//el de cedis
         if($abono['mssg']===false){
             $msg = [
                 "mssg"=>"No hay conexexion a cedis para generar el abono",
@@ -292,7 +293,7 @@ class ProductsController extends Controller
             $seguimiento['Movimientos']['Abono']=$obtabo;
             $impabo['referencia'] = "TRASPASO / SUC ".$from->alias."/".$to->alias;
             $impabo['cliente'] = $to->_client;
-            $factura = $this->conecStores('192.168.10.154:1619','inv',$impabo,$from->name);//el de cedis
+            $factura = $this->conecStores($cedis->dominio,'inv',$impabo,$from->name);//el de cedis
             if($factura['mssg']===false){
                 $msg = [
                     "mssg"=>"No hay conexexion a cedis para generar la factura"
@@ -302,7 +303,7 @@ class ProductsController extends Controller
                 $obtfac = $factura['mssg'];
                 $seguimiento['Movimientos']['Factura(Salida)'] = $obtfac;
                 $impabo['referencia'] = "FAC ".$obtfac;
-                $facturare = $this->conecStores('192.168.10.154:1619','invr',$impabo,$to->name);//el de DESTINO
+                $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
                 if($facturare['mssg']===false){
                     $msg = [
                         "mssg"=>"No hay conexexion a cedis para generar el abono",
@@ -314,7 +315,6 @@ class ProductsController extends Controller
                 }
             }
         }
-    
         return $seguimiento;
         }
     
