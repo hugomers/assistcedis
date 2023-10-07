@@ -122,7 +122,7 @@ class ProductsController extends Controller
 
     public function conecStores($domain,$rout,$import,$workpoint){
 
-        $url = $domain."/StoresTools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
+        $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
         // $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
         // $url = "192.168.10.61:1619"."/storetools/public/api/Products/translate";//se optiene el inicio del dominio de la sucursal
         $ch = curl_init($url);//inicio de curl
