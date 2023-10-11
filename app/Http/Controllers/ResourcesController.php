@@ -7,6 +7,7 @@ use PDF;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\DB;
 
 class ResourcesController extends Controller
 {
@@ -169,4 +170,48 @@ class ResourcesController extends Controller
             return "enviado";
             }
     }
+
+    public function Index(){
+        $workpoints = DB::table('stores')->get();
+        $agent = DB::table('staff')->get();
+
+        $res = [
+            "branches"=>$workpoints,
+            "agents"=>$agent
+        ];
+
+        if($res){
+            return response()->json($res,200);
+        }else{
+            return response()->json("No hay error",501);
+        }
+    }
+
+    public function Create(Request $request){
+        $todo = $request->all();
+
+        $ins = [
+            "nom_cli"=>$todo['name'],
+            "address"=>json_encode($todo['address']),
+            "celphone"=>$todo['phone'],
+            "email"=>$todo['email'],
+            "tickets"=>$todo['ticket'],
+            "_store"=>$todo['branch']['id'],
+            "price"=>$todo['priceList']['id'],
+            "notes"=>$todo['notes'],
+            "_status"=>0
+        ];
+
+        $insert = DB::table('forms')->insertGetId($ins);
+        if($insert){
+            $data = ["mssg"=>"El formulario fue enviado correctamente","ID"=>$insert];
+            return response()->json($data,200);
+        }else{
+            $data = ["mssg"=>"No se pudo enviar el formulario"];
+            return response()->json($data,404);
+        }
+
+
+    }
+
 }

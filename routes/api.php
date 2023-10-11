@@ -79,3 +79,12 @@ Route::prefix('/Products')->group(function(){
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
 
 });
+
+Route::prefix('/admincli')->group(function(){
+    Route::get('/',[ResourcesController::class, 'Index']);
+    Route::post('/',[ResourcesController::class, 'Create']);
+
+    // Route::get('/getStaff',[ResourcesController::class, 'getStaff']);
+});
+
+
