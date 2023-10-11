@@ -102,7 +102,6 @@ class ProductsController extends Controller
                         return response()->json("No hay conexion al servidor ",500);
                     }else{
                         $res = [
-
                             "mssg"=>"TRASPASO EXISTOSO",
                             "origen"=>$workor->AL,
                             "destino"=>$wordes->alias,
@@ -123,8 +122,8 @@ class ProductsController extends Controller
 
     public function conecStores($domain,$rout,$import,$workpoint){
 
+        $url = $domain."/StoresTools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
         // $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
-        $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
         // $url = "192.168.10.61:1619"."/storetools/public/api/Products/translate";//se optiene el inicio del dominio de la sucursal
         $ch = curl_init($url);//inicio de curl
         $data = json_encode(["data" => $import]);//se codifica el arreglo de los proveedores
@@ -139,10 +138,10 @@ class ProductsController extends Controller
         $exec = curl_exec($ch);//se executa el curl
         $exc = json_decode($exec);//se decodifican los datos decodificados
         if(is_null($exc)){//si me regresa un null
-            $stor =["sucursal"=>$workpoint, "mssg"=>$exec];
+            $stor =[ "sucursal"=>$workpoint, "mssg"=>$exec];
         }else{
             // $stor['goals'][] = $store->alias." cambios hechos";//de lo contrario se almacenan en sucursales
-            $stor =["sucursal"=>$workpoint, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
+            $stor =[ "sucursal"=>$workpoint, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
         }
         return $stor;
         curl_close($ch);//cirre de curl
@@ -247,22 +246,78 @@ class ProductsController extends Controller
     }
 
     public function trapasDev(Request $request){
+        $seguimiento = [
+            "SucOrigen"=>null,
+            "SucDestino"=>null,
+            "Movimientos"=>[
+                "Devolucion"=>null,
+                "Abono"=>null,
+                "Factura(Salida)"=>null,
+                "FacturaR(Entrada)"=>null,
+            ]
+        ];
+        $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
         $from = DB::connection('vizapi')->table('workpoints')->where('alias',$request->origen)->first();
-        return $from;
+        $seguimiento['SucOrigen']=$from->name;
         $to = DB::connection('vizapi')->table('workpoints')->where('alias',$request->destino)->first();
+        $seguimiento['SucDestino']=$to->name;
         $dev = $request->devolucion;
         $obs = $request->observacion;
         $import = [
-            "dev"=>$dev,
-            "obs"=>$obs
+            "dev"=>$dev
         ];
-        $getdev = $this->conecStores('','getdev',$import,$from->name);
-
-        return $getdev;
-
-
-
-
+        $getdev = $this->conecStores($from->dominio,'getdev',$import,$from->name);//devolucion
+        if($getdev['mssg']===false){
+            $msg = [
+                "mssg"=>"No hay conexexion a la sucursal origen ".$from->name,
+            ];
+            return response()->json($msg,500);
+        }else{
+           $obt =  $getdev["mssg"];
+           $seguimiento['Movimientos']['Devolucion']=$obt->devolucion;
+           $impabo = [
+            "referencia"=>"DEV .".$obt->devolucion." ".$from->alias,
+            "cliente"=>$from->_client,
+            "observacion"=>$obs,
+            "total"=>$obt->total,
+            "products"=>$obt->productos
+        ];
+        $abono = $this->conecStores($cedis->dominio,'abo',$impabo,$from->name);//el de cedis
+        if($abono['mssg']===false){
+            $msg = [
+                "mssg"=>"No hay conexexion a cedis para generar el abono",
+            ];
+            return response()->json($msg,500);
+        }else{
+            $obtabo =  $abono["mssg"];
+            $seguimiento['Movimientos']['Abono']=$obtabo;
+            $impabo['referencia'] = "TRASPASO / SUC ".$from->alias."/".$to->alias;
+            $impabo['cliente'] = $to->_client;
+            $factura = $this->conecStores($cedis->dominio,'inv',$impabo,$from->name);//el de cedis
+            if($factura['mssg']===false){
+                $msg = [
+                    "mssg"=>"No hay conexexion a cedis para generar la factura"
+                ];
+                return response()->json($msg,500);
+            }else{
+                $obtfac = $factura['mssg'];
+                $seguimiento['Movimientos']['Factura(Salida)'] = $obtfac;
+                $impabo['referencia'] = "FAC ".$obtfac;
+                $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
+                if($facturare['mssg']===false){
+                    $msg = [
+                        "mssg"=>"No hay conexexion a cedis para generar el abono",
+                    ];
+                    return response()->json($msg,500);
+                }else{
+                    $obtfre = $facturare['mssg'];
+                    $seguimiento['Movimientos']['FacturaR(Entrada)']=$obtfre;
+                }
+            }
+        }
+        return $seguimiento;
+        }
+    
     }
 
 }
