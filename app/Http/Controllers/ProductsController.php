@@ -257,9 +257,9 @@ class ProductsController extends Controller
             ]
         ];
         $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
-        $from = DB::connection('vizapi')->table('workpoints')->where('alias',$request->origen)->first();
+        $from = DB::connection('vizapi')->table('workpoints')->where('name',$request->origen)->first();
         $seguimiento['SucOrigen']=$from->name;
-        $to = DB::connection('vizapi')->table('workpoints')->where('alias',$request->destino)->first();
+        $to = DB::connection('vizapi')->table('workpoints')->where('name',$request->destino)->first();
         $seguimiento['SucDestino']=$to->name;
         $dev = $request->devolucion;
         $obs = $request->observacion;
@@ -317,7 +317,7 @@ class ProductsController extends Controller
         }
         return $seguimiento;
         }
-    
+
     }
 
 }
