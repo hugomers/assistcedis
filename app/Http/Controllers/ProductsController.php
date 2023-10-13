@@ -252,8 +252,8 @@ class ProductsController extends Controller
             "Movimientos"=>[
                 "Devolucion"=>null,
                 "Abono"=>null,
-                "Factura(Salida)"=>null,
-                "FacturaR(Entrada)"=>null,
+                "FacturaSalida"=>null,
+                "FacturaEntrada"=>null,
             ]
         ];
         $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
@@ -301,7 +301,7 @@ class ProductsController extends Controller
                 return response()->json($msg,500);
             }else{
                 $obtfac = $factura['mssg'];
-                $seguimiento['Movimientos']['Factura(Salida)'] = $obtfac;
+                $seguimiento['Movimientos']['FacturaSalida'] = $obtfac;
                 $impabo['referencia'] = "FAC ".$obtfac;
                 $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
                 if($facturare['mssg']===false){
@@ -311,7 +311,7 @@ class ProductsController extends Controller
                     return response()->json($msg,500);
                 }else{
                     $obtfre = $facturare['mssg'];
-                    $seguimiento['Movimientos']['FacturaR(Entrada)']=$obtfre;
+                    $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
                 }
             }
         }
