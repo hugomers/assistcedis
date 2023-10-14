@@ -210,8 +210,20 @@ class ResourcesController extends Controller
             $data = ["mssg"=>"No se pudo enviar el formulario"];
             return response()->json($data,404);
         }
+    }
 
+    public function getSolicitud(){
+        $solicitudes = DB::table('forms AS F')->join('stores AS S','S.id','F._store')->select('F.*','S.name AS sucursal')->get();
 
+        $res = [
+            "solicitudes"=>$solicitudes,
+        ];
+
+        if($res){
+            return response()->json($res,200);
+        }else{
+            return response()->json("No hay error",501);
+        }
     }
 
 }

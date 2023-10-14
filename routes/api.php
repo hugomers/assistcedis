@@ -83,8 +83,7 @@ Route::prefix('/Products')->group(function(){
 Route::prefix('/admincli')->group(function(){
     Route::get('/',[ResourcesController::class, 'Index']);
     Route::post('/',[ResourcesController::class, 'Create']);
+    Route::get('/solicitudes',[ResourcesController::class, 'getSolicitud']);
 
     // Route::get('/getStaff',[ResourcesController::class, 'getStaff']);
 });
-
-
