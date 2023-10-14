@@ -85,6 +85,8 @@ Route::prefix('/admincli')->group(function(){
     Route::get('/',[ResourcesController::class, 'Index']);
     Route::post('/',[ResourcesController::class, 'Create']);
     Route::get('/solicitudes',[ResourcesController::class, 'getSolicitud']);
+    Route::post('/addClient',[ResourcesController::class, 'createClient']);
+    Route::post('/ignoredClient',[ResourcesController::class, 'IgnoredClient']);
 
     // Route::get('/getStaff',[ResourcesController::class, 'getStaff']);
 });

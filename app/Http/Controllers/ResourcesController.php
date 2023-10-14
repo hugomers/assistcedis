@@ -226,4 +226,35 @@ class ResourcesController extends Controller
         }
     }
 
+    public function createClient(Request $request){
+        $changstatus = DB::table('forms')->where('id',$request->id)->update(['_status'=>1]);
+        if($changstatus){
+            $res = [
+                "update"=>true,
+                "id"=>$request->id
+            ];
+        }else{
+            $res = [
+                "update"=>false,
+                "id"=>$request->id
+            ];
+        }
+        return response()->json($res,200);
+    }
+
+    public function IgnoredClient(Request $request){
+        $changstatus = DB::table('forms')->where('id',$request->id)->update(['_status'=>2]);
+        if($changstatus){
+            $res = [
+                "update"=>true,
+                "id"=>$request->id
+            ];
+        }else{
+            $res = [
+                "update"=>false,
+                "id"=>$request->id
+            ];
+        }
+        return response()->json($res,200);
+    }
 }
