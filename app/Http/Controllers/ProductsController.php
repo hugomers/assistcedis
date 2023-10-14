@@ -122,7 +122,7 @@ class ProductsController extends Controller
 
     public function conecStores($domain,$rout,$import,$workpoint){
 
-        $url = $domain."/StoresTools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
+        $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
         // $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
         // $url = "192.168.10.61:1619"."/storetools/public/api/Products/translate";//se optiene el inicio del dominio de la sucursal
         $ch = curl_init($url);//inicio de curl
@@ -252,8 +252,8 @@ class ProductsController extends Controller
             "Movimientos"=>[
                 "Devolucion"=>null,
                 "Abono"=>null,
-                "Factura(Salida)"=>null,
-                "FacturaR(Entrada)"=>null,
+                "FacturaSalida"=>null,
+                "FacturaEntrada"=>null,
             ]
         ];
         $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
@@ -301,7 +301,7 @@ class ProductsController extends Controller
                 return response()->json($msg,500);
             }else{
                 $obtfac = $factura['mssg'];
-                $seguimiento['Movimientos']['Factura(Salida)'] = $obtfac;
+                $seguimiento['Movimientos']['FacturaSalida'] = $obtfac;
                 $impabo['referencia'] = "FAC ".$obtfac;
                 $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
                 if($facturare['mssg']===false){
@@ -311,7 +311,7 @@ class ProductsController extends Controller
                     return response()->json($msg,500);
                 }else{
                     $obtfre = $facturare['mssg'];
-                    $seguimiento['Movimientos']['FacturaR(Entrada)']=$obtfre;
+                    $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
                 }
             }
         }
@@ -320,4 +320,55 @@ class ProductsController extends Controller
 
     }
 
+    public function invoiceReceived(Request $request){
+        $seguimiento = [
+            "SucDestino"=>null,
+            "Movimientos"=>[
+                "FacturaSalida"=>null,
+                "FacturaEntrada"=>null,
+            ]
+        ];
+        $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
+        $fac = $request->factura;
+        $import = [
+            "fac"=>$fac
+        ];
+        $getinvoice = $this->conecStores($cedis->dominio,'getinvoice',$import,$cedis->name);//factura
+        // $getinvoice = $this->conecStores('192.168.10.154:1619','getinvoice',$import,$cedis->name);//factura
+
+        if($getinvoice['mssg']===false){
+            $msg = [
+                "mssg"=>"No hay conexexion a la sucursal origen ".$cedis->name,
+            ];
+            return response()->json($msg,500);
+        }else{
+        $to = DB::connection('vizapi')->table('workpoints')->where('_client',$getinvoice['mssg']->client)->first();
+        $seguimiento['SucDestino']=$to->name;
+        $seguimiento['Movimientos']['FacturaSalida']=$getinvoice['mssg']->factura;
+        $obs = "Entrada Generada X Monday";
+           $impabo = [
+            "referencia"=>"FAC ".$getinvoice['mssg']->factura,
+            "cliente"=>$to->_client,
+            "observacion"=>$obs,
+            "total"=>$getinvoice['mssg']->total,
+            "products"=>$getinvoice['mssg']->productos
+        ];
+                // $facturare = $this->conecStores('192.168.10.154:1619','invr',$impabo,$to->name);//el de DESTINO
+                $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
+
+                if($facturare['mssg']===false){
+                    $msg = [
+                        "mssg"=>"No hay conexexion a cedis para generar el abono",
+                    ];
+                    return response()->json($msg,500);
+                }else{
+                    $obtfre = $facturare['mssg'];
+                    $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
+                }
+        return $seguimiento;
+        
+
+    }
+
+}
 }
