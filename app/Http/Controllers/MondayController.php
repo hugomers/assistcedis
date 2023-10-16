@@ -764,12 +764,14 @@ class MondayController extends Controller
         $just = $this->dropdownjust($colaboradores);
         $clim = $this->dropdownclima($colaboradores);
         $act = $this->dropdownactas($colaboradores);
+        $san = $this->dropdownsanciones($colaboradores);
         $res = [
             "inicio operaciones"=>$iniop,
             "final operaciones"=>$finop,
             "justificaciones"=>$just,
             "clima_laboral"=>$clim,
-            "actas_adm"=>$act
+            "actas_adm"=>$act,
+            "sanciones"=>$san
         ];
         return $res;
 
@@ -1073,6 +1075,65 @@ class MondayController extends Controller
         }
         return $res;
     }
+
+    public function dropdownsanciones($colaboradores){
+        foreach($colaboradores as $colab){
+            $agentes [] = $colab['nombre'];
+        };
+        asort($agentes);
+
+        $todes = 'query {
+            boards (ids: 4967819212) {
+            columns {
+                id
+                title
+                }
+            }
+        }
+        ';
+        $col = $this->apimon($todes);//se buscan todos los ids de las columnas de tipo desplegable
+        $columnas = $col['data']['boards'][0]['columns'];//se genera
+        $arraynam = ["QUIEN ES SANCIONADO"];
+        $results = array_filter($columnas, function ($element) use($arraynam){
+            return isset($element['title']) && in_array($element['title'],$arraynam);
+        });//se buscan solo los quw son son quienes
+        foreach($results as $result){
+            $idcol = $result['id'];
+            $query = 'mutation {
+                change_simple_column_value (item_id:4968039187, board_id:4967819212, column_id:'.$idcol.', value: "jugitodenaranja") {
+                    id
+                }
+            }';
+            $monval  = $this->apimon($query);//se recibe
+            $errmsg = $monval['error_message'];
+            $errsub = substr($errmsg, strpos($errmsg,"{"));
+            $errs = explode(",",$errsub);
+            $val = [];
+            foreach($errs as $err){
+                $val [] = str_replace("}","",str_replace(": ","",substr($err,strpos($err,":"))));
+            }
+            $cols [] = [
+                "id"=>$idcol, "values"=>$val];
+        }
+
+        foreach($cols as $column){
+            $ids = $column['id'];
+            asort($column['values']);
+            $depen  = array_values($column['values']);
+            $agnts = array_values($agentes);
+            $out = array_values(array_diff($agnts,$depen));
+            $inp = implode(",",$out);
+            $inser = 'mutation {
+                change_simple_column_value(item_id:4968039187, board_id:4967819212, column_id: '.$ids.', value: "'.$inp.'", create_labels_if_missing: true) {
+                id
+                }
+        }';
+        $dependientes = $this->apimon($inser);
+        $res[] = ["idcolumn"=>$ids,"faltantes"=>$out];
+        }
+        return $res;
+    }
+
     /* TERMINO DE  METODOS ACTUALIZAR PERSONAL DE LOS MENUS DESPLEGABLES DE FORMULARIOS (JUSTIFICACIONES, CHECKLIST INICIO, CHECKLIST FINAL)*/
 
     public function staff(){
