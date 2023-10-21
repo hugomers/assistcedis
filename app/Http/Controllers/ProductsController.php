@@ -306,7 +306,7 @@ class ProductsController extends Controller
                 $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
                 if($facturare['mssg']===false){
                     $msg = [
-                        "mssg"=>"No hay conexexion a cedis para generar el abono",
+                        "mssg"=>"No hay conexexion a la sucursal destino para generar la entrada",
                     ];
                     return response()->json($msg,500);
                 }else{
