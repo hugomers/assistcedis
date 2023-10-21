@@ -366,7 +366,7 @@ class ProductsController extends Controller
                     $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
                 }
         return $seguimiento;
-        
+
 
     }
 

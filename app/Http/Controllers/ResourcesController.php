@@ -8,6 +8,9 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
+use App\Models\Solicitudes;
+use App\Models\Stores;
+use App\Models\Flight;
 
 class ResourcesController extends Controller
 {
@@ -192,16 +195,24 @@ class ResourcesController extends Controller
 
         $ins = [
             "nom_cli"=>$todo['name'],
-            "address"=>json_encode($todo['address']),
+            // "address"=>json_encode($todo['address']),
             "celphone"=>$todo['phone'],
             "email"=>$todo['email'],
             "tickets"=>$todo['ticket'],
             "_store"=>$todo['branch']['id'],
             "price"=>$todo['priceList']['id'],
             "notes"=>$todo['notes'],
-            "_status"=>0
+            "_status"=>0,
+            "street"=>$todo['address']['street'],
+            "num_int"=>$todo['address']['numint'],
+            "num_ext"=>$todo['address']['numext'],
+            "col"=>$todo['address']['colinia'],
+            "mun"=>$todo['address']['mun'],
+            "estado"=>$todo['address']['state'],
+            "cp"=>$todo['address']['cp']
         ];
 
+        // return response()->json($ins,200);
         $insert = DB::table('forms')->insertGetId($ins);
         if($insert){
             $data = ["mssg"=>"El formulario fue enviado correctamente","ID"=>$insert];
@@ -227,34 +238,58 @@ class ResourcesController extends Controller
     }
 
     public function createClient(Request $request){
-        $changstatus = DB::table('forms')->where('id',$request->id)->update(['_status'=>1]);
-        if($changstatus){
-            $res = [
-                "update"=>true,
-                "id"=>$request->id
-            ];
-        }else{
-            $res = [
-                "update"=>false,
-                "id"=>$request->id
-            ];
-        }
-        return response()->json($res,200);
+        $sol = Solicitudes::find($request->id);
+        if($sol){
+            $sol->_status = 1;
+            $sol->save();
+            $res = $sol->fresh()->toArray();
+
+            return response()->json($res,201);
+        }else{return response()->json("no existe el id",404);}
+
     }
 
     public function IgnoredClient(Request $request){
-        $changstatus = DB::table('forms')->where('id',$request->id)->update(['_status'=>2]);
-        if($changstatus){
-            $res = [
-                "update"=>true,
-                "id"=>$request->id
-            ];
-        }else{
-            $res = [
-                "update"=>false,
-                "id"=>$request->id
-            ];
-        }
-        return response()->json($res,200);
+        $sol = Solicitudes::find($request->id);
+        if($sol){
+            $sol->_status = 2;
+            $sol->save();
+            $res = $sol->fresh()->toArray();
+
+            return response()->json($res,201);
+        }else{return response()->json("no existe el id",404);}
+
     }
+
+    public function Delete(Request $request){
+        $sol = Solicitudes::find($request->id);//route
+        if($sol){
+            $sol->_status = 4;
+            $sol->save();
+            $res = $sol->fresh()->toArray();
+
+            return response()->json($res,201);
+        }else{return response()->json("no existe el id",404);}
+    }
+
+    public function Restore(Request $request){
+        $sol = Solicitudes::find($request->id);
+        if($sol){
+            $sol->_status = 0;
+            $sol->save();
+            $res = $sol->fresh()->toArray();
+
+            return response()->json($res,201);
+        }else{return response()->json("no existe el id",404);}
+    }
+
+    public function getsol(){
+        $sol = Solicitudes::find(3)->stores->name;
+        return $sol;
+    }
+
+    public function createCli(Request $request){
+
+    }
+
 }
