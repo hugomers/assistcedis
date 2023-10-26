@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class ProductsController extends Controller
 {
@@ -353,22 +354,23 @@ class ProductsController extends Controller
             "total"=>$getinvoice['mssg']->total,
             "products"=>$getinvoice['mssg']->productos
         ];
-                // $facturare = $this->conecStores('192.168.10.154:1619','invr',$impabo,$to->name);//el de DESTINO
+                // $facturare = $this->conecStores('192.168.12.102:1619','invr',$impabo,$to->name);//el de DESTINO
                 $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
 
                 if($facturare['mssg']===false){
                     $msg = [
-                        "mssg"=>"No hay conexexion a cedis para generar el abono",
+                        "mssg"=>"No hay conexexion a cedis para generar la entrada",
                     ];
                     return response()->json($msg,500);
                 }else{
                     $obtfre = $facturare['mssg'];
+                    $insob2 = Http::post($cedis->dominio.'/storetools/public/api/Resources/updsal',["entrada"=>$obtfre,"salida"=>$fac]);
                     $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
                 }
         return $seguimiento;
 
 
     }
-
+    
 }
 }

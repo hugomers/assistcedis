@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
 use App\Models\Solicitudes;
 use App\Models\Stores;
+use App\Models\ReplyClient;
 use App\Models\Flight;
+use Illuminate\Support\Facades\Http;
 
 class ResourcesController extends Controller
 {
@@ -240,13 +242,24 @@ class ResourcesController extends Controller
     public function createClient(Request $request){
         $sol = Solicitudes::find($request->id);
         if($sol){
-            $sol->_status = 1;
-            $sol->save();
-            $res = $sol->fresh()->toArray();
-
-            return response()->json($res,201);
-        }else{return response()->json("no existe el id",404);}
-
+            $cedis = Stores::find(1);
+            $ip = '192.168.10.232:1619';
+            $addcli = Http::post($ip.'/storetools/public/api/Resources/createClient',$request->all());
+            $respuesta =  $addcli->status();
+            if($respuesta == 400){
+                $mssg = ["mssg"=>"hubo un error","error"=>$addcli->json()];
+                return response()->json($mssg,400);
+            }else{
+                $respuesta = $addcli->json();
+                $ifsol = $respuesta['id'];
+                $sol->_status = 1;
+                $sol->fs_id = $ifsol;
+                $sol->save();
+                $res = $sol->fresh()->toArray();
+                return response()->json($res,201);
+            }
+        }else{return response()->json("no existe el id",404);
+        }
     }
 
     public function IgnoredClient(Request $request){
@@ -288,8 +301,82 @@ class ResourcesController extends Controller
         return $sol;
     }
 
-    public function createCli(Request $request){
 
+    public function conecStores($domain,$rout,$import,$workpoint){
+
+        $url = $domain."/storetools/public/api/Resources/".$rout;//se optiene el inicio del dominio de la sucursal
+        // $url = $domain."/storetools/public/api/Products/".$rout;//se optiene el inicio del dominio de la sucursal
+        // $url = "192.168.10.61:1619"."/storetools/public/api/Products/translate";//se optiene el inicio del dominio de la sucursal
+        $ch = curl_init($url);//inicio de curl
+        $data = json_encode(["data" => $import]);//se codifica el arreglo de los proveedores
+        //inicio de opciones de curl
+        curl_setopt($ch,CURLOPT_POSTFIELDS,$data);//se envia por metodo post
+        curl_setopt($ch,CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+        //fin de opciones e curl
+        $exec = curl_exec($ch);//se executa el curl
+        $exc = json_decode($exec);//se decodifican los datos decodificados
+        if(is_null($exc)){//si me regresa un null
+            $stor =[ "sucursal"=>$workpoint, "mssg"=>$exec];
+        }else{
+            // $stor['goals'][] = $store->alias." cambios hechos";//de lo contrario se almacenan en sucursales
+            $stor =[ "sucursal"=>$workpoint, "mssg"=>$exc];;//la sucursal se almacena en sucursales fallidas
+        }
+        return $stor;
+        curl_close($ch);//cirre de curl
     }
 
+    public function getSldas(){
+        $ip = Stores::find(1);
+        // $ip = '192.168.12.102:1619'; 
+        $getsal = Http::get($ip->ip_address.'/storetools/public/api/Resources/getsal');
+        return $getsal;
+    }
+
+    public function getEnts(){
+        // $ip = Stores::all();
+        $ip = '192.168.10.232:1619';
+        $getsal = Http::get($ip.'/storetools/public/api/Resources/getsal');
+        return $getsal;
+    }
+
+    public function getclient(){
+        $cedis = Stores::find(1);
+        $getsal = Http::get($cedis->ip_address.'/storetools/public/api/Resources/getclient');
+        return $getsal;
+    }
+
+    public function syncClient(){
+        $res = [];
+        $solicitudes = Solicitudes::where('_status',1)->get();
+        if($solicitudes){
+            $stores = Stores::WhereNotIn('id',[1,2])->get();
+            foreach($solicitudes as $solicitud){
+                $wrk = [];
+                foreach($stores as $store){
+                    $ip = $store->ip_address;
+                    $inscli = Http::post($ip.'/storetools/public/api/Resources/createClientSuc',$solicitud);
+                    $status = $inscli->status();
+                    if($status == 201){
+                        $wrk[] = $store->id;
+                    }
+                }
+                if(count($wrk) == count($stores)){
+                    $updsol = Solicitudes::find($solicitud->id);
+                    $updsol ->_status = 3;
+                    $updsol ->save();
+                    $std = $updsol->fresh()->toArray();
+                    $reply = new ReplyClient;
+                    $reply->_form = $solicitud->id;
+                    $reply->reply_workpoints = json_encode($wrk);
+                    $reply->save();
+                    $res[]= $std;
+                }
+            }
+        return $res;    
+        }
+    }
 }
