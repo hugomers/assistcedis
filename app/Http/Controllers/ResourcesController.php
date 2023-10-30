@@ -226,8 +226,7 @@ class ResourcesController extends Controller
     }
 
     public function getSolicitud(){
-        $solicitudes = DB::table('forms AS F')->join('stores AS S','S.id','F._store')->select('F.*','S.name AS sucursal')->get();
-
+        $solicitudes = DB::table('forms AS F')->join('stores AS S','S.id','F._store')->leftjoin('reply_client as rc','rc._form','F.id')->select('F.*','S.name AS sucursal','rc.reply_workpoints as Stores')->get();
         $res = [
             "solicitudes"=>$solicitudes,
         ];
@@ -243,7 +242,7 @@ class ResourcesController extends Controller
         $sol = Solicitudes::find($request->id);
         if($sol){
             $cedis = Stores::find(1);
-            $ip = '192.168.10.232:1619';
+            $ip = $cedis->ip_address;
             $addcli = Http::post($ip.'/storetools/public/api/Resources/createClient',$request->all());
             $respuesta =  $addcli->status();
             if($respuesta == 400){
@@ -301,7 +300,6 @@ class ResourcesController extends Controller
         return $sol;
     }
 
-
     public function conecStores($domain,$rout,$import,$workpoint){
 
         $url = $domain."/storetools/public/api/Resources/".$rout;//se optiene el inicio del dominio de la sucursal
@@ -343,9 +341,10 @@ class ResourcesController extends Controller
         return $getsal;
     }
 
-    public function getclient(){
+    public function getclient(Request $request){
+        $find = $request->query('q');
         $cedis = Stores::find(1);
-        $getsal = Http::get($cedis->ip_address.'/storetools/public/api/Resources/getclient');
+        $getsal = Http::get($cedis->ip_address.'/storetools/public/api/Resources/getclient?q='.$find);
         return $getsal;
     }
 
@@ -358,24 +357,26 @@ class ResourcesController extends Controller
                 $wrk = [];
                 foreach($stores as $store){
                     $ip = $store->ip_address;
-                    $inscli = Http::post($ip.'/storetools/public/api/Resources/createClientSuc',$solicitud);
+                    $inscli = Http::post($api.'/storetools/public/api/Resources/createClientSuc',$solicitud);
                     $status = $inscli->status();
                     if($status == 201){
-                        $wrk[] = $store->id;
+                        $wrk[] = $store->alias;
                     }
                 }
+                $reply = ReplyClient::upsert([
+                    ['_form'=>$solicitud->id,'reply_workpoints'=>json_encode($wrk)],
+                    ['_form'=>$solicitud->id,'reply_workpoints'=>json_encode($wrk)]],
+                    ['reply_workpoints']
+                );
                 if(count($wrk) == count($stores)){
                     $updsol = Solicitudes::find($solicitud->id);
                     $updsol ->_status = 3;
                     $updsol ->save();
                     $std = $updsol->fresh()->toArray();
-                    $reply = new ReplyClient;
-                    $reply->_form = $solicitud->id;
-                    $reply->reply_workpoints = json_encode($wrk);
-                    $reply->save();
-                    $res[]= $std;
+                    $solicitud  = Solicitudes::find($solicitud->id);
                 }
             }
+            $res = DB::table('forms as f')->join('reply_client as rc','rc._form','f.id')->where('f.id',$solicitud->id)->select('f.*','rc.reply_workpoints as Stores')->get();
         return $res;    
         }
     }

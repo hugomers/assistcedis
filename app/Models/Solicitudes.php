@@ -14,4 +14,8 @@ class Solicitudes extends Model
         return $this->belongsTo('App\Models\Stores','_store');
     }
 
+    public function replyCli(){
+        return $this->hasMany('App\Models\ReplyClient','_form','id');
+    }
+
 }
