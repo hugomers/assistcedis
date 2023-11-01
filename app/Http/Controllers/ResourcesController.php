@@ -329,7 +329,7 @@ class ResourcesController extends Controller
 
     public function getSldas(){
         $ip = Stores::find(1);
-        // $ip = '192.168.12.102:1619'; 
+        // $ip = '192.168.12.102:1619';
         $getsal = Http::get($ip->ip_address.'/storetools/public/api/Resources/getsal');
         return $getsal;
     }
@@ -377,7 +377,12 @@ class ResourcesController extends Controller
                 }
             }
             $res = DB::table('forms as f')->join('reply_client as rc','rc._form','f.id')->where('f.id',$solicitud->id)->select('f.*','rc.reply_workpoints as Stores')->get();
-        return $res;    
+        return $res;
         }
+    }
+
+    public function AbonSuc(){
+        $stores = Stores::all();
+        return $stores;
     }
 }

@@ -100,3 +100,7 @@ Route::prefix('/salidas')->group(function(){
     Route::get('/',[ResourcesController::class, 'getSldas']);
     // Route::get('/getStaff',[ResourcesController::class, 'getStaff']);
 });
+
+Route::prefix('/abonos')->group(function(){
+    Route::get('/',[ResourcesController::class, 'AbonSuc']);
+});
