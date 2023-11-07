@@ -383,8 +383,16 @@ class ResourcesController extends Controller
         }
     }
 
-    public function AbonSuc(){
+    public function getSuc(){
         $stores = Stores::all();
-        return $stores;
+        return response()->json($stores);
+    }
+
+    public function getDev(Request $request){
+        $stores = Stores::find($request->id);
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.232:1619';
+        $getdev = Http::get($ip.'/storetools/public/api/Resources/getdev');
+        return $getdev;
     }
 }

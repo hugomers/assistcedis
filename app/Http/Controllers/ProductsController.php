@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use App\Models\Stores;
 
 class ProductsController extends Controller
 {
@@ -367,10 +368,71 @@ class ProductsController extends Controller
                     $insob2 = Http::post($cedis->dominio.'/storetools/public/api/Resources/updsal',["entrada"=>$obtfre,"salida"=>$fac]);
                     $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
                 }
-        return $seguimiento;
-
-
+        return $seguimiento; 
+        }
     }
-    
-}
+
+    public function trapasAbo(Request $request){
+        $seguimiento = [
+            "SucOrigen"=>null,
+            "SucDestino"=>null,
+            "Movimientos"=>[
+                "Devolucion"=>null,
+                "Abono"=>null
+            ]
+        ];
+        $to = Stores::find(1);
+        $from = Stores::find($request->idsuc);
+        $seguimiento['SucOrigen']=$from->name;
+        $seguimiento['SucDestino']=$to->name;
+        $dev = $request->devolucion;
+        $obs = $request->observacion;
+        $import = [
+            "data"=>[
+                "dev"=>$dev
+            ]
+        ];
+        $getdev = Http::post($from->ip_address.'/storetools/public/api/Products/getdev',$import);
+        // return $getdev['devolucion'];
+        $status = $getdev->status();
+        if($status == 200){
+           $seguimiento['Movimientos']['Devolucion']=$getdev['devolucion'];
+           $impabo = [
+            "data"=>[
+                "referencia"=>"DEV .".$getdev['devolucion']." ".$from->alias,
+                "cliente"=>$from->_client,
+                "observacion"=>$getdev['referencia'],
+                "total"=>$getdev['total'],
+                "products"=>$getdev['productos']
+            ]
+        ];
+        //  $abono = Http::post($to->ip_address.'/storetools/public/api/Products/abo',$impabo);
+        $abono = Http::post('192.168.10.232:1619'.'/storetools/public/api/Products/abo',$impabo);
+        $abost = $abono->status();
+        if($abost == 200){
+            $seguimiento['Movimientos']['Abono']=$abono->json();
+            $oab = $abono->json();
+            // $insob2 = Http::post($from->ip_address.'/storetools/public/api/Resources/upddev',["abono"=>$obtabo,"devolucion"=>$dev]);
+            $insup = ["abono"=>$oab,"devolucion"=>$dev];
+            $insob2 = Http::post('192.168.10.232:1619'.'/storetools/public/api/Resources/upddev',$insup);
+            $insta = $insob2->status();
+            if($insta == 200){
+                return response()->json($seguimiento,200);
+            }else{
+                return response()->json("Hubo problemas en la actualizacion de el abono",401);
+            }
+        }else{//abono
+            $msg = [
+                "mssg"=>$abono->json(),
+            ];
+            return response()->json($msg,500);
+        }
+        }else{//getdet
+            $msg = [
+                "mssg"=>$getdev->json(),
+            ];
+            return response()->json($msg,500);
+        }
+        return $seguimiento;
+    }
 }

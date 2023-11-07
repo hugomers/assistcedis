@@ -75,6 +75,7 @@ Route::prefix('/Products')->group(function(){
     Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
     Route::post('/transfers',[ProductsController::class, 'transferStores']);
     Route::post('/trapasDev',[ProductsController::class, 'trapasDev']);
+    Route::post('/trapasAbo',[ProductsController::class, 'trapasAbo']);
     Route::post('/reportDepure',[ProductsController::class, 'reportDepure']);
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
     Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
@@ -102,5 +103,7 @@ Route::prefix('/salidas')->group(function(){
 });
 
 Route::prefix('/abonos')->group(function(){
-    Route::get('/',[ResourcesController::class, 'AbonSuc']);
+    Route::get('/getSuc',[ResourcesController::class, 'getSuc']);
+    Route::post('/getDev',[ResourcesController::class, 'getDev']);
+
 });
