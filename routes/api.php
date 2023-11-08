@@ -76,6 +76,7 @@ Route::prefix('/Products')->group(function(){
     Route::post('/transfers',[ProductsController::class, 'transferStores']);
     Route::post('/trapasDev',[ProductsController::class, 'trapasDev']);
     Route::post('/trapasAbo',[ProductsController::class, 'trapasAbo']);
+    Route::post('/updev',[ProductsController::class, 'ignoredAbo']);
     Route::post('/reportDepure',[ProductsController::class, 'reportDepure']);
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
     Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);

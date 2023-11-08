@@ -330,45 +330,50 @@ class ProductsController extends Controller
                 "FacturaEntrada"=>null,
             ]
         ];
-        $cedis =  DB::connection('vizapi')->table('workpoints')->where('id',1)->first();
+        $cedis = Stores::find(1);
         $fac = $request->factura;
         $import = [
             "fac"=>$fac
         ];
-        $getinvoice = $this->conecStores($cedis->dominio,'getinvoice',$import,$cedis->name);//factura
+        $getinvoice = Http::post($cedis->ip_address.'/storetools/public/api/Products/getinvoice',$import);
+        // $getinvoice = $this->conecStores($cedis->dominio,'getinvoice',$import,$cedis->name);//factura
+        $status = $getinvoice->status();
         // $getinvoice = $this->conecStores('192.168.10.154:1619','getinvoice',$import,$cedis->name);//factura
-
-        if($getinvoice['mssg']===false){
+        if($status!=200){
             $msg = [
                 "mssg"=>"No hay conexexion a la sucursal origen ".$cedis->name,
             ];
             return response()->json($msg,500);
         }else{
-        $to = DB::connection('vizapi')->table('workpoints')->where('_client',$getinvoice['mssg']->client)->first();
+        $dat = $getinvoice->json();
+        // return $dat['client'];
+        $to = Stores::where('_client',$dat['client'])->first();
+        // $to = DB::connection('vizapi')->table('workpoints')->where('_client',$dat['mssg']->client)->first();
         $seguimiento['SucDestino']=$to->name;
-        $seguimiento['Movimientos']['FacturaSalida']=$getinvoice['mssg']->factura;
-        $obs = "Entrada Generada X Monday";
+        $seguimiento['Movimientos']['FacturaSalida']=$dat['factura'];
+        $obs = "Entrada Automatica";
            $impabo = [
-            "referencia"=>"FAC ".$getinvoice['mssg']->factura,
+            "referencia"=>"FAC ".$dat['factura'],
             "cliente"=>$to->_client,
             "observacion"=>$obs,
-            "total"=>$getinvoice['mssg']->total,
-            "products"=>$getinvoice['mssg']->productos
+            "total"=>$dat['total'],
+            "products"=>$dat['productos']
         ];
                 // $facturare = $this->conecStores('192.168.12.102:1619','invr',$impabo,$to->name);//el de DESTINO
-                $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
-
-                if($facturare['mssg']===false){
+                // $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
+                $facturare = Http::post($to->ip_address.'/storetools/public/api/Products/invr',$impabo);
+                $statusre = $facturare->status();
+                if($statusre != 200){
                     $msg = [
                         "mssg"=>"No hay conexexion a cedis para generar la entrada",
                     ];
                     return response()->json($msg,500);
                 }else{
-                    $obtfre = $facturare['mssg'];
-                    $insob2 = Http::post($cedis->dominio.'/storetools/public/api/Resources/updsal',["entrada"=>$obtfre,"salida"=>$fac]);
+                    $obtfre = $facturare->json();
+                    $insob2 = Http::post($cedis->ip_address.'/storetools/public/api/Resources/updsal',["entrada"=>$obtfre,"salida"=>$fac]);
                     $seguimiento['Movimientos']['FacturaEntrada']=$obtfre;
                 }
-        return $seguimiento; 
+        return response()->json($seguimiento,200);
         }
     }
 
@@ -406,8 +411,8 @@ class ProductsController extends Controller
                 "products"=>$getdev['productos']
             ]
         ];
-        //  $abono = Http::post($to->ip_address.'/storetools/public/api/Products/abo',$impabo);
-        $abono = Http::post('192.168.10.232:1619'.'/storetools/public/api/Products/abo',$impabo);
+         $abono = Http::post($to->ip_address.'/storetools/public/api/Products/abo',$impabo);
+        // $abono = Http::post('192.168.10.232:1619'.'/storetools/public/api/Products/abo',$impabo);
         $abost = $abono->status();
         if($abost == 200){
             $seguimiento['Movimientos']['Abono']=$abono->json();
@@ -434,5 +439,20 @@ class ProductsController extends Controller
             return response()->json($msg,500);
         }
         return $seguimiento;
+    }
+
+    public function ignoredAbo(Request $request){
+        $oab = $request->mssg;
+        $dev = $request->devol;
+        $suc = $request->idsuc;
+        $store = Stores::find($suc);
+        $insup = ["abono"=>$oab,"devolucion"=>$dev];
+        $insob2 = Http::post($store->ip_address.'/storetools/public/api/Resources/upddev',$insup);
+        $status = $insob2->status();
+        if($status != 200){
+            return response()->json('Hubo un error',401);
+        }else{
+            return response()->json('mensaje con exito',200);
+        }
     }
 }
