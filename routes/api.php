@@ -52,6 +52,8 @@ Route::prefix('/Monday')->group(function(){
     Route::post('/staff',[MondayController::class, 'staff']);
     Route::get('/justification',[MondayController::class, 'justification']);
     Route::get('/getids',[MondayController::class, 'findid']);
+    Route::get('/cheklistiopmas',[MondayController::class, 'cheklistiopmas']);
+    Route::get('/cheklistfinopmas',[MondayController::class, 'cheklistfinopmas']);
 
 });
 

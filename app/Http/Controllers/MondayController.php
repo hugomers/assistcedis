@@ -117,85 +117,133 @@ class MondayController extends Controller
         return $res;
     }
 
+    public function cheklistiopmas(){
+        $pdf = [];
+        $mysql = [];
+        $query = 'query {
+            items_by_column_values (board_id: 4738541896, column_id: "estado", column_value: "Sin Enviar") {
+                id
+                column_values{
+                    id
+                    title
+                    text
+                }
+            }
+        }';//se genera consulta graphql para api de monday
+        // $query = 'query {
+        //     items (ids: ['.$idmon.']) {
+        //         id,
+        //         column_values{
+        //             id
+        //             title
+        //             text
+        //         }
+        //   }
+        // }';//se genera consulta graphql para api de monday
+        $monval = $this->apimon($query);
+        $data = $monval['data']['items_by_column_values'];// se envia a mysql
+        $mysql = $this->mysqliop($data);
+        $pdfque = 'query {
+            items_by_column_values (board_id: 4738541896, column_id: "estado9", column_value: "Sin Enviar") {
+                id
+                column_values{
+                    id
+                    title
+                    text
+                }
+            }
+        }';//se genera consulta graphql para api de monday
+        $pdfval = $this->apimon($pdfque);
+        $pdfdata = $pdfval['data']['items_by_column_values'];// se envia a pdf
+        $pdf = $this->pdfiop($pdfdata);
+        $res = [
+            "pdf"=>$pdf,
+            "mysql"=>$mysql
+        ];
+
+        return $res;
+    }
+
+
     public function pdfiop($data){
         $res = [];
         $items = $data;
         foreach($items as $item){
             $ids = $item['id'];
-            $tot1 = $item['column_values'][3]['text'] == "CUMPLE" ? 10 : 0;
-            $tot2 = $item['column_values'][6]['text'] == "CUMPLE" ? 10 : 0;
-            $tot3 = $item['column_values'][9]['text'] == "CUMPLE" ? 10 : 0;
-            $tot4 = $item['column_values'][13]['text'] == "CUMPLE" ? 10 : 0;
-            $tot5 = $item['column_values'][17]['text'] == "CUMPLE" ? 10 : 0;
-            $tot6 = $item['column_values'][21]['text'] == "CUMPLE" ? 10 : 0;
-            $tot7 = $item['column_values'][25]['text'] == "CUMPLE" ? 10 : 0;
-            $tot8 = $item['column_values'][29]['text'] == "CUMPLE" ? 10 : 0;
-            $tot9 = $item['column_values'][33]['text'] == "CUMPLE" ? 10 : 0;
-            $tot10 = $item['column_values'][37]['text'] == "CUMPLE" ? 10 : 0;
+            $tot1 = $item['column_values'][4]['text'] == "CUMPLE" ? 10 : 0;
+            $tot2 = $item['column_values'][7]['text'] == "CUMPLE" ? 10 : 0;
+            $tot3 = $item['column_values'][10]['text'] == "CUMPLE" ? 10 : 0;
+            $tot4 = $item['column_values'][14]['text'] == "CUMPLE" ? 10 : 0;
+            $tot5 = $item['column_values'][18]['text'] == "CUMPLE" ? 10 : 0;
+            $tot6 = $item['column_values'][22]['text'] == "CUMPLE" ? 10 : 0;
+            $tot7 = $item['column_values'][26]['text'] == "CUMPLE" ? 10 : 0;
+            $tot8 = $item['column_values'][30]['text'] == "CUMPLE" ? 10 : 0;
+            $tot9 = $item['column_values'][34]['text'] == "CUMPLE" ? 10 : 0;
+            $tot10 = $item['column_values'][38]['text'] == "CUMPLE" ? 10 : 0;
             $calif = $tot1 + $tot2 + $tot3 + $tot4 + $tot5 + $tot6 + $tot7 + $tot8 + $tot9 + $tot10;
 
             $fecha = date('Y-m-d H_i_s', strtotime($item['column_values'][0]['text']) - 3600);
 
             $creapd = [
-                "fecha"=>date('Y-m-d H:i:s', strtotime($item['column_values'][0]['text']) - 3600),
-                "admin" => $item['column_values'][2]['text'],
-                "sucursal" => $item['column_values'][1]['text'],
+                "fecha"=>date('Y-m-d H:i:s', strtotime($item['column_values'][1]['text']) - 3600),
+                "admin" => $item['column_values'][3]['text'],
+                "sucursal" => $item['column_values'][2]['text'],
                 "puntuacion" => $calif." / 100 ",
                 "total" => $calif." / 100 ",
-                "ppg1" => $item['column_values'][3]['title'],
-                "tot1" => $item['column_values'][3]['text'],
-                "obs1" => $item['column_values'][4]['text'],
+                "ppg1" => $item['column_values'][4]['title'],
+                "tot1" => $item['column_values'][4]['text'],
+                "obs1" => $item['column_values'][5]['text'],
                 "pt1" => "",
-                "per1" => $item['column_values'][5]['text'],
-                "ppg2" => $item['column_values'][6]['title'],
-                "tot2" => $item['column_values'][6]['text'],
-                "obs2" => $item['column_values'][7]['text'],
+                "per1" => $item['column_values'][6]['text'],
+                "ppg2" => $item['column_values'][7]['title'],
+                "tot2" => $item['column_values'][7]['text'],
+                "obs2" => $item['column_values'][8]['text'],
                 "pt2" => "",
-                "per2" => $item['column_values'][5]['text'],
-                "ppg3" => $item['column_values'][9]['title'],
-                "tot3" => $item['column_values'][9]['text'],
-                "obs3" => $item['column_values'][10]['text'],
-                "pt3" => $item['column_values'][12]['text'],
-                "per3" => $item['column_values'][11]['text'],
-                "ppg4" => $item['column_values'][13]['title'],
-                "tot4" => $item['column_values'][13]['text'],
-                "obs4" => $item['column_values'][14]['text'],
-                "pt4" => $item['column_values'][16]['text'],
-                "per4" => $item['column_values'][15]['text'],
-                "ppg5" => $item['column_values'][17]['title'],
-                "tot5" => $item['column_values'][17]['text'],
-                "obs5" => $item['column_values'][18]['text'],
-                "pt5" => $item['column_values'][20]['text'],
-                "per5" => $item['column_values'][19]['text'],
-                "ppg6" => $item['column_values'][21]['title'],
-                "tot6" => $item['column_values'][21]['text'],
-                "obs6" => $item['column_values'][22]['text'],
-                "pt6" => $item['column_values'][24]['text'],
-                "per6" => $item['column_values'][23]['text'],
-                "ppg7" => $item['column_values'][25]['title'],
-                "tot7" => $item['column_values'][25]['text'],
-                "obs7" => $item['column_values'][26]['text'],
-                "pt7" => $item['column_values'][28]['text'],
-                "per7" => $item['column_values'][27]['text'],
-                "ppg8" => $item['column_values'][29]['title'],
-                "tot8" => $item['column_values'][29]['text'],
-                "obs8" => $item['column_values'][30]['text'],
-                "pt8" => $item['column_values'][32]['text'],
-                "per8" => $item['column_values'][31]['text'],
-                "ppg9" => $item['column_values'][33]['title'],
-                "tot9" => $item['column_values'][33]['text'],
-                "obs9" => $item['column_values'][34]['text'],
-                "pt9" => $item['column_values'][36]['text'],
-                "per9" => $item['column_values'][35]['text'],
-                "ppg10" => $item['column_values'][37]['title'],
-                "tot10" => $item['column_values'][37]['text'],
-                "obs10" => $item['column_values'][38]['text'],
-                "pt10" => $item['column_values'][40]['text'],
-                "per10" => $item['column_values'][39]['text'],
+                "per2" => $item['column_values'][6]['text'],
+                "ppg3" => $item['column_values'][10]['title'],
+                "tot3" => $item['column_values'][10]['text'],
+                "obs3" => $item['column_values'][11]['text'],
+                "pt3" => $item['column_values'][13]['text'],
+                "per3" => $item['column_values'][12]['text'],
+                "ppg4" => $item['column_values'][14]['title'],
+                "tot4" => $item['column_values'][14]['text'],
+                "obs4" => $item['column_values'][15]['text'],
+                "pt4" => $item['column_values'][17]['text'],
+                "per4" => $item['column_values'][16]['text'],
+                "ppg5" => $item['column_values'][18]['title'],
+                "tot5" => $item['column_values'][18]['text'],
+                "obs5" => $item['column_values'][19]['text'],
+                "pt5" => $item['column_values'][21]['text'],
+                "per5" => $item['column_values'][20]['text'],
+                "ppg6" => $item['column_values'][22]['title'],
+                "tot6" => $item['column_values'][22]['text'],
+                "obs6" => $item['column_values'][23]['text'],
+                "pt6" => $item['column_values'][25]['text'],
+                "per6" => $item['column_values'][24]['text'],
+                "ppg7" => $item['column_values'][24]['title'],
+                "tot7" => $item['column_values'][26]['text'],
+                "obs7" => $item['column_values'][27]['text'],
+                "pt7" => $item['column_values'][29]['text'],
+                "per7" => $item['column_values'][28]['text'],
+                "ppg8" => $item['column_values'][30]['title'],
+                "tot8" => $item['column_values'][30]['text'],
+                "obs8" => $item['column_values'][31]['text'],
+                "pt8" => $item['column_values'][33]['text'],
+                "per8" => $item['column_values'][32]['text'],
+                "ppg9" => $item['column_values'][34]['title'],
+                "tot9" => $item['column_values'][34]['text'],
+                "obs9" => $item['column_values'][35]['text'],
+                "pt9" => $item['column_values'][37]['text'],
+                "per9" => $item['column_values'][36]['text'],
+                "ppg10" => $item['column_values'][38]['title'],
+                "tot10" => $item['column_values'][38]['text'],
+                "obs10" => $item['column_values'][39]['text'],
+                "pt10" => $item['column_values'][41]['text'],
+                "per10" => $item['column_values'][40]['text'],
             ];
             $pdf = View::make('testPDF', $creapd)->render();
 
-            $sucursal = $item['column_values'][1]['text'];
+            $sucursal = $item['column_values'][2]['text'];
 
             switch ($sucursal) {
                 case "SAN PABLO 1":
@@ -297,93 +345,98 @@ class MondayController extends Controller
         $fails=[];
         $items = $data;
         foreach($items as $item){
-            $tot1 = $item['column_values'][3]['text'] == "CUMPLE" ? 10 : 0;
-            $tot2 = $item['column_values'][6]['text'] == "CUMPLE" ? 10 : 0;
-            $tot3 = $item['column_values'][9]['text'] == "CUMPLE" ? 10 : 0;
-            $tot4 = $item['column_values'][13]['text'] == "CUMPLE" ? 10 : 0;
-            $tot5 = $item['column_values'][17]['text'] == "CUMPLE" ? 10 : 0;
-            $tot6 = $item['column_values'][21]['text'] == "CUMPLE" ? 10 : 0;
-            $tot7 = $item['column_values'][25]['text'] == "CUMPLE" ? 10 : 0;
-            $tot8 = $item['column_values'][29]['text'] == "CUMPLE" ? 10 : 0;
-            $tot9 = $item['column_values'][33]['text'] == "CUMPLE" ? 10 : 0;
-            $tot10 = $item['column_values'][37]['text'] == "CUMPLE" ? 10 : 0;
+            $tot1 = $item['column_values'][4]['text'] == "CUMPLE" ? 10 : 0;
+            $tot2 = $item['column_values'][7]['text'] == "CUMPLE" ? 10 : 0;
+            $tot3 = $item['column_values'][10]['text'] == "CUMPLE" ? 10 : 0;
+            $tot4 = $item['column_values'][14]['text'] == "CUMPLE" ? 10 : 0;
+            $tot5 = $item['column_values'][18]['text'] == "CUMPLE" ? 10 : 0;
+            $tot6 = $item['column_values'][22]['text'] == "CUMPLE" ? 10 : 0;
+            $tot7 = $item['column_values'][26]['text'] == "CUMPLE" ? 10 : 0;
+            $tot8 = $item['column_values'][30]['text'] == "CUMPLE" ? 10 : 0;
+            $tot9 = $item['column_values'][34]['text'] == "CUMPLE" ? 10 : 0;
+            $tot10 = $item['column_values'][38]['text'] == "CUMPLE" ? 10 : 0;
 
-            $store = DB::table('stores')->where('name',$item['column_values'][1]['text'])->value('id');
-            $idadmon = DB::table('staff')->where('complete_name',$item['column_values'][2]['text'])->value('id');
+            $store = DB::table('stores')->where('name',$item['column_values'][2]['text'])->value('id');
+            $idadmon = DB::table('staff')->where('complete_name',$item['column_values'][3]['text'])->value('id');
             $calif = $tot1 + $tot2 + $tot3 + $tot4 + $tot5 + $tot6 + $tot7 + $tot8 + $tot9 + $tot10;
-            $fecha =date('Y-m-d H:i:s', strtotime($item['column_values'][0]['text']) - 3600);
+            $fecha =date('Y-m-d H:i:s', strtotime($item['column_values'][1]['text']) - 3600);
             $ids = $item['id'];
-            $evidence = json_encode($item['column_values'][41]['text']);
-            $quiz = json_encode([
-                "pregunta1" => $item['column_values'][3]['title'],
-                "respuesta1" => $item['column_values'][3]['text'],
-                "observaciones1" => $item['column_values'][4]['text'],
-                "punto1" => "",
-                "colaborador1" => $item['column_values'][5]['text'],
-                "pregunta2" => $item['column_values'][6]['title'],
-                "respuesta2" => $item['column_values'][6]['text'],
-                "observaciones2" => $item['column_values'][7]['text'],
-                "punto2" => "",
-                "colaborador2"=> $item['column_values'][5]['text'],
-                "pregunta3" => $item['column_values'][9]['title'],
-                "respuesta3" => $item['column_values'][9]['text'],
-                "observaciones3" => $item['column_values'][10]['text'],
-                "punto3" => $item['column_values'][12]['text'],
-                "colaborador3"=> $item['column_values'][11]['text'],
-                "pregunta4" => $item['column_values'][13]['title'],
-                "respuesta4" => $item['column_values'][13]['text'],
-                "observaciones4" => $item['column_values'][14]['text'],
-                "punto4" => $item['column_values'][16]['text'],
-                "colaborador4"=> $item['column_values'][15]['text'],
-                "pregunta5" => $item['column_values'][17]['title'],
-                "respuesta5" => $item['column_values'][17]['text'],
-                "observaciones5" => $item['column_values'][18]['text'],
-                "punto5" => $item['column_values'][20]['text'],
-                "colaborador5"=> $item['column_values'][19]['text'],
-                "pregunta6" => $item['column_values'][21]['title'],
-                "respuesta6" => $item['column_values'][21]['text'],
-                "observaciones6" => $item['column_values'][22]['text'],
-                "punto6" => $item['column_values'][24]['text'],
-                "colaborador6"=> $item['column_values'][23]['text'],
-                "pregunta7" => $item['column_values'][25]['title'],
-                "respuesta7" => $item['column_values'][25]['text'],
-                "observaciones7" => $item['column_values'][26]['text'],
-                "punto7" => $item['column_values'][28]['text'],
-                "colaborador7"=> $item['column_values'][27]['text'],
-                "pregunta8" => $item['column_values'][29]['title'],
-                "respuesta8" => $item['column_values'][29]['text'],
-                "observaciones8" => $item['column_values'][30]['text'],
-                "punto8" => $item['column_values'][32]['text'],
-                "colaborador8"=> $item['column_values'][31]['text'],
-                "pregunta9" => $item['column_values'][33]['title'],
-                "respuesta9" => $item['column_values'][33]['text'],
-                "observaciones9" => $item['column_values'][34]['text'],
-                "punto9" => $item['column_values'][36]['text'],
-                "colaborador9"=> $item['column_values'][35]['text'],
-                "pregunta10" => $item['column_values'][37]['title'],
-                "respuesta10" => $item['column_values'][37]['text'],
-                "observaciones10" => $item['column_values'][38]['text'],
-                "punto10" => $item['column_values'][40]['text'],
-                "colaborador10" => $item['column_values'][39]['text'],
-            ]);
-            $inse = [
-                "_store"=>$store,
-                "created"=>$fecha,
-                "_admon"=>$idadmon,
-                "quiz"=>$quiz,
-                "evidence"=>$evidence,
-                "id_mon"=>$ids,
-                "calification"=>$calif
-            ];
-            $insert = DB::table('checklistiop')->insert($inse);
-            if($insert){
-                $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4738541896, column_id:"texto", value: "'.$calif."/"."100".'") {id}}';
-                $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4738541896, column_values: "{\"estado\" : {\"label\" : \"Enviado\"}}") {id}}';
-                $chan = $this->apimon($changtext);
-                $chans = $this->apimon($chagesta);
-                $goals[] = "id ".$ids." insertado";
+            $id_mons = DB::table('checklistiop')->where('id_mon',$ids)->first();
+            if($id_mons){
+
             }else{
-                $fails[]= "id ".$ids." no se inserto";
+                $evidence = json_encode($item['column_values'][42]['text']);
+                $quiz = json_encode([
+                    "pregunta1" => $item['column_values'][4]['title'],
+                    "respuesta1" => $item['column_values'][4]['text'],
+                    "observaciones1" => $item['column_values'][5]['text'],
+                    "punto1" => "",
+                    "colaborador1" => $item['column_values'][6]['text'],
+                    "pregunta2" => $item['column_values'][7]['title'],
+                    "respuesta2" => $item['column_values'][7]['text'],
+                    "observaciones2" => $item['column_values'][8]['text'],
+                    "punto2" => "",
+                    "colaborador2"=> $item['column_values'][6]['text'],
+                    "pregunta3" => $item['column_values'][10]['title'],
+                    "respuesta3" => $item['column_values'][10]['text'],
+                    "observaciones3" => $item['column_values'][11]['text'],
+                    "punto3" => $item['column_values'][13]['text'],
+                    "colaborador3"=> $item['column_values'][12]['text'],
+                    "pregunta4" => $item['column_values'][14]['title'],
+                    "respuesta4" => $item['column_values'][14]['text'],
+                    "observaciones4" => $item['column_values'][15]['text'],
+                    "punto4" => $item['column_values'][17]['text'],
+                    "colaborador4"=> $item['column_values'][16]['text'],
+                    "pregunta5" => $item['column_values'][18]['title'],
+                    "respuesta5" => $item['column_values'][18]['text'],
+                    "observaciones5" => $item['column_values'][19]['text'],
+                    "punto5" => $item['column_values'][21]['text'],
+                    "colaborador5"=> $item['column_values'][20]['text'],
+                    "pregunta6" => $item['column_values'][22]['title'],
+                    "respuesta6" => $item['column_values'][22]['text'],
+                    "observaciones6" => $item['column_values'][23]['text'],
+                    "punto6" => $item['column_values'][25]['text'],
+                    "colaborador6"=> $item['column_values'][24]['text'],
+                    "pregunta7" => $item['column_values'][26]['title'],
+                    "respuesta7" => $item['column_values'][26]['text'],
+                    "observaciones7" => $item['column_values'][27]['text'],
+                    "punto7" => $item['column_values'][29]['text'],
+                    "colaborador7"=> $item['column_values'][28]['text'],
+                    "pregunta8" => $item['column_values'][30]['title'],
+                    "respuesta8" => $item['column_values'][30]['text'],
+                    "observaciones8" => $item['column_values'][31]['text'],
+                    "punto8" => $item['column_values'][33]['text'],
+                    "colaborador8"=> $item['column_values'][32]['text'],
+                    "pregunta9" => $item['column_values'][34]['title'],
+                    "respuesta9" => $item['column_values'][34]['text'],
+                    "observaciones9" => $item['column_values'][35]['text'],
+                    "punto9" => $item['column_values'][37]['text'],
+                    "colaborador9"=> $item['column_values'][36]['text'],
+                    "pregunta10" => $item['column_values'][38]['title'],
+                    "respuesta10" => $item['column_values'][38]['text'],
+                    "observaciones10" => $item['column_values'][39]['text'],
+                    "punto10" => $item['column_values'][41]['text'],
+                    "colaborador10" => $item['column_values'][40]['text'],
+                ]);
+                $inse = [
+                    "_store"=>$store,
+                    "created"=>$fecha,
+                    "_admon"=>$idadmon,
+                    "quiz"=>$quiz,
+                    "evidence"=>$evidence,
+                    "id_mon"=>$ids,
+                    "calification"=>$calif
+                ];
+                $insert = DB::table('checklistiop')->insert($inse);
+                if($insert){
+                    $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4738541896, column_id:"texto", value: "'.$calif."/"."100".'") {id}}';
+                    $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4738541896, column_values: "{\"estado\" : {\"label\" : \"Enviado\"}}") {id}}';
+                    $chan = $this->apimon($changtext);
+                    $chans = $this->apimon($chagesta);
+                    $goals[] = "id ".$ids." insertado";
+                }else{
+                    $fails[]= "id ".$ids." no se inserto";
+                }
             }
         }
         $res = [
@@ -435,96 +488,133 @@ class MondayController extends Controller
         return $res;
     }
 
+    public function cheklistfinopmas(){
+        $pdf = [];
+        $mysql = [];
+        $query = 'query {
+            items_by_column_values (board_id: 4738652916, column_id: "estado", column_value: "Sin Enviar") {
+                id
+                column_values{
+                    id
+                    title
+                    text
+                }
+            }
+        }';//se genera consulta graphql para api de monday
+        $monval = $this->apimon($query);
+        $data = $monval['data']['items_by_column_values'];// se envia a mysql
+        $mysql = $this->mysqlfinop($data);
+        $pdfque = 'query {
+            items_by_column_values (board_id: 4738652916, column_id: "estado9", column_value: "Sin Enviar") {
+                id
+                column_values{
+                    id
+                    title
+                    text
+                }
+            }
+        }';//se genera consulta graphql para api de monday
+        $pdfval = $this->apimon($pdfque);
+        $pdfdata = $pdfval['data']['items_by_column_values'];// se envia a pdf
+        $pdf = $this->pdffinop($pdfdata);
+        $res = [
+            "pdf"=>$pdf,
+            "mysql"=>$mysql
+        ];
+
+        return $res;
+    }
+
     public function pdffinop($data){
         $items = $data;
         foreach($items as $item){
             $ids = $item['id'];
-            $tot1 = $item['column_values'][3]['text'] == "CUMPLE" ? 10 : 0;
-            $tot2 = $item['column_values'][7]['text'] == "CUMPLE" ? 10 : 0;
-            $tot3 = $item['column_values'][11]['text'] == "CUMPLE" ? 5 : 0;
-            $tot4 = $item['column_values'][15]['text'] == "CUMPLE" ? 10 : 0;
-            $tot5 = $item['column_values'][19]['text'] == "CUMPLE" ? 10 : 0;
-            $tot6 = $item['column_values'][22]['text'] == "CUMPLE" ? 5 : 0;
-            $tot7 = $item['column_values'][26]['text'] == "CUMPLE" ? 10 : 0;
-            $tot8 = $item['column_values'][30]['text'] == "CUMPLE" ? 10 : 0;
-            $tot9 = $item['column_values'][34]['text'] == "CUMPLE" ? 10 : 0;
-            $tot10 = $item['column_values'][38]['text'] == "CUMPLE" ? 5 : 0;
-            $tot11 = $item['column_values'][42]['text'] == "CUMPLE" ? 5 : 0;
-            $tot12 = $item['column_values'][46]['text'] == "CUMPLE" ? 10 : 0;
+            $tot1 = $item['column_values'][4]['text'] == "CUMPLE" ? 10 : 0;
+            $tot2 = $item['column_values'][8]['text'] == "CUMPLE" ? 10 : 0;
+            $tot3 = $item['column_values'][12]['text'] == "CUMPLE" ? 5 : 0;
+            $tot4 = $item['column_values'][16]['text'] == "CUMPLE" ? 10 : 0;
+            $tot5 = $item['column_values'][20]['text'] == "CUMPLE" ? 10 : 0;
+            $tot6 = $item['column_values'][23]['text'] == "CUMPLE" ? 5 : 0;
+            $tot7 = $item['column_values'][27]['text'] == "CUMPLE" ? 10 : 0;
+            $tot8 = $item['column_values'][31]['text'] == "CUMPLE" ? 10 : 0;
+            $tot9 = $item['column_values'][35]['text'] == "CUMPLE" ? 10 : 0;
+            $tot10 = $item['column_values'][39]['text'] == "CUMPLE" ? 5 : 0;
+            $tot11 = $item['column_values'][43]['text'] == "CUMPLE" ? 5 : 0;
+            $tot12 = $item['column_values'][47]['text'] == "CUMPLE" ? 10 : 0;
             $calif = $tot1 + $tot2 + $tot3 + $tot4 + $tot5 + $tot6 + $tot7 + $tot8 + $tot9 + $tot10 + $tot11 + $tot12;
 
-            $fecha = date('Y-m-d H_i_s', strtotime($item['column_values'][0]['text']) - 3600);
+            $fecha = date('Y-m-d H_i_s', strtotime($item['column_values'][1]['text']) - 3600);
 
             $creapd = [
-                "fecha"=>date('Y-m-d H:i:s', strtotime($item['column_values'][0]['text']) - 3600),
-                "admin" => $item['column_values'][2]['text'],
-                "sucursal" => $item['column_values'][1]['text'],
+                "fecha"=>date('Y-m-d H:i:s', strtotime($item['column_values'][1]['text']) - 3600),
+                "admin" => $item['column_values'][3]['text'],
+                "sucursal" => $item['column_values'][2]['text'],
                 "puntuacion" => $calif." / 100 ",
                 "total" => $calif." / 100 ",
-                "ppg1" => $item['column_values'][3]['title'],
-                "tot1" => $item['column_values'][3]['text'],
-                "obs1" => $item['column_values'][4]['text'],
-                "pt1" =>  $item['column_values'][6]['text'],
-                "per1" => $item['column_values'][5]['text'],
-                "ppg2" => $item['column_values'][7]['title'],
-                "tot2" => $item['column_values'][7]['text'],
-                "obs2" => $item['column_values'][8]['text'],
-                "pt2" =>  $item['column_values'][10]['text'],
-                "per2" => $item['column_values'][9]['text'],
-                "ppg3" => $item['column_values'][11]['title'],
-                "tot3" => $item['column_values'][11]['text'],
-                "obs3" => $item['column_values'][12]['text'],
-                "pt3" =>  $item['column_values'][14]['text'],
-                "per3" => $item['column_values'][13]['text'],
-                "ppg4" => $item['column_values'][15]['title'],
-                "tot4" => $item['column_values'][15]['text'],
-                "obs4" => $item['column_values'][16]['text'],
-                "pt4" =>  $item['column_values'][18]['text'],
-                "per4" => $item['column_values'][17]['text'],
-                "ppg5" => $item['column_values'][19]['title'],
-                "tot5" => $item['column_values'][19]['text'],
-                "obs5" => $item['column_values'][20]['text'],
+                "ppg1" => $item['column_values'][4]['title'],
+                "tot1" => $item['column_values'][4]['text'],
+                "obs1" => $item['column_values'][5]['text'],
+                "pt1" =>  $item['column_values'][7]['text'],
+                "per1" => $item['column_values'][6]['text'],
+                "ppg2" => $item['column_values'][8]['title'],
+                "tot2" => $item['column_values'][8]['text'],
+                "obs2" => $item['column_values'][9]['text'],
+                "pt2" =>  $item['column_values'][11]['text'],
+                "per2" => $item['column_values'][10]['text'],
+                "ppg3" => $item['column_values'][12]['title'],
+                "tot3" => $item['column_values'][12]['text'],
+                "obs3" => $item['column_values'][13]['text'],
+                "pt3" =>  $item['column_values'][15]['text'],
+                "per3" => $item['column_values'][14]['text'],
+                "ppg4" => $item['column_values'][16]['title'],
+                "tot4" => $item['column_values'][16]['text'],
+                "obs4" => $item['column_values'][17]['text'],
+                "pt4" =>  $item['column_values'][19]['text'],
+                "per4" => $item['column_values'][18]['text'],
+                "ppg5" => $item['column_values'][20]['title'],
+                "tot5" => $item['column_values'][20]['text'],
+                "obs5" => $item['column_values'][21]['text'],
                 "pt5" =>  "",
-                "per5" => $item['column_values'][21]['text'],
-                "ppg6" => $item['column_values'][22]['title'],
-                "tot6" => $item['column_values'][22]['text'],
-                "obs6" => $item['column_values'][23]['text'],
-                "pt6" =>  $item['column_values'][25]['text'],
-                "per6" => $item['column_values'][24]['text'],
-                "ppg7" => $item['column_values'][26]['title'],
-                "tot7" => $item['column_values'][26]['text'],
-                "obs7" => $item['column_values'][27]['text'],
-                "pt7" =>  $item['column_values'][29]['text'],
-                "per7" => $item['column_values'][28]['text'],
-                "ppg8" => $item['column_values'][30]['title'],
-                "tot8" => $item['column_values'][30]['text'],
-                "obs8" => $item['column_values'][31]['text'],
-                "pt8" =>  $item['column_values'][33]['text'],
-                "per8" => $item['column_values'][32]['text'],
-                "ppg9" => $item['column_values'][34]['title'],
-                "tot9" => $item['column_values'][34]['text'],
-                "obs9" => $item['column_values'][35]['text'],
-                "pt9" =>  $item['column_values'][37]['text'],
-                "per9" => $item['column_values'][36]['text'],
-                "ppg10" =>$item['column_values'][38]['title'],
-                "tot10" =>$item['column_values'][38]['text'],
-                "obs10" =>$item['column_values'][39]['text'],
-                "pt10" => $item['column_values'][41]['text'],
-                "per10" =>$item['column_values'][40]['text'],
-                "ppg11" =>$item['column_values'][42]['title'],
-                "tot11" =>$item['column_values'][42]['text'],
-                "obs11" =>$item['column_values'][43]['text'],
-                "pt11" => $item['column_values'][45]['text'],
-                "per11" =>$item['column_values'][44]['text'],
-                "ppg12" =>$item['column_values'][46]['title'],
-                "tot12" =>$item['column_values'][46]['text'],
-                "obs12" =>$item['column_values'][47]['text'],
-                "pt12" => $item['column_values'][49]['text'],
-                "per12" =>$item['column_values'][48]['text'],
+                "per5" => $item['column_values'][22]['text'],
+                "ppg6" => $item['column_values'][23]['title'],
+                "tot6" => $item['column_values'][23]['text'],
+                "obs6" => $item['column_values'][24]['text'],
+                "pt6" =>  $item['column_values'][26]['text'],
+                "per6" => $item['column_values'][25]['text'],
+                "ppg7" => $item['column_values'][27]['title'],
+                "tot7" => $item['column_values'][27]['text'],
+                "obs7" => $item['column_values'][28]['text'],
+                "pt7" =>  $item['column_values'][30]['text'],
+                "per7" => $item['column_values'][29]['text'],
+                "ppg8" => $item['column_values'][31]['title'],
+                "tot8" => $item['column_values'][31]['text'],
+                "obs8" => $item['column_values'][32]['text'],
+                "pt8" =>  $item['column_values'][34]['text'],
+                "per8" => $item['column_values'][33]['text'],
+                "ppg9" => $item['column_values'][35]['title'],
+                "tot9" => $item['column_values'][35]['text'],
+                "obs9" => $item['column_values'][36]['text'],
+                "pt9" =>  $item['column_values'][38]['text'],
+                "per9" => $item['column_values'][37]['text'],
+                "ppg10" =>$item['column_values'][39]['title'],
+                "tot10" =>$item['column_values'][39]['text'],
+                "obs10" =>$item['column_values'][40]['text'],
+                "pt10" => $item['column_values'][42]['text'],
+                "per10" =>$item['column_values'][41]['text'],
+                "ppg11" =>$item['column_values'][43]['title'],
+                "tot11" =>$item['column_values'][43]['text'],
+                "obs11" =>$item['column_values'][44]['text'],
+                "pt11" => $item['column_values'][46]['text'],
+                "per11" =>$item['column_values'][45]['text'],
+                "ppg12" =>$item['column_values'][47]['title'],
+                "tot12" =>$item['column_values'][47]['text'],
+                "obs12" =>$item['column_values'][48]['text'],
+                "pt12" => $item['column_values'][50]['text'],
+                "per12" =>$item['column_values'][49]['text'],
             ];
             $pdf = View::make('finop', $creapd)->render();
 
-            $sucursal = $item['column_values'][1]['text'];
+            $sucursal = $item['column_values'][2]['text'];
 
             switch ($sucursal) {
                 case "SAN PABLO 1":
@@ -626,106 +716,111 @@ class MondayController extends Controller
         $fails=[];
         $items = $data;
         foreach($items as $item){
-            $tot1 = $item['column_values'][3]['text'] == "CUMPLE" ? 10 : 0;
-            $tot2 = $item['column_values'][7]['text'] == "CUMPLE" ? 10 : 0;
-            $tot3 = $item['column_values'][11]['text'] == "CUMPLE" ? 5 : 0;
-            $tot4 = $item['column_values'][15]['text'] == "CUMPLE" ? 10 : 0;
-            $tot5 = $item['column_values'][19]['text'] == "CUMPLE" ? 10 : 0;
-            $tot6 = $item['column_values'][22]['text'] == "CUMPLE" ? 5 : 0;
-            $tot7 = $item['column_values'][26]['text'] == "CUMPLE" ? 10 : 0;
-            $tot8 = $item['column_values'][30]['text'] == "CUMPLE" ? 10 : 0;
-            $tot9 = $item['column_values'][34]['text'] == "CUMPLE" ? 10 : 0;
-            $tot10 = $item['column_values'][38]['text'] == "CUMPLE" ? 5 : 0;
-            $tot11 = $item['column_values'][42]['text'] == "CUMPLE" ? 5 : 0;
-            $tot12 = $item['column_values'][46]['text'] == "CUMPLE" ? 10 : 0;
+            $tot1 = $item['column_values'][4]['text'] == "CUMPLE" ? 10 : 0;
+            $tot2 = $item['column_values'][8]['text'] == "CUMPLE" ? 10 : 0;
+            $tot3 = $item['column_values'][12]['text'] == "CUMPLE" ? 5 : 0;
+            $tot4 = $item['column_values'][16]['text'] == "CUMPLE" ? 10 : 0;
+            $tot5 = $item['column_values'][20]['text'] == "CUMPLE" ? 10 : 0;
+            $tot6 = $item['column_values'][23]['text'] == "CUMPLE" ? 5 : 0;
+            $tot7 = $item['column_values'][27]['text'] == "CUMPLE" ? 10 : 0;
+            $tot8 = $item['column_values'][31]['text'] == "CUMPLE" ? 10 : 0;
+            $tot9 = $item['column_values'][35]['text'] == "CUMPLE" ? 10 : 0;
+            $tot10 = $item['column_values'][39]['text'] == "CUMPLE" ? 5 : 0;
+            $tot11 = $item['column_values'][43]['text'] == "CUMPLE" ? 5 : 0;
+            $tot12 = $item['column_values'][47]['text'] == "CUMPLE" ? 10 : 0;
 
 
-            $store = DB::table('stores')->where('name',$item['column_values'][1]['text'])->value('id');
-            $idadmon = DB::table('staff')->where('complete_name',$item['column_values'][2]['text'])->value('id');
+            $store = DB::table('stores')->where('name',$item['column_values'][2]['text'])->value('id');
+            $idadmon = DB::table('staff')->where('complete_name',$item['column_values'][3]['text'])->value('id');
             $calif = $tot1 + $tot2 + $tot3 + $tot4 + $tot5 + $tot6 + $tot7 + $tot8 + $tot9 + $tot10 + $tot11 + $tot12;
-            $fecha =date('Y-m-d H:i:s', strtotime($item['column_values'][0]['text']) - 3600);
+            $fecha =date('Y-m-d H:i:s', strtotime($item['column_values'][1]['text']) - 3600);
             $ids = $item['id'];
-            $evidence = json_encode($item['column_values'][50]['text']);
-            $quiz = json_encode([
-                "pregunta1" => $item['column_values'][3]['title'],
-                "respuesta1" => $item['column_values'][3]['text'],
-                "observaciones1" => $item['column_values'][4]['text'],
-                "punto1"  =>  $item['column_values'][6]['text'],
-                "colaborador1" => $item['column_values'][5]['text'],
-                "pregunta2" => $item['column_values'][7]['title'],
-                "respuesta2" => $item['column_values'][7]['text'],
-                "observaciones2" => $item['column_values'][8]['text'],
-                "punto2"  =>  $item['column_values'][10]['text'],
-                "colaborador2" => $item['column_values'][9]['text'],
-                "pregunta3" => $item['column_values'][11]['title'],
-                "respuesta3" => $item['column_values'][11]['text'],
-                "observaciones3" => $item['column_values'][12]['text'],
-                "punto3"  =>  $item['column_values'][14]['text'],
-                "colaborador3" => $item['column_values'][13]['text'],
-                "pregunta4" => $item['column_values'][15]['title'],
-                "respuesta4" => $item['column_values'][15]['text'],
-                "observaciones4" => $item['column_values'][16]['text'],
-                "punto4"  =>  $item['column_values'][18]['text'],
-                "colaborador4" => $item['column_values'][17]['text'],
-                "pregunta5" => $item['column_values'][19]['title'],
-                "respuesta5" => $item['column_values'][19]['text'],
-                "observaciones5" => $item['column_values'][20]['text'],
-                "punto5"  =>  "",
-                "colaborador5" => $item['column_values'][21]['text'],
-                "pregunta6" => $item['column_values'][22]['title'],
-                "respuesta6" => $item['column_values'][22]['text'],
-                "observaciones6" => $item['column_values'][23]['text'],
-                "punto6"  =>  $item['column_values'][25]['text'],
-                "colaborador6" => $item['column_values'][24]['text'],
-                "pregunta7" => $item['column_values'][26]['title'],
-                "respuesta7" => $item['column_values'][26]['text'],
-                "observaciones7" => $item['column_values'][27]['text'],
-                "punto7"  =>  $item['column_values'][29]['text'],
-                "colaborador7" => $item['column_values'][28]['text'],
-                "pregunta8" => $item['column_values'][30]['title'],
-                "respuesta8" => $item['column_values'][30]['text'],
-                "observaciones8" => $item['column_values'][31]['text'],
-                "punto8"  =>  $item['column_values'][33]['text'],
-                "colaborador8" => $item['column_values'][32]['text'],
-                "pregunta9" => $item['column_values'][34]['title'],
-                "respuesta9" => $item['column_values'][34]['text'],
-                "observaciones9" => $item['column_values'][35]['text'],
-                "punto9"  =>  $item['column_values'][37]['text'],
-                "colaborador9" => $item['column_values'][36]['text'],
-                "pregunta10"=>$item['column_values'][38]['title'],
-                "respuesta10"=>$item['column_values'][38]['text'],
-                "observaciones10"=>$item['column_values'][39]['text'],
-                "punto10" => $item['column_values'][41]['text'],
-                "colaborador10"=>$item['column_values'][40]['text'],
-                "pregunta11"=>$item['column_values'][42]['title'],
-                "respuesta11"=>$item['column_values'][42]['text'],
-                "observaciones11"=>$item['column_values'][43]['text'],
-                "punto11" => $item['column_values'][45]['text'],
-                "colaborador11"=>$item['column_values'][44]['text'],
-                "pregunta12"=>$item['column_values'][46]['title'],
-                "respuesta12"=>$item['column_values'][46]['text'],
-                "observaciones12"=>$item['column_values'][47]['text'],
-                "punto12" => $item['column_values'][49]['text'],
-                "colaborador12"=>$item['column_values'][48]['text'],
-            ]);
-            $inse = [
-                "_store"=>$store,
-                "created"=>$fecha,
-                "_admon"=>$idadmon,
-                "quiz"=>$quiz,
-                "evidence"=>$evidence,
-                "id_mon"=>$ids,
-                "calification"=>$calif
-            ];
-            $insert = DB::table('checklistfinop')->insert($inse);
-            if($insert){
-                $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4738652916, column_id:"texto", value: "'.$calif."/"."100".'") {id}}';
-                $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4738652916, column_values: "{\"estado\" : {\"label\" : \"Enviado\"}}") {id}}';
-                $chan = $this->apimon($changtext);
-                $chans = $this->apimon($chagesta);
-                $goals[] = "id ".$ids." insertado";
+            $id_mons = DB::table('checklistfinop')->where('id_mon',$ids)->first();
+            if($id_mons){
+
             }else{
-                $fails[]= "id ".$ids." no se inserto";
+                $evidence = json_encode($item['column_values'][51]['text']);
+                $quiz = json_encode([
+                    "pregunta1" => $item['column_values'][4]['title'],
+                    "respuesta1" => $item['column_values'][4]['text'],
+                    "observaciones1" => $item['column_values'][5]['text'],
+                    "punto1"  =>  $item['column_values'][7]['text'],
+                    "colaborador1" => $item['column_values'][6]['text'],
+                    "pregunta2" => $item['column_values'][8]['title'],
+                    "respuesta2" => $item['column_values'][8]['text'],
+                    "observaciones2" => $item['column_values'][9]['text'],
+                    "punto2"  =>  $item['column_values'][11]['text'],
+                    "colaborador2" => $item['column_values'][10]['text'],
+                    "pregunta3" => $item['column_values'][12]['title'],
+                    "respuesta3" => $item['column_values'][12]['text'],
+                    "observaciones3" => $item['column_values'][13]['text'],
+                    "punto3"  =>  $item['column_values'][15]['text'],
+                    "colaborador3" => $item['column_values'][14]['text'],
+                    "pregunta4" => $item['column_values'][16]['title'],
+                    "respuesta4" => $item['column_values'][16]['text'],
+                    "observaciones4" => $item['column_values'][16]['text'],
+                    "punto4"  =>  $item['column_values'][19]['text'],
+                    "colaborador4" => $item['column_values'][18]['text'],
+                    "pregunta5" => $item['column_values'][20]['title'],
+                    "respuesta5" => $item['column_values'][20]['text'],
+                    "observaciones5" => $item['column_values'][21]['text'],
+                    "punto5"  =>  "",
+                    "colaborador5" => $item['column_values'][22]['text'],
+                    "pregunta6" => $item['column_values'][23]['title'],
+                    "respuesta6" => $item['column_values'][23]['text'],
+                    "observaciones6" => $item['column_values'][24]['text'],
+                    "punto6"  =>  $item['column_values'][26]['text'],
+                    "colaborador6" => $item['column_values'][25]['text'],
+                    "pregunta7" => $item['column_values'][27]['title'],
+                    "respuesta7" => $item['column_values'][27]['text'],
+                    "observaciones7" => $item['column_values'][29]['text'],
+                    "punto7"  =>  $item['column_values'][30]['text'],
+                    "colaborador7" => $item['column_values'][29]['text'],
+                    "pregunta8" => $item['column_values'][31]['title'],
+                    "respuesta8" => $item['column_values'][31]['text'],
+                    "observaciones8" => $item['column_values'][32]['text'],
+                    "punto8"  =>  $item['column_values'][34]['text'],
+                    "colaborador8" => $item['column_values'][33]['text'],
+                    "pregunta9" => $item['column_values'][35]['title'],
+                    "respuesta9" => $item['column_values'][35]['text'],
+                    "observaciones9" => $item['column_values'][36]['text'],
+                    "punto9"  =>  $item['column_values'][38]['text'],
+                    "colaborador9" => $item['column_values'][37]['text'],
+                    "pregunta10"=>$item['column_values'][39]['title'],
+                    "respuesta10"=>$item['column_values'][39]['text'],
+                    "observaciones10"=>$item['column_values'][40]['text'],
+                    "punto10" => $item['column_values'][42]['text'],
+                    "colaborador10"=>$item['column_values'][41]['text'],
+                    "pregunta11"=>$item['column_values'][43]['title'],
+                    "respuesta11"=>$item['column_values'][43]['text'],
+                    "observaciones11"=>$item['column_values'][44]['text'],
+                    "punto11" => $item['column_values'][46]['text'],
+                    "colaborador11"=>$item['column_values'][45]['text'],
+                    "pregunta12"=>$item['column_values'][47]['title'],
+                    "respuesta12"=>$item['column_values'][47]['text'],
+                    "observaciones12"=>$item['column_values'][48]['text'],
+                    "punto12" => $item['column_values'][50]['text'],
+                    "colaborador12"=>$item['column_values'][49]['text'],
+                ]);
+                $inse = [
+                    "_store"=>$store,
+                    "created"=>$fecha,
+                    "_admon"=>$idadmon,
+                    "quiz"=>$quiz,
+                    "evidence"=>$evidence,
+                    "id_mon"=>$ids,
+                    "calification"=>$calif
+                ];
+                $insert = DB::table('checklistfinop')->insert($inse);
+                if($insert){
+                    $changtext = 'mutation {change_simple_column_value (item_id:'.$ids.', board_id:4738652916, column_id:"texto", value: "'.$calif."/"."100".'") {id}}';
+                    $chagesta = 'mutation {change_multiple_column_values(item_id:'.$ids.', board_id:4738652916, column_values: "{\"estado\" : {\"label\" : \"Enviado\"}}") {id}}';
+                    $chan = $this->apimon($changtext);
+                    $chans = $this->apimon($chagesta);
+                    $goals[] = "id ".$ids." insertado";
+                }else{
+                    $fails[]= "id ".$ids." no se inserto";
+                }
             }
         }
         $res = [

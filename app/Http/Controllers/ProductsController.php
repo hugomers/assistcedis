@@ -419,7 +419,7 @@ class ProductsController extends Controller
             $oab = $abono->json();
             // $insob2 = Http::post($from->ip_address.'/storetools/public/api/Resources/upddev',["abono"=>$obtabo,"devolucion"=>$dev]);
             $insup = ["abono"=>$oab,"devolucion"=>$dev];
-            $insob2 = Http::post('192.168.10.232:1619'.'/storetools/public/api/Resources/upddev',$insup);
+            $insob2 = Http::post($from->ip_address.'/storetools/public/api/Resources/upddev',$insup);
             $insta = $insob2->status();
             if($insta == 200){
                 return response()->json($seguimiento,200);

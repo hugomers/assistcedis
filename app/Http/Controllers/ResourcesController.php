@@ -242,8 +242,8 @@ class ResourcesController extends Controller
         $sol = Solicitudes::find($request->id);
         if($sol){
             $cedis = Stores::find(1);
-            // $ip = $cedis->ip_address;
-            $ip = '192.168.10.232:1619';
+            $ip = $cedis->ip_address;
+            // $ip = '192.168.10.232:1619';
             $addcli = Http::post($ip.'/storetools/public/api/Resources/createClient',$request->all());
             $respuesta =  $addcli->status();
             if($respuesta == 400){
@@ -357,8 +357,8 @@ class ResourcesController extends Controller
             foreach($solicitudes as $solicitud){
                 $wrk = [];
                 foreach($stores as $store){
-                    // $ip = $store->ip_address;
-                    $ip = '192.168.10.232:1619';
+                    $ip = $store->ip_address;
+                    // $ip = '192.168.10.232:1619';
                     $inscli = Http::post($ip.'/storetools/public/api/Resources/createClientSuc',$solicitud);
                     $status = $inscli->status();
                     if($status == 201){
