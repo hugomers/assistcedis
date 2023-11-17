@@ -505,7 +505,7 @@ class MondayController extends Controller
         $data = $monval['data']['items_by_column_values'];// se envia a mysql
         $mysql = $this->mysqlfinop($data);
         $pdfque = 'query {
-            items_by_column_values (board_id: 4738652916, column_id: "estado9", column_value: "Sin Enviar") {
+            items_by_column_values (board_id: 4738652916, column_id: "estado7", column_value: "Sin Enviar") {
                 id
                 column_values{
                     id
