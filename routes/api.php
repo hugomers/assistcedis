@@ -63,6 +63,7 @@ Route::prefix('/waap')->group(function(){
 
 Route::prefix('/zkt')->group(function(){
     Route::get('/Reportcomplete',[ZktecoController::class, 'completeReport']);
+    Route::delete('/delete',[ZktecoController::class, 'delete']);
 });
 
 Route::prefix('/resources')->group(function(){

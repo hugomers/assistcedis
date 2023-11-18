@@ -1316,7 +1316,7 @@ class MondayController extends Controller
 
         }
 
-        return response()->json("Justificaciones Replicadas");
+        return response()->json("Justificaciones Replicadas",200);
     }
 
     public function Cifras(){

@@ -211,4 +211,28 @@ class ZktecoController extends Controller
 
         return response()->json($goals,200);
     }
+
+    public function delete (){
+        $goals = [];
+        $deviceszkt = DB::table('assist_devices')->select('id','nick_name','ip_address','_store')->get();
+        foreach($deviceszkt as $device){
+            $zk = new ZKTeco($device->ip_address);
+            if($zk->connect()){
+                if($zk->clearAttendance()){
+                    $goals[] =[
+                        "id"=>$device->id,
+                        "sucursal"=>$device->nick_name,
+                        "delete"=>"OK"
+                    ];
+                }
+            }else{
+                $goals[] =[
+                    "id"=>$device->id,
+                    "sucursal"=>$device->nick_name,
+                    "delete"=>"SIN CONEXION"
+                ];
+            }
+        }
+        return response()->json($goals,200);
+    }
 }
