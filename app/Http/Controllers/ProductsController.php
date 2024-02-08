@@ -306,6 +306,7 @@ class ProductsController extends Controller
                 $seguimiento['Movimientos']['FacturaSalida'] = $obtfac;
                 $impabo['referencia'] = "FAC ".$obtfac;
                 $facturare = $this->conecStores($to->dominio,'invr',$impabo,$to->name);//el de DESTINO
+                // $facturare = Http::post($to->dominio.'/storetools/public/api/Products/invr',$impabo);
                 if($facturare['mssg']===false){
                     $msg = [
                         "mssg"=>"No hay conexexion a la sucursal destino para generar la entrada",

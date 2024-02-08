@@ -27,7 +27,7 @@ class AssistExport implements FromCollection, WithHeadings, ShouldAutoSize, With
     // */
     public function collection(){
         // return new AssistController();
-        $semana = now()->format('W');
+        $semana = now()->format('W') - 1;
         $anio = now()->format('Y');
 
         $staffData = DB::select('call report_assist('.$semana.','.$anio.')');
