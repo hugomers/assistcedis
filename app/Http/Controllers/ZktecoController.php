@@ -194,9 +194,9 @@ class ZktecoController extends Controller
                                     "_device"=>$device->id,
                                 ];
                             }else{
-                                $finduser = $zk->getUser();
-                                $find = array_values(array_filter($finduser, function($val) use($assist){ return $val['userid'] == $assist[1];}));
-                                $fails[]=$device->nick_name." no existe el id ".$assist[1]." con el nombre ".$find[0]['name']." favor de revisar ";
+                                // $finduser = $zk->getUser();
+                                // $find = array_values(array_filter($finduser, function($val) use($assist){ return $val['userid'] == $assist[1];}));
+                                // $fails[]=$device->nick_name." no existe el id ".$assist[1]." con el nombre ".$find[0]['name']." favor de revisar ";
                             }
                     }
                     $insert = DB::table('assist')->insert($report);
