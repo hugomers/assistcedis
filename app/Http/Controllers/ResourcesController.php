@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
 use App\Models\Solicitudes;
 use App\Models\Stores;
+use App\Models\transfer;
 use App\Models\ReplyClient;
 use App\Models\Flight;
 use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Exception\RequestException;
 
 class ResourcesController extends Controller
 {
@@ -390,9 +392,218 @@ class ResourcesController extends Controller
 
     public function getDev(Request $request){
         $stores = Stores::find($request->id);
-        $ip = $stores->ip_address;
-        // $ip = '192.168.10.232:1619';
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.182:1619';
         $getdev = Http::get($ip.'/storetools/public/api/Resources/getdev');
         return $getdev;
+    }
+
+    public function gettras(Request $request){
+
+        $stores = Stores::find($request->id);
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.112:1619';
+        $ge = transfer::where('_store_from',3)->get();
+        $getdev = Http::get($ip.'/storetools/public/api/Resources/gettras');
+        $data = $getdev->json();
+        $rees = [
+            'devoluciones'=>$data,
+            'movimientos'=>$ge
+        ];
+        return $rees;
+    }
+
+    public function iniproces(Request $request){
+        $transfer = new transfer;
+        $transfer->_store_from = $request->from['id'];
+        $transfer->_store_to = $request->to['id'];
+        $transfer->refund = $request->devolucion['DEVOLUCION'];
+        $transfer->provider = $request->devolucion['PROVEEDOR'];
+        $transfer->reference = $request->devolucion['REFERENCIA'];
+        $transfer->save();
+        $res = $transfer->fresh()->toArray();
+        if($res){
+            $devolucion = $this->busDev($request->from['id'],$request->devolucion['DEVOLUCION']);
+            if($devolucion){
+                $impabo = [
+                    "referencia"=>"DEV .".$request->devolucion['DEVOLUCION']." ".$request->from['alias'],
+                    "cliente"=>$request->from['_client'],
+                    "observacion"=>'Traspaso a '.$request->to['alias'],
+                    "total"=>$devolucion['total'],
+                    "products"=>$devolucion['productos']
+                ];
+                $abono = $this->abono($impabo);
+                if($abono){
+                    $updseason = transfer::find($res['id']);
+                    $updseason->season_ticket = str_replace('"','',$abono);
+                    $updseason->save();
+                    $return = $updseason->fresh()->toArray();
+                    if($return){
+                        $impabo['referencia'] = "TRASPASO / SUC ".$request->from['alias']."/".$request->to['alias'];
+                        $impabo['cliente'] = $request->to['_client'];
+                        $salida = $this->salida($impabo);
+                        if($salida){
+                            $updinvoice = transfer::find($res['id']);
+                            $updinvoice->invoice = str_replace('"','',$salida);
+                            $updinvoice->save();
+                            $resinvoice = $updinvoice->fresh()->toArray();
+                            if($resinvoice){
+                                $impabo['referencia'] = "FAC ".str_replace('"','',$salida);
+                                $entrada = $this->entry($request->to['id'],$impabo);
+                                if($entrada){
+                                    $updentry = transfer::find($res['id']);
+                                    $updentry->entry = str_replace('"','',$entrada);
+                                    $updentry->save();
+                                    $reenrada = $updentry->fresh()->toArray();
+                                    return response()->json($reenrada,200);
+                                }else{
+                                    return response()->json($resinvoice,200);
+                                }
+                            }
+                        }else{
+                            return response()->json($return,200);
+                        }
+                    }
+                }else{
+                    return response()->json($res,200);
+                }
+            }else{
+                return response()->json('No Existe la devolucion',404);
+            }
+        }
+    }
+
+    public function busDev($from, $devolucion){
+            $stores = Stores::find($from);
+            // $ip = $stores->ip_address;
+            $ip = '192.168.10.112:1619';
+            $getdev = Http::post($ip.'/storetools/public/api/Resources/returndev',$devolucion);
+            if($getdev->status() != 200){
+                return false;
+            }else{
+                return $getdev;
+            }
+    }
+
+    public function abono($impabo){
+        $stores = Stores::find(1);
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.112:1619';
+        $getdev = Http::post($ip.'/storetools/public/api/Resources/createAbono',$impabo);
+            if($getdev->status() != 200){
+                return false;
+            }else{
+                return $getdev;
+            }
+    }
+
+    public function salida($impabo){
+        $stores = Stores::find(1);
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.112:1619';
+        $getdev = Http::post($ip.'/storetools/public/api/Resources/createSalidas',$impabo);
+            if($getdev->status() != 200){
+                return false;
+            }else{
+                return $getdev;
+            }
+    }
+
+    public function entry($to,$impabo){
+        $stores = Stores::find($to);
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.112:1619';
+        $getdev = Http::post($ip.'/storetools/public/api/Resources/createEntradas',$impabo);
+            if($getdev->status() != 200){
+                return false;
+            }else{
+                return $getdev;
+            }
+    }
+
+    public function nabo(Request $request){
+        $from = Stores::find($request->_store_from);
+        $to = Stores::find($request->_store_to);
+            $devolucion = $this->busDev($from->id,$request->refund);
+            if($devolucion){
+                $impabo = [
+                "referencia"=>"DEV .".$request->refund." ".$from->alias,
+                "cliente"=>$from->_client,
+                "observacion"=>'Traspaso a '.$to->alias,
+                "total"=>$devolucion['total'],
+                "products"=>$devolucion['productos']
+                ];
+
+                $abono = $this->abono($impabo);
+                if($abono){
+                    $updseason = transfer::find($request->id);
+                    $updseason->season_ticket = str_replace('"','',$abono);
+                    $updseason->save();
+                    $return = $updseason->fresh()->toArray();
+                    return response()->json($return,200);
+                }else{
+                return response()->json("No se realizo el abono",404);
+                }
+            }else{
+                return response()->json('No Existe la devolucion',404);
+            }
+    }
+
+    public function ninv(Request $request){
+        $from = Stores::find($request->_store_from);
+        $to = Stores::find($request->_store_to);
+        $devolucion = $this->busDev($from->id,$request->refund);
+        if($devolucion){
+            $impabo = [
+                "referencia"=>"TRASPASO / SUC ".$from->alias." / ".$to->alias,
+                "cliente"=>$to->_client,
+                "observacion"=>'Traspaso a '.$to->alias,
+                "total"=>$devolucion['total'],
+                "products"=>$devolucion['productos']
+                ];
+                    $salida = $this->salida($impabo);
+                    if($salida){
+                        $updinvoice = transfer::find($request->id);
+                        $updinvoice->invoice = str_replace('"','',$salida);
+                        $updinvoice->save();
+                        $resinvoice = $updinvoice->fresh()->toArray();
+                        if($resinvoice){
+                                return response()->json($resinvoice,200);
+                        }
+                    }else{
+                        return response()->json("No se realizo la salida",404);
+                    }
+        }else{
+            return response()->json('No Existe la devolucion',404);
+        }
+
+    }
+
+    public function nent(Request $request){
+        $from = Stores::find($request->_store_from);
+        $to = Stores::find($request->_store_to);
+        $devolucion = $this->busDev($from->id,$request->refund);
+        if($devolucion){
+            $impabo = [
+                "referencia"=>"FAC ".$request->invoice,
+                "cliente"=>$from->_client,
+                "observacion"=>'Traspaso a '.$to->alias,
+                "total"=>$devolucion['total'],
+                "products"=>$devolucion['productos']
+            ];
+            $entrada = $this->entry($to->id,$impabo);
+            if($entrada){
+                $updentry = transfer::find($request->id);
+                $updentry->entry = str_replace('"','',$entrada);
+                $updentry->save();
+                $reenrada = $updentry->fresh()->toArray();
+                return response()->json($reenrada,200);
+            }else{
+                return response()->json("No se pudo realizar la entrada",404);
+            }
+        }else{
+            return response()->json('No Existe la devolucion',404);
+        }
+
     }
 }

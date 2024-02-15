@@ -109,5 +109,11 @@ Route::prefix('/salidas')->group(function(){
 Route::prefix('/abonos')->group(function(){
     Route::get('/getSuc',[ResourcesController::class, 'getSuc']);
     Route::post('/getDev',[ResourcesController::class, 'getDev']);
+    Route::post('/gettras',[ResourcesController::class, 'gettras']);
+    Route::post('/iniproces',[ResourcesController::class, 'iniproces']);
+    Route::post('/nabo',[ResourcesController::class, 'nabo']);
+    Route::post('/ninv',[ResourcesController::class, 'ninv']);
+    Route::post('/nent',[ResourcesController::class, 'nent']);
+
 
 });
