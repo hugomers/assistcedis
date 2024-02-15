@@ -163,53 +163,60 @@ class ZktecoController extends Controller
     public function completeReport(){
         $goals = [];
         $fails = [];
+        $report = [];
         $deviceszkt = DB::table('assist_devices')->select('id','nick_name','ip_address','_store')->get();
         foreach($deviceszkt as $device){
+            $exist = DB::table('assist as A')
+            ->join('staff as S','S.id','A._staff')
+            ->where('A._device',$device->id)
+            ->select('A.auid as uid','S.id_rc as id','A._class as state','A.register as timestamp','A._types as type')
+            ->get()->toArray();
             $zk = new ZKTeco($device->ip_address);
             if($zk->connect()){
-                // if($zk->clearAttendance()){
-                //     $goals[]  = ["sucursal"=>$device->nick_name];
-                // }
                 $assists = $zk->getAttendance();
                 if($assists){
-                    foreach($assists as $assist){
-                        $auid = DB::table('assist')->where('auid',$assist['uid'])->where('_store',$device->_store)->first();
-                        if(is_null($auid)){
-                            $user = DB::table('staff')->where('id_rc',intval($assist['id']))->value('id');
+                    $dev = array_map(function($val){return implode(',',$val);},$assists);
+                    $dba = array_map(function($val){return implode(',',(array)$val);},$exist);
+                    $diff = array_diff($dev, $dba);
+                    $vdiff = array_values($diff);
+                    $diferencias = array_map(function($val){ return explode(',',$val);} ,$vdiff);
+                    if($diferencias){
+                        foreach($diferencias as $assist){
+                            $user = DB::table('staff')->where('id_rc',intval($assist[1]))->value('id');
                             if($user){
-                                $report = [
-                                    "auid" => $assist['uid'],//id checada checador
-                                    "register" => $assist['timestamp'], //horario
+                                $report [] = [
+                                    "auid" => $assist['0'],//id checada checador
+                                    "register" => $assist['3'], //horario
                                     "_staff" => $user,//id del usuario
                                     "_store"=> $device->_store,
-                                    "_types"=>$assist['type'],//entrada y salida
-                                    "_class"=>$assist['state'],
+                                    "_types"=>$assist['4'],//entrada y salida
+                                    "_class"=>$assist['2'],//condedo o contrasena
                                     "_device"=>$device->id,
                                 ];
-                                $insert = DB::table('assist')->insert($report);
+                            }else{
+                                // $finduser = $zk->getUser();
+                                // $find = array_values(array_filter($finduser, function($val) use($assist){ return $val['userid'] == $assist[1];}));
+                                // $fails[]=$device->nick_name." no existe el id ".$assist[1]." con el nombre ".$find[0]['name']." favor de revisar ";
                             }
-                        }
                     }
-                    $goals[] =[
-                        "id"=>$device->id,
-                        "sucursal"=>$device->nick_name,
-                        "conexion"=>"Conectado",
-                        "registroes"=>count($assists)
-                    ];
+                    $insert = DB::table('assist')->insert($report);
+                    if($insert){
+                        $goals[] = $device->nick_name." se insertaron ".count($report)." registros";
+                    }
+                    }else{
+                        $goals[] = $device->nick_name." No hay registros";
+                    }
                 }
-            }
-            else{
-                $goals[] =[
-                    "id"=>$device->id,
-                    "sucursal"=>$device->nick_name,
-                    "conexion"=>"SIN CONEXION",
-                    "registroes"=>0
-                ];
+            }else{
+                $fails[] = $device->nick_name." No tiene conexion";
             }
         }
+        $res = [
+            "goals"=>$goals,
+            "fails"=>$fails
+        ];
 
-
-        return response()->json($goals,200);
+        return response()->json($res,200);
     }
 
     public function delete (){
@@ -234,5 +241,18 @@ class ZktecoController extends Controller
             }
         }
         return response()->json($goals,200);
+    }
+
+    public function getReport(){
+        $semana = now()->format('W') - 1;
+        $anio = now()->format('Y');
+        $staffData = DB::select('call report_assist('.$semana.','.$anio.')');
+        $sucursal = DB::table('assist_devices as AD')->join('stores as S','S.id','AD._store')->select('S.name as label','S.name as value')->get();
+        $res = [
+            "reporte"=>$staffData,
+            "sucursal"=>$sucursal
+        ];
+        return response()->json($res);
+
     }
 }
