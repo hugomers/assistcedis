@@ -401,8 +401,8 @@ class ResourcesController extends Controller
     public function gettras(Request $request){
 
         $stores = Stores::find($request->id);
-        // $ip = $stores->ip_address;
-        $ip = '192.168.10.112:1619';
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.112:1619';
         $ge = transfer::where('_store_from',3)->get();
         $getdev = Http::get($ip.'/storetools/public/api/Resources/gettras');
         $data = $getdev->json();
@@ -475,8 +475,8 @@ class ResourcesController extends Controller
 
     public function busDev($from, $devolucion){
             $stores = Stores::find($from);
-            // $ip = $stores->ip_address;
-            $ip = '192.168.10.112:1619';
+            $ip = $stores->ip_address;
+            // $ip = '192.168.10.112:1619';
             $getdev = Http::post($ip.'/storetools/public/api/Resources/returndev',$devolucion);
             if($getdev->status() != 200){
                 return false;
@@ -487,8 +487,8 @@ class ResourcesController extends Controller
 
     public function abono($impabo){
         $stores = Stores::find(1);
-        // $ip = $stores->ip_address;
-        $ip = '192.168.10.112:1619';
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.112:1619';
         $getdev = Http::post($ip.'/storetools/public/api/Resources/createAbono',$impabo);
             if($getdev->status() != 200){
                 return false;
@@ -499,8 +499,8 @@ class ResourcesController extends Controller
 
     public function salida($impabo){
         $stores = Stores::find(1);
-        // $ip = $stores->ip_address;
-        $ip = '192.168.10.112:1619';
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.112:1619';
         $getdev = Http::post($ip.'/storetools/public/api/Resources/createSalidas',$impabo);
             if($getdev->status() != 200){
                 return false;
@@ -511,8 +511,8 @@ class ResourcesController extends Controller
 
     public function entry($to,$impabo){
         $stores = Stores::find($to);
-        // $ip = $stores->ip_address;
-        $ip = '192.168.10.112:1619';
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.112:1619';
         $getdev = Http::post($ip.'/storetools/public/api/Resources/createEntradas',$impabo);
             if($getdev->status() != 200){
                 return false;
