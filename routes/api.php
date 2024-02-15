@@ -41,6 +41,7 @@ Route::post('/add',[ZktecoController::class,'add']);
 Route::get('/maxuaid',[ZktecoController::class,'maxuaid']);
 Route::get('/report',[ZktecoController::class,'report']);
 Route::post('/insturn', [ZktecoController::class, 'insturn']);
+Route::get('/getResourses',[ZktecoController::class, 'getReport']);
 
 Route::get('/suc',[GoogleController::class,'sucursales']);
 

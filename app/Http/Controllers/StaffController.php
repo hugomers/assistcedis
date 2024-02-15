@@ -61,11 +61,11 @@ class StaffController extends Controller
             if($sucursal){//se verifica que existe
                 $bpos = DB::table('positions')->where('name',$posi)->value('id');//se busca posision
                 if($bpos){//se valida que exista
-                    $bus = DB::table('staff')->where('complete_name',$user)->value('id');//se busca el nombre en caso de que haya
+                    $bus = DB::table('staff')->where('id_rc',$rcid)->value('id');//se busca el nombre en caso de que haya
                     if($bus){//se valida que exise
-                        $val = DB::table('staff')->where('id',$bus)->where('id_rc',$rcid)->where('_store',$sucursal->id)->where('_position',$bpos)->where('picture',$pic)->first();//si existe se compara que tenga la misma informacion
+                        $val = DB::table('staff')->where('id',$bus)->where('complete_name',$user)->where('_store',$sucursal->id)->where('_position',$bpos)->where('picture',$pic)->first();//si existe se compara que tenga la misma informacion
                         if($val == null){//en caso de que no
-                        $update =DB::table('staff')->where('id',$bus)->update(['id_rc'=>$rcid, '_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);//se actuzliza lainformacion de el colaborador
+                        $update =DB::table('staff')->where('id',$bus)->update(['complete_name'=>$user, '_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);//se actuzliza lainformacion de el colaborador
                         $upins['updates'][]="Se Actualizo el usuario ".$user;//se guarda en el arreglo de goals
                         }
                     }else{//en caso de que no exista

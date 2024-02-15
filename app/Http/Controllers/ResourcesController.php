@@ -355,7 +355,7 @@ class ResourcesController extends Controller
         $res = [];
         $solicitudes = Solicitudes::where('_status',1)->get();
         if($solicitudes){
-            $stores = Stores::WhereNotIn('id',[1,2])->get();
+            $stores = Stores::WhereNotIn('id',[1,2,14,15])->get();
             foreach($solicitudes as $solicitud){
                 $wrk = [];
                 foreach($stores as $store){
