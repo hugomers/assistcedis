@@ -27,16 +27,29 @@ class StaffController extends Controller
         $token = env('TOKEN_MA');//token monday
         $apiUrl = 'https://api.monday.com/v2';//conexion api monday
         $headers = ['Content-Type: application/json', 'Authorization: ' . $token];//capeceras monday
+        // $query = 'query {
+        // items_by_column_values (board_id: 1520861792, column_id: "estatus", column_value: "ACTIVO") {
+        //     name,
+        //     column_values  {
+        //     id
+        //     title
+        //     text
+        //     }
+        // }
+        // }';//se genera consulta graphql para api de monday
+
         $query = 'query {
-        items_by_column_values (board_id: 1520861792, column_id: "estatus", column_value: "ACTIVO") {
-            name,
-            column_values  {
-            id
-            title
-            text
+            items_page_by_column_values ( limit:500 board_id: 1520861792, columns: [{column_id: "estatus", column_values: ["ACTIVO"]}]) {
+              cursor
+              items {
+                name
+                column_values{
+                  id
+                  text
+                }
+              }
             }
-        }
-        }';//se genera consulta graphql para api de monday
+          }';
         $data = @file_get_contents($apiUrl, false, stream_context_create([
         'http' => [
             'method' => 'POST',
@@ -45,7 +58,7 @@ class StaffController extends Controller
         ]
         ]));//conexion api monday
         $style = json_decode($data,true);//se decodifica lo que se recibe
-        $row = $style['data']['items_by_column_values'];//recorremos arreglos hasta los que ocuparemos
+        $row = $style['data']['items_page_by_column_values']['items'];//recorremos arreglos hasta los que ocuparemos
         foreach($row as $rows){//inicio foreach
             $user  = $rows['name'];//se toma el nombre
             if(strpos($user, '(copy)')){//se valida que no contenga copy ya que puede haver duplicados
@@ -100,20 +113,34 @@ class StaffController extends Controller
         $token = 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjIwMTgwNzYyMCwidWlkIjoyMDY1ODc3OSwiaWFkIjoiMjAyMi0xMS0yOVQxODoyMToxMS4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6ODM5Njc1MywicmduIjoidXNlMSJ9.nLLLRUTqG86usf18jqEYHIzf62rYA8Lee2coEEyTxlI';
         $apiUrl = 'https://api.monday.com/v2';
         $headers = ['Content-Type: application/json', 'Authorization: ' . $token];
-        $query = 'query {
-        boards (ids: 4403681072) {
-            items {
-            id
-            name
-            column_values  {
-                id
-                title
-                text
-            }
-            }
-        }
-        }';
+        // $query = 'query {
+        // boards (ids: 4403681072) {
+        //     items {
+        //     id
+        //     name
+        //     column_values  {
+        //         id
+        //         title
+        //         text
+        //     }
+        //     }
+        // }
+        // }';
 
+        $query = 'query {
+            items_page_by_column_values ( limit:500 board_id: 4403681072, columns: [{column_id: "estado7", column_values: ["AUTORIZADO"]},{column_id: "estado1", column_values: ["Sin Enviar"]}]) {
+              cursor
+              items {
+                
+                name
+                column_values{
+                  id
+                  text
+                }
+              }
+            }
+          }
+          ';
         $data = @file_get_contents($apiUrl, false, stream_context_create([
         'http' => [
             'method' => 'POST',
@@ -122,33 +149,36 @@ class StaffController extends Controller
         ]
         ]));
         $style = json_decode($data,true);
-        $row = $style['data']['boards'][0]['items'];
+        $row = $style['data']['items_page_by_column_values']['items'];
         if($row == null){
             return response()->json("No hay justificaciones que replicar");
         }
         foreach( $row as $rows){
             $table[]=$rows['column_values'];
         };
+        // return $table;
+
         foreach($table as $fil){
-        $name = $fil[1]['text'];
-        $type = $fil[2]['text'];
-        $mid = $fil[7]['text'];
+        $name = $fil[2]['text'];
+        $type = $fil[3]['text'];
+        $mid = $fil[13]['text'];
         $idmid = DB::table('assist_justification')->where('mid',$mid)->first();
         if($idmid == null){
             $staff = DB::table('staff')->where('complete_name',$name)->value('id');
             if($staff){
-            $typ = DB::table('justification_types')->where('name',$fil[2]['text'])->value('id');
+            $typ = DB::table('justification_types')->where('name',$fil[3]['text'])->value('id');
                 if($typ){
                 $ins = [
                     "_staff"=>$staff,
-                    "created_at"=>date("Y-m-d H:i:s",strtotime($fil[0]['text'])),
-                    "start_date"=>$fil[3]['text'],
-                    "final_date"=>$fil[4]['text'],
+                    "created_at"=>date("Y-m-d H:i:s",strtotime($fil[1]['text'])),
+                    "start_date"=>$fil[4]['text'],
+                    "final_date"=>$fil[5]['text'],
                     "_type"=>$typ,
-                    "percentage"=>intval($fil[5]['text']),
+                    "percentage"=>intval($fil[10]['text']),
                     "notes"=>$fil[6]['text'],
-                    "mid"=>intval($fil[7]['text']),
+                    "mid"=>intval($fil[13]['text']),
                 ];
+                // return $ins;
                 $dbins = DB::table('assist_justification')->insert($ins);
                 $insertados[] = $ins;
                 }else{$fail[]="No se encuentra el tipo de justificiacion ".$type;}
