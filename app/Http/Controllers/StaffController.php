@@ -8,6 +8,9 @@ use PDF;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\View;
+use App\Models\Staff;
+use App\Models\Stores;
+use App\Models\Position;
 
 class StaffController extends Controller
 {
@@ -27,17 +30,6 @@ class StaffController extends Controller
         $token = env('TOKEN_MA');//token monday
         $apiUrl = 'https://api.monday.com/v2';//conexion api monday
         $headers = ['Content-Type: application/json', 'Authorization: ' . $token];//capeceras monday
-        // $query = 'query {
-        // items_by_column_values (board_id: 1520861792, column_id: "estatus", column_value: "ACTIVO") {
-        //     name,
-        //     column_values  {
-        //     id
-        //     title
-        //     text
-        //     }
-        // }
-        // }';//se genera consulta graphql para api de monday
-
         $query = 'query {
             items_page_by_column_values ( limit:500 board_id: 1520861792, columns: [{column_id: "estatus", column_values: ["ACTIVO"]}]) {
               cursor
@@ -46,6 +38,9 @@ class StaffController extends Controller
                 column_values{
                   id
                   text
+                  column{
+                    title
+                    }
                 }
               }
             }
@@ -59,53 +54,69 @@ class StaffController extends Controller
         ]));//conexion api monday
         $style = json_decode($data,true);//se decodifica lo que se recibe
         $row = $style['data']['items_page_by_column_values']['items'];//recorremos arreglos hasta los que ocuparemos
-        foreach($row as $rows){//inicio foreach
-            $user  = $rows['name'];//se toma el nombre
-            if(strpos($user, '(copy)')){//se valida que no contenga copy ya que puede haver duplicados
-            $fail['names'][]=["err"=>"Posbible Duplicado","motivo"=>[$user=>"debido a que contiene (copy) y es posible que haya un duplicado" ]];//fail copy
-            }
-            $rcid  = $rows['column_values'][0]['text'];// id
-            $suc = $rows['column_values'][1]['text'];// sucursal
-            $posi = $rows['column_values'][2]['text'];//puesto
-            $pic = $rows['column_values'][12]['text'];//picture
 
-            $nsu = $suc == "OFICINA" || $suc == "MANTENIMIENTO" || $suc == "AUDITORIA/INVENTARIOS" ? "CEDIS" : $suc;//si son cualquiera de estos tres es cedis
-            $sucursal = DB::table('stores')->where('name',$nsu)->first();//se busca sucursal
-            if($sucursal){//se verifica que existe
-                $bpos = DB::table('positions')->where('name',$posi)->value('id');//se busca posision
-                if($bpos){//se valida que exista
-                    $bus = DB::table('staff')->where('id_rc',$rcid)->value('id');//se busca el nombre en caso de que haya
-                    if($bus){//se valida que exise
-                        $val = DB::table('staff')->where('id',$bus)->where('complete_name',$user)->where('_store',$sucursal->id)->where('_position',$bpos)->where('picture',$pic)->first();//si existe se compara que tenga la misma informacion
-                        if($val == null){//en caso de que no
-                        $update =DB::table('staff')->where('id',$bus)->update(['complete_name'=>$user, '_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);//se actuzliza lainformacion de el colaborador
-                        $upins['updates'][]="Se Actualizo el usuario ".$user;//se guarda en el arreglo de goals
-                        }
-                    }else{//en caso de que no exista
-                        if($rcid == ""){//se verifica que tenga id de el reloj checador
-                            $fail['inserts'][]="el colaborador ".$user." aun no tiene id";//en caso de no tener se guarda en el arreglo de inserts
-                        }else{
-                            $existid = DB::table('staff')->where('id_rc',$rcid)->first();//SE VERIFICA QUE NO EXISTA UN VALOR DUPLICADO EN EL ID DEL CHECADOR
-                            if($existid){//si existe
-                                $fail['inserts'][]=$existid->id_rc." ya esta asignado a otro colaborador ".$existid->complete_name;//se contiene en fails
-                            }else{
-                                $insert = DB::table('staff')->insert(['complete_name'=>$user,'id_rc'=>$rcid,'_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);// si no tiene se inserta en la tabla
-                                $upins['inserts'][] ="Usuario ".$user." insertado";//se guarda en el arreglo de goals
-                            }
-                        }
-                    }
-                }
-            }else{$fail['sucursal'][]="No existe la sucursal ".$nsu." de el usuario ".$user; }//fin de if sucursal
-        }
+        $usersmon = array_map(function($val){
+            $suc = $val['column_values'][1]['text'];
+            $activ = $val['column_values'][3]['text'] == "ACTIVO" ? 1 : 0;
+            $stor =  $suc == "OFICINA" || $suc == "MANTENIMIENTO" || $suc == "AUDITORIA/INVENTARIOS" ? "CEDIS" : $suc;//si son cualquiera de estos tres es cedis
+            $store = Stores::where('name',$stor)->value('id');
+            $position = Position::where('name',$val['column_values'][2]['text'])->value('id');
+            $res = [
+                "complete_name"=>$val['name'],
+                "id_rc"=>$val['column_values'][0]['text'],
+                "_store"=>$store,
+                "_position"=>$position,
+                "picture"=>$val['column_values'][12]['text'],
+                "clasification"=>$val['column_values'][13]['text'],
+                "ingress"=>$val['column_values'][7]['text'] == "" ? "1999-01-01" : $val['column_values'][7]['text']  ,
+                "acitve"=>$activ
+            ];
+            return $res;
+        }, $row);
+        $usersdb = Staff::where('acitve',1)->select('complete_name','id_rc','_store','_position','picture','clasification','ingress','acitve')->get()->toArray();
+        $textusermon  = array_map(function($val){ return implode(',',$val);},$usersmon);
+        $textuserdb = array_map(function($val){ return implode(',',$val);},$usersdb);
+        $diff = array_diff($textusermon,$textuserdb);
+        $newuser = array_map(function($val){return  explode(',',$val); },$diff);
+        $difef = array_map(function($val){
+            $res = [
+                "complete_name"=>$val[0],
+                "id_rc"=>$val[1],
+                "_store"=>$val[2],
+                "_position"=>$val[3],
+                "picture"=>$val[4],
+                "clasification"=>$val[5],
+                "ingress"=>$val[6]  ,
+                "acitve"=>$val[7]
+            ];
+            return mb_convert_encoding($res,'UTF-8'); },$newuser);
+        $upduse = array_values($difef);
+
+        $staff = Staff::upsert($upduse,['id_rc'],['complete_name','_store','_position','picture','clasification','ingress','acitve']);
+
+        $diffsta = array_diff($textuserdb,$textusermon);
+        $userstat = array_map(function($val){return  explode(',',$val); },$diffsta);
+        $difefstat = array_map(function($val){
+            $res = [
+                "complete_name"=>$val[0],
+                "id_rc"=>$val[1],
+                "_store"=>$val[2],
+                "_position"=>$val[3],
+                "picture"=>$val[4],
+                "clasification"=>$val[5],
+                "ingress"=>$val[6]  ,
+                "acitve"=>0
+            ];
+            return mb_convert_encoding($res,'UTF-8'); },$userstat);
+        $updu = array_values($difefstat);
+
+        $upstaf = Staff::upsert($updu,['complete_name'],['acitve']);
+
         $res = [
-        "registros"=>[
-            'inserts'=>count($upins['inserts']),
-            'updates'=>count($upins['updates'])
-        ],
-        "goals"=>$upins,
-        "fails"=>$fail
+            "upserts"=>$staff,
+            "inactivos"=>$upstaf
         ];
-        return response()->json($res);
+        return response()->json($res,200);
     }
 
     public function justification(){
@@ -131,7 +142,7 @@ class StaffController extends Controller
             items_page_by_column_values ( limit:500 board_id: 4403681072, columns: [{column_id: "estado7", column_values: ["AUTORIZADO"]},{column_id: "estado1", column_values: ["Sin Enviar"]}]) {
               cursor
               items {
-                
+
                 name
                 column_values{
                   id
@@ -620,6 +631,102 @@ class StaffController extends Controller
         };
         return $colab;
     }
+
+    // public function replystaff(){
+    //     $upins = [//se guardan registros actualizados o insertados
+    //         'inserts'=>[],
+    //         'updates'=>[]
+    //     ];
+    //     $fail = [//contenedor para los fails jaja
+    //         'inserts'=>[],
+    //         'updates'=>[],
+    //         'names'=>[],
+    //         'sucursal'=>[]
+    //     ];
+
+    //     $token = env('TOKEN_MA');//token monday
+    //     $apiUrl = 'https://api.monday.com/v2';//conexion api monday
+    //     $headers = ['Content-Type: application/json', 'Authorization: ' . $token];//capeceras monday
+    //     // $query = 'query {
+    //     // items_by_column_values (board_id: 1520861792, column_id: "estatus", column_value: "ACTIVO") {
+    //     //     name,
+    //     //     column_values  {
+    //     //     id
+    //     //     title
+    //     //     text
+    //     //     }
+    //     // }
+    //     // }';//se genera consulta graphql para api de monday
+
+    //     $query = 'query {
+    //         items_page_by_column_values ( limit:500 board_id: 1520861792, columns: [{column_id: "estatus", column_values: ["ACTIVO"]}]) {
+    //           cursor
+    //           items {
+    //             name
+    //             column_values{
+    //               id
+    //               text
+    //             }
+    //           }
+    //         }
+    //       }';
+    //     $data = @file_get_contents($apiUrl, false, stream_context_create([
+    //     'http' => [
+    //         'method' => 'POST',
+    //         'header' => $headers,
+    //         'content' => json_encode(['query' => $query]),
+    //     ]
+    //     ]));//conexion api monday
+    //     $style = json_decode($data,true);//se decodifica lo que se recibe
+    //     $row = $style['data']['items_page_by_column_values']['items'];//recorremos arreglos hasta los que ocuparemos
+    //     foreach($row as $rows){//inicio foreach
+    //         $user  = $rows['name'];//se toma el nombre
+    //         if(strpos($user, '(copy)')){//se valida que no contenga copy ya que puede haver duplicados
+    //         $fail['names'][]=["err"=>"Posbible Duplicado","motivo"=>[$user=>"debido a que contiene (copy) y es posible que haya un duplicado" ]];//fail copy
+    //         }
+    //         $rcid  = $rows['column_values'][0]['text'];// id
+    //         $suc = $rows['column_values'][1]['text'];// sucursal
+    //         $posi = $rows['column_values'][2]['text'];//puesto
+    //         $pic = $rows['column_values'][12]['text'];//picture
+
+    //         $nsu = $suc == "OFICINA" || $suc == "MANTENIMIENTO" || $suc == "AUDITORIA/INVENTARIOS" ? "CEDIS" : $suc;//si son cualquiera de estos tres es cedis
+    //         $sucursal = DB::table('stores')->where('name',$nsu)->first();//se busca sucursal
+    //         if($sucursal){//se verifica que existe
+    //             $bpos = DB::table('positions')->where('name',$posi)->value('id');//se busca posision
+    //             if($bpos){//se valida que exista
+    //                 $bus = DB::table('staff')->where('id_rc',$rcid)->value('id');//se busca el nombre en caso de que haya
+    //                 if($bus){//se valida que exise
+    //                     $val = DB::table('staff')->where('id',$bus)->where('complete_name',$user)->where('_store',$sucursal->id)->where('_position',$bpos)->where('picture',$pic)->first();//si existe se compara que tenga la misma informacion
+    //                     if($val == null){//en caso de que no
+    //                     $update =DB::table('staff')->where('id',$bus)->update(['complete_name'=>$user, '_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);//se actuzliza lainformacion de el colaborador
+    //                     $upins['updates'][]="Se Actualizo el usuario ".$user;//se guarda en el arreglo de goals
+    //                     }
+    //                 }else{//en caso de que no exista
+    //                     if($rcid == ""){//se verifica que tenga id de el reloj checador
+    //                         $fail['inserts'][]="el colaborador ".$user." aun no tiene id";//en caso de no tener se guarda en el arreglo de inserts
+    //                     }else{
+    //                         $existid = DB::table('staff')->where('id_rc',$rcid)->first();//SE VERIFICA QUE NO EXISTA UN VALOR DUPLICADO EN EL ID DEL CHECADOR
+    //                         if($existid){//si existe
+    //                             $fail['inserts'][]=$existid->id_rc." ya esta asignado a otro colaborador ".$existid->complete_name;//se contiene en fails
+    //                         }else{
+    //                             $insert = DB::table('staff')->insert(['complete_name'=>$user,'id_rc'=>$rcid,'_store'=>$sucursal->id, '_position'=>$bpos, 'picture'=>$pic]);// si no tiene se inserta en la tabla
+    //                             $upins['inserts'][] ="Usuario ".$user." insertado";//se guarda en el arreglo de goals
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }else{$fail['sucursal'][]="No existe la sucursal ".$nsu." de el usuario ".$user; }//fin de if sucursal
+    //     }
+    //     $res = [
+    //     "registros"=>[
+    //         'inserts'=>count($upins['inserts']),
+    //         'updates'=>count($upins['updates'])
+    //     ],
+    //     "goals"=>$upins,
+    //     "fails"=>$fail
+    //     ];
+    //     return response()->json($res);
+    // }
 }
 
 

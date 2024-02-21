@@ -403,7 +403,7 @@ class ResourcesController extends Controller
         $stores = Stores::find($request->id);
         $ip = $stores->ip_address;
         // $ip = '192.168.10.112:1619';
-        $ge = transfer::where('_store_from',3)->get();
+        $ge = transfer::where('_store_from',$stores->id)->get();
         $getdev = Http::get($ip.'/storetools/public/api/Resources/gettras');
         $data = $getdev->json();
         $rees = [
