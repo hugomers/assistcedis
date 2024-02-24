@@ -1317,18 +1317,33 @@ class MondayController extends Controller
     }
 
     public function justification(){
+        // $query = 'query {
+        //     items_by_column_values (board_id: 4403681072, column_id: "estado1", column_value: "Sin Enviar") {
+        //         id
+        //         column_values{
+        //             id
+        //             title
+        //             text
+        //         }
+        //     }
+        // }';
+        
         $query = 'query {
-            items_by_column_values (board_id: 4403681072, column_id: "estado1", column_value: "Sin Enviar") {
+            items_page_by_column_values (limit: 500, board_id: 4403681072, columns: [{column_id: "estado1", column_values: ["Sin Enviar"]}]) {
+              cursor
+              items {
                 id
                 column_values{
                     id
-                    title
                     text
-                }
+                    column {title}
+              }
             }
-        }';//se genera consulta graphql para api de monday
+          }}';//se genera consulta graphql para api de monday
         $monval = $this->apimon($query);
-        $received = $monval['data']['items_by_column_values'];// se envia a mysql
+        $received = $monval['data']['items_page_by_column_values']['items'];// se envia a mysql
+
+        // return $received[0]['column_values'][3]['text'];
 
         foreach($received as $new){
             $type = DB::table('justification_types')->where('name',$new['column_values'][3]['text'])->value('id');
