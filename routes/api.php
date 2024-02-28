@@ -9,6 +9,7 @@ use App\Http\Controllers\WappController;
 use App\Http\Controllers\ResourcesController;
 use App\Http\Controllers\AssistController;
 use App\Http\Controllers\ProductsController;
+use App\Http\Controllers\CashierController;
 ;
 
 
@@ -117,4 +118,8 @@ Route::prefix('/abonos')->group(function(){
     Route::post('/nent',[ResourcesController::class, 'nent']);
 
 
+});
+
+Route::prefix('/cashier')->group(function(){
+    Route::get('/getStaff/{id}',[CashierController::class, 'getStaff']);
 });
