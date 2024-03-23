@@ -5,12 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Staff extends Model
+class Restock extends Model
 {
-    protected $table = 'staff';
     public $timestamps = false;
-
-    public function stores(){
-        return $this->belongsTo('App\Models\Stores','_store');
-    }
+    protected $table = 'restock';
 }

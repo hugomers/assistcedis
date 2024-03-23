@@ -10,6 +10,8 @@ use App\Http\Controllers\ResourcesController;
 use App\Http\Controllers\AssistController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\CashierController;
+use App\Http\Controllers\RestockController;
+
 ;
 
 
@@ -125,4 +127,15 @@ Route::prefix('/cashier')->group(function(){
     Route::post('/AddFile',[CashierController::class, 'AddFile']);
     Route::post('/Opening',[CashierController::class, 'Opening']);
 
+});
+
+Route::prefix('/restock')->group(function(){
+    Route::get('/getSupply',[RestockController::class, 'getSupply']);
+    Route::get('/getVerified',[RestockController::class, 'getVerified']);
+    Route::get('/getChof',[RestockController::class, 'getChof']);
+    Route::get('/getCheck/{cli}',[RestockController::class, 'getCheck']);
+    Route::post('/saveSupply',[RestockController::class, 'saveSupply']);
+    Route::post('/saveVerified',[RestockController::class, 'saveVerified']);
+    Route::post('/saveChofi',[RestockController::class, 'saveChofi']);
+    Route::post('/saveCheck',[RestockController::class, 'saveCheck']);
 });

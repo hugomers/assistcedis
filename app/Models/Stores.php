@@ -14,4 +14,8 @@ class Stores extends Model
         return $this->hasMany('App\Models\Solicitudes','_store','id');
     }
 
+    public function Staff(){
+        return $this->hasMany('App\Models\Staff','_store','id');
+    }
+
 }
