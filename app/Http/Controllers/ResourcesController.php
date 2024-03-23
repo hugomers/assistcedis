@@ -392,8 +392,8 @@ class ResourcesController extends Controller
 
     public function getDev(Request $request){
         $stores = Stores::find($request->id);
-        // $ip = $stores->ip_address;
-        $ip = '192.168.10.182:1619';
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.182:1619';
         $getdev = Http::get($ip.'/storetools/public/api/Resources/getdev');
         return $getdev;
     }
