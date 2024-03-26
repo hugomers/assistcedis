@@ -7,6 +7,7 @@ use App\Models\Staff;
 use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
+use Illuminate\Support\Facades\Http;
 
 class RestockController extends Controller
 {
@@ -91,5 +92,19 @@ class RestockController extends Controller
         $newres->save();
         $newres->fresh()->toArray();
         return response()->json($newres,200);
+    }
+
+    public function getSalida(Request $request){
+        $salida = $request->all();
+        $stores = Stores::find(1);
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.112:1619';
+        $getdev = Http::post($ip.'/storetools/public/api/Resources/returnFac',$salida);
+        if($getdev->status() != 200){
+            return false;
+        }else{
+            return $getdev;
+        }
+
     }
 }

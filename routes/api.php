@@ -138,4 +138,6 @@ Route::prefix('/restock')->group(function(){
     Route::post('/saveVerified',[RestockController::class, 'saveVerified']);
     Route::post('/saveChofi',[RestockController::class, 'saveChofi']);
     Route::post('/saveCheck',[RestockController::class, 'saveCheck']);
+    Route::post('/getSalida',[RestockController::class, 'getSalida']);
+
 });
