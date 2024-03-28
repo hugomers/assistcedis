@@ -29,11 +29,12 @@ class MondayController extends Controller
     }
 
     public function sendocument($archivo,$namefile,$number){
+        $token = env('WATO');
         $data = file_get_contents($archivo);
         $file = base64_encode($data);
 
         $params=array(
-            'token' => '7lxqd2rwots9u4lv',
+            'token' => $token,
             'to' => $number,
             'filename' => $namefile,
             'document' => $file,
@@ -88,7 +89,7 @@ class MondayController extends Controller
                 id,
                 column_values{
                     id
-                 
+
                     text
                     column{
                         title
@@ -104,7 +105,7 @@ class MondayController extends Controller
                 id,
                 column_values{
                     id
-                    
+
                     text
                     column{
                         title
@@ -129,8 +130,8 @@ class MondayController extends Controller
         $query = 'query {
             items_page_by_column_values ( limit:500 board_id: 4738541896, columns: [{column_id: "estado", column_values: ["Sin Enviar"]}]) {
               cursor
-              
-              items { 
+
+              items {
                 id
                 name
                 column_values{
@@ -140,7 +141,7 @@ class MondayController extends Controller
                     title
                   }
                 }
-      
+
               }
             }
           }
@@ -153,8 +154,8 @@ class MondayController extends Controller
         $pdfque = 'query {
             items_page_by_column_values ( limit:500 board_id: 4738541896, columns: [{column_id: "estado9", column_values: ["Sin Enviar"]}]) {
               cursor
-              
-              items { 
+
+              items {
                 id
                 name
                 column_values{
@@ -164,7 +165,7 @@ class MondayController extends Controller
                     title
                   }
                 }
-      
+
               }
             }
           }
@@ -477,7 +478,7 @@ class MondayController extends Controller
                 id,
                 column_values{
                     id
-                    
+
                     text
                     column{
                         title
@@ -494,7 +495,7 @@ class MondayController extends Controller
                 id,
                 column_values{
                     id
-                    
+
                     text
                     column{
                         title
@@ -530,8 +531,8 @@ class MondayController extends Controller
         $query = 'query {
             items_page_by_column_values ( limit:500 board_id: 4738652916, columns: [{column_id: "estado", column_values: ["Sin Enviar"]}]) {
               cursor
-              
-              items { 
+
+              items {
                 id
                 name
                 column_values{
@@ -541,7 +542,7 @@ class MondayController extends Controller
                     title
                   }
                 }
-      
+
               }
             }
           }';//se genera consulta graphql para api de monday
@@ -561,8 +562,8 @@ class MondayController extends Controller
         $pdfque = 'query {
             items_page_by_column_values ( limit:500 board_id: 4738652916, columns: [{column_id: "estado7", column_values: ["Sin Enviar"]}]) {
               cursor
-              
-              items { 
+
+              items {
                 id
                 name
                 column_values{
@@ -572,7 +573,7 @@ class MondayController extends Controller
                     title
                   }
                 }
-      
+
               }
             }
           }';//se genera consulta graphql para api de monday
@@ -1327,7 +1328,7 @@ class MondayController extends Controller
         //         }
         //     }
         // }';
-        
+
         $query = 'query {
             items_page_by_column_values (limit: 500, board_id: 4403681072, columns: [{column_id: "estado1", column_values: ["Sin Enviar"]}]) {
               cursor

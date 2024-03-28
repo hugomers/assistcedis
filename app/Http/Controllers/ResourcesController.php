@@ -136,6 +136,7 @@ class ResourcesController extends Controller
     }
 
     public function sendocument($archivo,$namefile){
+        $token = env('WATO');
         $number = "5539297483";
         // $number = "5573461022";
 
@@ -143,7 +144,7 @@ class ResourcesController extends Controller
         $file = base64_encode($data);
 
         $params=array(
-            'token' => '7lxqd2rwots9u4lv',
+            'token' => $token,
             'to' => $number,
             'filename' => $namefile,
             'document' => $file,
