@@ -139,5 +139,7 @@ Route::prefix('/restock')->group(function(){
     Route::post('/saveChofi',[RestockController::class, 'saveChofi']);
     Route::post('/saveCheck',[RestockController::class, 'saveCheck']);
     Route::post('/getSalida',[RestockController::class, 'getSalida']);
+    Route::post('/getSupplier',[RestockController::class, 'getSupplier']);
+    Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
 
 });

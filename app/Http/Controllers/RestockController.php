@@ -8,6 +8,7 @@ use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class RestockController extends Controller
 {
@@ -16,10 +17,47 @@ class RestockController extends Controller
         return $staff;
     }
 
+    // public function getSupplier(){
+    //     $id = $request->id;
+    //     $restock = Restock::where('_requisition', $id)->get();
+    //     return $restock;
+    // }
+
     public function saveSupply(Request $request){
         $status = $request->status;
         $pedido = $request->pedido;
         $surtidores = $request->supplyer;
+        $products = DB::connection('vizapi')->table('product_required')->where('_requisition',$pedido)->get()->toArray();
+
+        $asig = [];
+        $num_productos = count($products);
+        $num_surtidores = count($surtidores);
+        $supplyper = floor($num_productos / $num_surtidores);
+        $remainder = $num_productos % $num_surtidores;
+        $counter = 0;
+
+        foreach ($surtidores as $surtidor) {
+            $asigpro = array_slice($products, $counter * $supplyper, $supplyper);
+
+            if ($remainder > 0) {
+                $asigpro = array_merge($asigpro, [$products[$num_productos - $remainder]]);
+                $remainder--;
+            }
+            foreach($asigpro as $product){
+                $upd = [
+                    "_suplier"=>$surtidor['complete_name'],
+                    "_suplier_id"=>$surtidor['id']
+                ];
+                $dbproduct = DB::connection('vizapi')
+                ->table('product_required')
+                ->where([['_requisition',$product->_requisition],['_product',$product->_product]])
+                ->update($upd);
+            }
+            $asig[$surtidor['complete_name']] = $asigpro;
+
+            $counter++;
+        }
+
         foreach($surtidores as $surtidor){
             $newres = new Restock;
             $supply = $surtidor['id'];
@@ -28,23 +66,38 @@ class RestockController extends Controller
             $newres->_status = $status;
             $newres->save();
             $newres->fresh()->toArray();
-        }
 
+            $ins = [
+                "_requisition"=>$pedido,
+                "_suplier_id"=>$supply,
+                "_suplier"=>$surtidor['complete_name'],
+                "_status"=>$status
+            ];
+
+            $inspart = DB::connection('vizapi')->table('requisition_partitions')->insert($ins);
+
+
+        }
         return response()->json($newres,200);
     }
 
     public function saveVerified(Request $request){
-        $status = $request->status;
         $pedido = $request->pedido;
-        $verificador = $request->supplyer;
-        $supply = $verificador;
-        $newres = new Restock;
-        $newres->_staff = $supply['id'];
-        $newres->_requisition = $pedido;
-        $newres->_status = $status;
-        $newres->save();
-        $newres->fresh()->toArray();
-        return response()->json($newres,200);
+        $verificador = $request->verified;
+        $supply = $request->surtidor;
+        $change = DB::connection('vizapi')
+        ->table('requisition_partitions')
+        ->where([['_requisition',$pedido],['_suplier_id',$supply]])
+        ->update(['_out_verified'=>$verificador]);
+
+
+        // $newres = new Restock;
+        // $newres->_staff = $supply['id'];
+        // $newres->_requisition = $pedido;
+        // $newres->_status = $status;
+        // $newres->save();
+        // $newres->fresh()->toArray();
+        return response()->json($change,200);
     }
 
     public function getVerified(){
@@ -106,5 +159,22 @@ class RestockController extends Controller
             return $getdev;
         }
 
+    }
+
+    public function changeStatus(Request $request){
+        $pedido = $request->id;
+        $status = $request->state;
+        $supply = $request->supply;
+
+        $change = DB::connection('vizapi')
+        ->table('requisition_partitions')
+        ->where([['_requisition',$pedido],['_suplier_id',$supply]])
+        ->update(['_status'=>$status]);
+
+        if($change){
+            return response()->json($request,200);
+        }else{
+            return response()->json($request,500);
+        }
     }
 }
