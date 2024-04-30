@@ -7,6 +7,7 @@ use App\Models\Staff;
 use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
+use App\Models\partitionRequisition;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 
@@ -27,8 +28,17 @@ class RestockController extends Controller
         $status = $request->status;
         $pedido = $request->pedido;
         $surtidores = $request->supplyer;
-        $products = DB::connection('vizapi')->table('product_required')->where('_requisition',$pedido)->get()->toArray();
-
+        $products = DB::connection('vizapi')
+        ->table('product_required AS PR')
+        ->join('product_location AS PL','PL._product','PR._product')
+        ->join('celler_section AS CS','CS.id','PL._location')
+        ->join('celler AS C','C.id','CS._celler')
+        ->select('PR._product','PR._requisition', DB::raw('GROUP_CONCAT(CS.root) AS locations'))
+        ->where([['PR._requisition',$pedido],['C._workpoint',1]])
+        ->groupBy('PR._requisition','PR._product')
+        ->orderby(DB::raw('GROUP_CONCAT(CS.root)'))
+        ->get()
+        ->toArray();
         $asig = [];
         $num_productos = count($products);
         $num_surtidores = count($surtidores);
@@ -74,9 +84,11 @@ class RestockController extends Controller
                 "_status"=>$status
             ];
 
-            $inspart = DB::connection('vizapi')->table('requisition_partitions')->insert($ins);
-
-
+            $inspart = DB::connection('vizapi')->table('requisition_partitions')->insertGetId($ins);
+            $updtable = DB::connection('vizapi')
+            ->table('product_required')
+            ->where([['_requisition',$pedido],['_suplier_id',$supply]])
+            ->update(['_partition'=>$inspart]);
         }
         return response()->json($newres,200);
     }
@@ -109,9 +121,16 @@ class RestockController extends Controller
         $status = $request->status;
         $pedido = $request->pedido;
         $verificador = $request->supplyer;
-        $supply = $verificador;
+        $chofer = $request->chofi;
+
+        $change = DB::connection('vizapi')
+        ->table('requisition_partitions')
+        ->where([['_requisition',$pedido],['_suplier_id',$verificador]])
+        ->update(['_driver'=>$chofer['id']]);
+
+
         $newres = new Restock;
-        $newres->_staff = $supply['id'];
+        $newres->_staff = $chofer['id'];
         $newres->_requisition = $pedido;
         $newres->_status = $status;
         $newres->save();
@@ -136,10 +155,17 @@ class RestockController extends Controller
     public function saveCheck(Request $request){
         $status = $request->status;
         $pedido = $request->pedido;
-        $verificador = $request->supplyer;
-        $supply = $verificador;
+        $verificador = $request->verified;
+        $suplier = $request->supplyer;
+
+        $change = DB::connection('vizapi')
+        ->table('requisition_partitions')
+        ->where([['_requisition',$pedido],['_suplier_id',$suplier]])
+        ->update(['_in_verified'=>$verificador]);
+
+
         $newres = new Restock;
-        $newres->_staff = $supply['id'];
+        $newres->_staff = $verificador;
         $newres->_requisition = $pedido;
         $newres->_status = $status;
         $newres->save();
@@ -164,17 +190,37 @@ class RestockController extends Controller
     public function changeStatus(Request $request){
         $pedido = $request->id;
         $status = $request->state;
-        $supply = $request->supply;
+        $supply = $request->suply;
 
         $change = DB::connection('vizapi')
         ->table('requisition_partitions')
         ->where([['_requisition',$pedido],['_suplier_id',$supply]])
         ->update(['_status'=>$status]);
 
-        if($change){
-            return response()->json($request,200);
-        }else{
-            return response()->json($request,500);
-        }
+        $partition = DB::connection('vizapi')
+        ->table('requisition_partitions AS P')
+        ->join('requisition_process AS RP','P._status','RP.id')
+        ->select('P.*','RP.name')
+        ->where([['_requisition',$pedido],['_suplier_id',$supply]])
+        ->first();
+
+        $idlog = DB::connection('vizapi')->table('partition_logs')->max('id') + 1;
+
+        $inslo = [
+            'id'=>$idlog,
+            '_requisition'=>$pedido,
+            '_partition'=>$partition->id,
+            '_status'=>$status,
+            'details'=>json_encode(['responsable'=>'vizapp']),
+        ];
+
+        $logs = DB::connection('vizapi')
+        ->table('partition_logs')
+        ->insert($inslo);
+        // if($change > 0){
+            return response()->json($partition,200);
+        // }else{
+            // return response()->json('No se hizo el cambio de status',500);
+        // }
     }
 }
