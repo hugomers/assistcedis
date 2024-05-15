@@ -221,7 +221,12 @@ class RestockController extends Controller
         ->table('partition_logs')
         ->insert($inslo);
         // if($change > 0){
-            return response()->json($partition,200);
+            $endpart = $this->verifyPartition($pedido);
+            $res = [
+                "partition"=>$partition,
+                "partitionsEnd"=>$endpart
+            ];
+            return response()->json($res,200);
         // }else{
             // return response()->json('No se hizo el cambio de status',500);
         // }
@@ -243,5 +248,13 @@ class RestockController extends Controller
             'to' => '+525573461022',
             'body' => 'El colaborador '.$suply.' entrego la salida  '.$pedido.' a la sucursal '.$sucursal,
         ]);
+    }
+
+    public function verifyPartition($pedido){
+        $partition = DB::connection('vizapi')
+        ->table('requisition_partitions')
+        ->where([['_requisition',$pedido]])
+        ->min('_status');
+        return $partition;
     }
 }
