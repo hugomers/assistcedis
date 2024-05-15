@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 class RestockController extends Controller
 {
     public function getSupply(){
-        $staff = Staff::whereIn('_store',[1,2])->whereIn('_position',[2,46])->where('acitve',1)->get();
+        $staff = Staff::whereIn('_store',[1])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
         return $staff;
     }
 
@@ -30,13 +30,16 @@ class RestockController extends Controller
         $surtidores = $request->supplyer;
         $products = DB::connection('vizapi')
         ->table('product_required AS PR')
-        ->join('product_location AS PL','PL._product','PR._product')
-        ->join('celler_section AS CS','CS.id','PL._location')
-        ->join('celler AS C','C.id','CS._celler')
-        ->select('PR._product','PR._requisition', DB::raw('GROUP_CONCAT(CS.root) AS locations'))
-        ->where([['PR._requisition',$pedido],['C._workpoint',1]])
+        ->leftjoin('product_location AS PL','PL._product','PR._product')
+        ->leftjoin('celler_section AS CS','CS.id','PL._location')
+        ->leftJoin('celler AS C', function($join) {
+            $join->on('C.id', '=', 'CS._celler')
+                 ->where('C._workpoint', '=', 1);
+        })
+        ->select('PR._product','PR._requisition', DB::raw(' IFNULL(GROUP_CONCAT(CS.root), null) as locations'))
+        ->where([['PR._requisition',$pedido]])
         ->groupBy('PR._requisition','PR._product')
-        ->orderby(DB::raw('GROUP_CONCAT(CS.root)'))
+        ->orderby(DB::raw(' IFNULL(GROUP_CONCAT(CS.root), null)'))
         ->get()
         ->toArray();
         $asig = [];
@@ -113,7 +116,7 @@ class RestockController extends Controller
     }
 
     public function getVerified(){
-        $staff = Staff::whereIn('_store',[1,2])->whereIn('_position',[6,5,28,4])->where('acitve',1)->get();
+        $staff = Staff::whereIn('_store',[1,2])->whereIn('_position',[6,10,1])->where('acitve',1)->get();
         return $staff;
     }
 
@@ -176,8 +179,8 @@ class RestockController extends Controller
     public function getSalida(Request $request){
         $salida = $request->all();
         $stores = Stores::find(1);
-        $ip = $stores->ip_address;
-        // $ip = '192.168.10.112:1619';
+        // $ip = $stores->ip_address;
+        $ip = '192.168.10.112:1619';
         $getdev = Http::post($ip.'/storetools/public/api/Resources/returnFac',$salida);
         if($getdev->status() != 200){
             return false;
@@ -222,5 +225,23 @@ class RestockController extends Controller
         // }else{
             // return response()->json('No se hizo el cambio de status',500);
         // }
+    }
+
+    public function sendMessages(Request $request){
+        $url = env('URLWHA');
+        $token = env('WATO');
+        $pedido = $request->id;
+        $suply = $request->suply;
+        $sucursal = $request->store;
+
+        $response = Http::withOptions([
+            'verify' => false, // Esto deshabilita la verificación SSL, similar a CURLOPT_SSL_VERIFYHOST y CURLOPT_SSL_VERIFYPEER en cURL
+        ])->withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'token' => $token,
+            'to' => '+525573461022',
+            'body' => 'El colaborador '.$suply.' entrego la salida  '.$pedido.' a la sucursal '.$sucursal,
+        ]);
     }
 }

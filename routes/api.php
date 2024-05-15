@@ -141,5 +141,6 @@ Route::prefix('/restock')->group(function(){
     Route::post('/getSalida',[RestockController::class, 'getSalida']);
     Route::post('/getSupplier',[RestockController::class, 'getSupplier']);
     Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
+    Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
 
 });
