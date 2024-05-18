@@ -179,8 +179,8 @@ class RestockController extends Controller
     public function getSalida(Request $request){
         $salida = $request->all();
         $stores = Stores::find(1);
-        // $ip = $stores->ip_address;
-        $ip = '192.168.10.112:1619';
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.112:1619';
         $getdev = Http::post($ip.'/storetools/public/api/Resources/returnFac',$salida);
         if($getdev->status() != 200){
             return false;
