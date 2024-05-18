@@ -246,7 +246,7 @@ class RestockController extends Controller
             'Content-Type' => 'application/json',
         ])->post($url, [
             'token' => $token,
-            'to' => '+525573461022',
+            'to' => '1120363194490127898@g.us',
             'body' => 'El colaborador '.$chofer->complete_name.' entrego la salida  '.$pedido.' a la sucursal '.$sucursal,
         ]);
     }
