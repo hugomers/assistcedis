@@ -203,7 +203,7 @@ class RestockController extends Controller
         $partition = DB::connection('vizapi')
         ->table('requisition_partitions AS P')
         ->join('requisition_process AS RP','P._status','RP.id')
-        ->select('P.*','RP.name')
+        ->select('P.*','RP.name', 'RP.id as idr')
         ->where([['_requisition',$pedido],['_suplier_id',$supply]])
         ->first();
 

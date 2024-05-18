@@ -9,6 +9,7 @@ use App\Models\Opening;
 use App\Models\OpeningType;
 use App\Models\Stores;
 use Illuminate\Support\Facades\Http;
+use App\Models\Printer;
 
 
 class cashierController extends Controller
@@ -70,5 +71,10 @@ class cashierController extends Controller
         }else{
             return response()->json('No se pudo insertar la apertura',401);
         }
+    }
+
+    public function getPrinter($id){
+        $printers = Printer::where('_store',$id)->get();
+        return response()->json($printers,200) ;
     }
 }
