@@ -237,6 +237,7 @@ class RestockController extends Controller
         $token = env('WATO');
         $pedido = $request->id;
         $suply = $request->suply;
+        $chofer = Staff::where('id',$suply)->first();
         $sucursal = $request->store;
 
         $response = Http::withOptions([
@@ -246,7 +247,7 @@ class RestockController extends Controller
         ])->post($url, [
             'token' => $token,
             'to' => '+525573461022',
-            'body' => 'El colaborador '.$suply.' entrego la salida  '.$pedido.' a la sucursal '.$sucursal,
+            'body' => 'El colaborador '.$chofer->complete_name.' entrego la salida  '.$pedido.' a la sucursal '.$sucursal,
         ]);
     }
 
