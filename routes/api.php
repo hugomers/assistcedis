@@ -134,6 +134,8 @@ Route::prefix('/restock')->group(function(){
     Route::get('/getSupply',[RestockController::class, 'getSupply']);
     Route::get('/getVerified',[RestockController::class, 'getVerified']);
     Route::get('/getChof',[RestockController::class, 'getChof']);
+    Route::get('/getInvoices',[RestockController::class, 'getInvoices']);
+    Route::get('/AutomateRequisition',[RestockController::class, 'AutomateRequisition']);
     Route::get('/getCheck/{cli}',[RestockController::class, 'getCheck']);
     Route::post('/saveSupply',[RestockController::class, 'saveSupply']);
     Route::post('/saveVerified',[RestockController::class, 'saveVerified']);

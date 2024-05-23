@@ -258,4 +258,97 @@ class RestockController extends Controller
         ->min('_status');
         return $partition;
     }
+
+    public function getInvoices(){
+        $work = [];
+
+        try {
+            // Buscar el cedis
+            $cedis = Stores::find(1);
+            if (!$cedis) {
+                return response()->json(['message' => 'Cedis no encontrado'], 404);
+            }
+
+            // Obtener facturas
+            $invoicesResponse = Http::get($cedis->ip_address.'/storetools/public/api/Resources/Invoices');
+            if ($invoicesResponse->failed()) {
+                return response()->json(['message' => 'Hubo un problema con el servidor al obtener las facturas'], 401);
+            }
+            $invoices = $invoicesResponse->json();
+
+            // Agrupar facturas por cliente y factura
+            $groupedInvoices = [];
+            foreach ($invoices as $invoice) {
+                $client = $invoice['CLIFAC'];
+                $factura = 'FAC '.$invoice['FACTURA'];
+                if (!isset($groupedInvoices[$client])) {
+                    $groupedInvoices[$client] = [];
+                }
+                if (!isset($groupedInvoices[$client][$factura])) {
+                    $groupedInvoices[$client][$factura] = [];
+                }
+                $groupedInvoices[$client][$factura][] = $invoice;
+            }
+
+            // Obtener tiendas, excluyendo los IDs 1 y 2
+            $stores = Stores::whereNotIn('id', [1, 2,5,14,15,])->get();
+
+            foreach ($stores as $store) {
+                // Obtener entradas para cada tienda
+                $entriesResponse = Http::get($store->ip_address.'/storetools/public/api/Resources/Entries');
+                if ($entriesResponse->successful()) {
+                    $entries = $entriesResponse->json();
+
+                    // Agrupar entradas por cliente y factura
+                    $groupedEntries = [];
+                    foreach ($entries as $entry) {
+                        $client = $store->_client;
+                        $factura = $entry['FACFRE'];
+                        if (!isset($groupedEntries[$client])) {
+                            $groupedEntries[$client] = [];
+                        }
+                        if (!isset($groupedEntries[$client][$factura])) {
+                            $groupedEntries[$client][$factura] = [];
+                        }
+                        $groupedEntries[$client][$factura][] = $entry;
+                    }
+
+                    foreach ($groupedInvoices as $client => $facturas) {
+                        foreach ($facturas as $factura => $invoicesList) {
+                            // Verificar si el cliente pertenece al store_id
+                            $storeForClient = Stores::where('_client', $client)->first();
+                            if ($storeForClient && $storeForClient->id == $store->id) {
+                                // Verificar si hay entradas correspondientes
+                                if (isset($groupedEntries[$client][$factura])) {
+                                    // Si hay entradas, agregar la factura con las entradas
+                                    $entryList = $groupedEntries[$client][$factura];
+                                    $work[] = [
+                                        'store_id' => $store->id,
+                                        'store_name'=>$store->name,
+                                        'client' => $client,
+                                        'factura' => $factura,
+                                        'entries' => $entryList,
+                                        'invoices' => $invoicesList
+                                    ];
+                                } else {
+                                    // Si no hay entradas, agregar solo la factura
+                                    $work[] = [
+                                        'store_id' => $store->id,
+                                        'store_name'=>$store->name,
+                                        'client' => $client,
+                                        'factura' => $factura,
+                                        'entries' => [],
+                                        'invoices' => $invoicesList
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return response()->json($work, 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Ocurrió un error: ' . $e->getMessage()], 500);
+        }
+    }
 }
