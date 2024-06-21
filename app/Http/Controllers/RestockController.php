@@ -28,34 +28,77 @@ class RestockController extends Controller
         $status = $request->status;
         $pedido = $request->pedido;
         $surtidores = $request->supplyer;
-        $products = DB::connection('vizapi')
+
+        $prod = DB::connection('vizapi')
         ->table('product_required AS PR')
-        ->leftjoin('product_location AS PL','PL._product','PR._product')
-        ->leftjoin('celler_section AS CS','CS.id','PL._location')
-        ->leftJoin('celler AS C', function($join) {
-            $join->on('C.id', '=', 'CS._celler')
-                 ->where('C._workpoint', '=', 1);
-        })
-        ->select('PR._product','PR._requisition', DB::raw(' IFNULL(GROUP_CONCAT(CS.root), null) as locations'))
-        ->where([['PR._requisition',$pedido]])
-        ->groupBy('PR._requisition','PR._product')
-        ->orderby(DB::raw(' IFNULL(GROUP_CONCAT(CS.root), null)'))
-        ->get()
-        ->toArray();
+        ->join('products AS P','P.id','PR._product')
+        ->select('P.code','PR._product', 'PR._requisition', DB::raw('(SELECT CS.path FROM product_location AS PL
+        JOIN celler_section AS CS ON CS.id = PL._location
+        JOIN celler AS C ON C.id = CS._celler
+        WHERE PL._product = PR._product
+        AND CS.deleted_at IS NULL
+        AND C._workpoint = 1
+        ORDER BY CS.path ASC
+        LIMIT 1) AS locations'))
+        ->where('PR._requisition', $pedido)
+        ->orderBy("locations",'asc')
+        ->get();
+
+        $vcollect = collect($prod);
+        $groupby = $vcollect->groupBy(function($val) {
+            if(isset($val->locations)){
+                return explode('-',$val->locations)[0];
+            }else{ return '';}
+        })->sortKeys();
+        foreach($groupby as $piso){
+            $products = $piso->sortBy(function($val){
+                if($val){
+                    $location = $val->locations;
+                    $res ='';
+                    $parts = explode('-',$location);
+                    foreach($parts as $part){
+                        $numbers = preg_replace('/[^0-9]/', '', $part);
+                        $letters = preg_replace('/[^a-zA-Z]/', '', $part);
+                        if(strlen($numbers)==1){
+                            $numbers = '0'.$numbers;
+                        }
+                        $res = $res.$letters.$numbers.'-';
+                    }
+                    return $res = $res.$letters.$numbers.'-';
+
+                }
+                return '';
+            });
+            foreach($products as $product){
+                $uns []= $locations = $product;
+             }
+        }
+
+
         $asig = [];
-        $num_productos = count($products);
+        $num_productos = count($uns);
         $num_surtidores = count($surtidores);
         $supplyper = floor($num_productos / $num_surtidores);
+
         $remainder = $num_productos % $num_surtidores;
         $counter = 0;
+        for ($i = 0; $i < $num_surtidores; $i ++){
+            if($remainder > 0){
+                $asig[] = $supplyper + 1;
+                $remainder--;
+            }else{
+                $asig[]= $supplyper;
+            }
+        }
+        foreach($asig as $key => $val){
+            $surtidores[$key]['products'] = array_splice($uns,0,$val);
+        }
+
 
         foreach ($surtidores as $surtidor) {
-            $asigpro = array_slice($products, $counter * $supplyper, $supplyper);
+            $asigpro = $surtidor['products'];
 
-            if ($remainder > 0) {
-                $asigpro = array_merge($asigpro, [$products[$num_productos - $remainder]]);
-                $remainder--;
-            }
+
             foreach($asigpro as $product){
                 $upd = [
                     "_suplier"=>$surtidor['complete_name'],
@@ -66,9 +109,6 @@ class RestockController extends Controller
                 ->where([['_requisition',$product->_requisition],['_product',$product->_product]])
                 ->update($upd);
             }
-            $asig[$surtidor['complete_name']] = $asigpro;
-
-            $counter++;
         }
 
         foreach($surtidores as $surtidor){
@@ -93,7 +133,7 @@ class RestockController extends Controller
             ->where([['_requisition',$pedido],['_suplier_id',$supply]])
             ->update(['_partition'=>$inspart]);
         }
-        return response()->json($newres,200);
+        return response()->json($surtidores,200);
     }
 
     public function saveVerified(Request $request){
