@@ -11,6 +11,8 @@ use App\Http\Controllers\AssistController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\RestockController;
+use App\Http\Controllers\SalesController;
+
 
 ;
 
@@ -145,5 +147,11 @@ Route::prefix('/restock')->group(function(){
     Route::post('/getSupplier',[RestockController::class, 'getSupplier']);
     Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
     Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
+
+});
+
+Route::prefix('/sales')->group(function(){
+    Route::get('/getSale',[SalesController::class, 'Index']);
+
 
 });
