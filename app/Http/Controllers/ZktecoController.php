@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use Rats\Zkteco\Lib\ZKTeco;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\StaffController;
+use App\Models\AssistDevice;
+use App\Models\Store;
+
 
 class ZktecoController extends Controller
 {
@@ -255,4 +258,151 @@ class ZktecoController extends Controller
         return response()->json($res);
 
     }
+
+    public function Index(){
+        $devices = AssistDevice::with('store')->get();
+        return response()->json($devices,200);
+    }
+
+    public function ping($d){
+        $zk = new ZKTeco($d);
+
+        if($zk->connect()){
+            $date = $zk->getTime();
+            $current = date('Y-m-d H:i:s');
+            $register = $zk->getAttendance();
+            $res = [
+                "connect"=>true,
+                "date"=>$date,
+                "register"=>count($register),
+                "current" => $current
+            ];
+            $zk->disconnect();
+            return response()->json($res,200);
+        }else{
+            $res = [
+                "connect"=>false,
+                "date"=>'Sin Conexion',
+                "register"=>'Sin Conexion',
+                "current"=>"Sin Conexion"
+            ];
+            // $zk->disconnect();
+            return response()->json($res,200);
+        }
+    }
+
+    public function edit(Request $request){
+        $ip = $request->ip_address;
+        $name = $request->nick_name;
+        $id = $request->id;
+        $device = AssistDevice::find($id);
+        if($device){
+            $device->ip_address = $ip;
+            $device->nick_name = $name;
+            $device->save();
+            $device->fresh();
+            return response()->json($device,200);
+        }else{
+            return response()->json('No existe el dispositivo',404);
+        }
+    }
+
+
+
+    public function getRegisDevice($d){
+        $goals = [];
+        $fails = [];
+        $report = [];
+        $device = AssistDevice::find($d);
+        $zk = new ZKTeco($device->ip_address);
+        $exist = DB::table('assist as A')
+        ->join('staff as S','S.id','A._staff')
+        ->where('A._device',$device->id)
+        ->select('A.auid as uid','S.id_rc as id','A._class as state','A.register as timestamp','A._types as type')
+        ->get()->toArray();
+        if($zk->connect()){
+            $assists = $zk->getAttendance();
+            if($assists){
+                $dev = array_map(function($val){return implode(',',$val);},$assists);
+                $dba = array_map(function($val){return implode(',',(array)$val);},$exist);
+                $diff = array_diff($dev, $dba);
+                $vdiff = array_values($diff);
+                $diferencias = array_map(function($val){ return explode(',',$val);} ,$vdiff);
+
+                if($diferencias){
+                    foreach($diferencias as $assist){
+                        $user = DB::table('staff')->where('id_rc',intval($assist[1]))->value('id');
+                        if($user){
+                            $report [] = [
+                                "auid" => $assist['0'],//id checada checador
+                                "register" => $assist['3'], //horario
+                                "_staff" => $user,//id del usuario
+                                "_store"=> $device->_store,
+                                "_types"=>$assist['4'],//entrada y salida
+                                "_class"=>$assist['2'],//condedo o contrasena
+                                "_device"=>$device->id,
+                            ];
+                        }else{
+                            // $finduser = $zk->getUser();
+                            // $find = array_values(array_filter($finduser, function($val) use($assist){ return $val['userid'] == $assist[1];}));
+                            // $fails[]=$device->nick_name." no existe el id ".$assist[1]." con el nombre ".$find[0]['name']." favor de revisar ";
+                        }
+
+                }
+                $insert = DB::table('assist')->insert($report);
+                if($insert){
+                    $goals[] = $device->nick_name." se insertaron ".count($report)." registros";
+                }
+                }else{
+                    $goals[] = $device->nick_name." No hay registros";
+                }
+            }
+            $zk->disconnect();
+            $res = ["goals"=>$goals, "fails"=>$fails];
+            return response()->json($res, 200);
+
+        }else{
+            return response()->json('Sin Conexion',200);
+        }
+    }
+
+    public function changeDate($d){
+        $zk = new ZKTeco($d);
+        if($zk->connect()){
+            $date= date('Y-m-d H:i:s');
+            $zk->setTime($date);
+            $zk->disconnect();
+            $res = [
+                "change"=>true,
+                "date"=>$date,
+            ];
+            return response()->json($res,200);
+        }else{
+            $res = [
+                "change"=>false,
+                "date"=>'Sin Conexion',
+            ];
+            return response()->json($res,401);
+        }
+    }
+
+    public function deleteAttendance($d){
+        $zk = new ZKTeco($d);
+        if($zk->connect()){
+            $zk->clearAttendance();
+            $zk->disconnect();
+            $res = [
+                "delete"=>true,
+                "mssge"=>"Se eliminaron los registros"
+            ];
+            return response()->json($res,200);
+        }else{
+            $res = [
+                "delete"=>false,
+                "mssge"=>"No Se eliminaron los registros"
+            ] ;
+            return response()->json($res,401);
+        }
+    }
+
 }

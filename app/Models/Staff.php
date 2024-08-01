@@ -13,4 +13,8 @@ class Staff extends Model
     public function stores(){
         return $this->belongsTo('App\Models\Stores','_store');
     }
+
+    public function position(){
+        return $this->belongsTo('App\Models\Position','_position');
+    }
 }

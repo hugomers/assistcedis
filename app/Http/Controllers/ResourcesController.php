@@ -356,23 +356,33 @@ class ResourcesController extends Controller
         $res = [];
         $solicitudes = Solicitudes::where('_status',1)->get();
         if($solicitudes){
-            $stores = Stores::WhereNotIn('id',[1,2,14,15])->get();
+            $stores = Stores::WhereNotIn('id',[1,2,5,14,15])->get();
             foreach($solicitudes as $solicitud){
                 $wrk = [];
                 foreach($stores as $store){
                     $ip = $store->ip_address;
                     // $ip = '192.168.10.232:1619';
-                    $inscli = Http::post($ip.'/storetools/public/api/Resources/createClientSuc',$solicitud);
-                    $status = $inscli->status();
-                    if($status == 201){
-                        $wrk[] = $store->alias;
+                    try{
+                        $inscli = Http::post($ip.'/storetools/public/api/Resources/createClientSuc',$solicitud);
+                        $status = $inscli->status();
+                        if($status == 201){
+                            $wrk[] = $store->alias;
+                        }
+
+                    }catch(\Exception $e) {
+                        // Registrar el error y continuar
+                        error_log("Error en la URL {$ip}: " . $e->getMessage());
+                        // $wrk[] = null;
                     }
+
                 }
                 $reply = ReplyClient::upsert([
                     ['_form'=>$solicitud->id,'reply_workpoints'=>json_encode($wrk)],
                     ['_form'=>$solicitud->id,'reply_workpoints'=>json_encode($wrk)]],
                     ['reply_workpoints']
                 );
+
+
                 if(count($wrk) == count($stores)){
                     $updsol = Solicitudes::find($solicitud->id);
                     $updsol ->_status = 3;

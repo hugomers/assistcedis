@@ -69,7 +69,25 @@ Route::prefix('/waap')->group(function(){
 
 Route::prefix('/zkt')->group(function(){
     Route::get('/Reportcomplete',[ZktecoController::class, 'completeReport']);
+    Route::get('/Index',[ZktecoController::class, 'Index']);
+    Route::get('/Ping/{d}',[ZktecoController::class, 'Ping']);
+    Route::get('/getDate/{d}',[ZktecoController::class, 'getDate']);
+    Route::get('/getRegister/{d}',[ZktecoController::class, 'getRegistros']);
+    Route::get('/getRegisDevice/{d}',[ZktecoController::class, 'getRegisDevice']);
+    Route::get('/changeDate/{d}',[ZktecoController::class, 'changeDate']);
+    Route::delete('/deleteAttendance/{d}',[ZktecoController::class, 'deleteAttendance']);
+    Route::post('/Edit',[ZktecoController::class, 'edit']);
     Route::delete('/delete',[ZktecoController::class, 'delete']);
+
+});
+
+
+Route::prefix('/staff')->group(function(){
+    Route::get('',[StaffController::class, 'Index']);
+    Route::get('staffReply',[StaffController::class, 'staffReply']);
+
+
+
 });
 
 Route::prefix('/resources')->group(function(){
