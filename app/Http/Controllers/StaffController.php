@@ -728,7 +728,83 @@ class StaffController extends Controller
     //     return response()->json($res);
     // }
 
+    // public function Index(){
+    //     $token = env('TOKEN_MA');//token monday
+    //     $apiUrl = 'https://api.monday.com/v2';//conexion api monday
+    //     $headers = ['Content-Type: application/json', 'Authorization: ' . $token];//capeceras monday
+    //     $query = 'query {
+    //         items_page_by_column_values ( limit:500 board_id: 1520861792, columns: [{column_id: "estatus", column_values: ["ACTIVO"]}]) {
+    //           cursor
+    //           items {
+    //             name
+    //             column_values{
+    //               id
+    //               text
+    //               column{
+    //                 title
+    //                 }
+    //             }
+    //           }
+    //         }
+    //       }';
+    //     $data = @file_get_contents($apiUrl, false, stream_context_create([
+    //     'http' => [
+    //         'method' => 'POST',
+    //         'header' => $headers,
+    //         'content' => json_encode(['query' => $query]),
+    //     ]
+    //     ]));//conexion api monday
+    //     $style = json_decode($data,true);//se decodifica lo que se recibe
+    //     $row = $style['data']['items_page_by_column_values']['items'];//recorremos arreglos hasta los que ocuparemos
+    //     $usersmon = array_map(function($val){
+    //         $suc = $val['column_values'][1]['text'];
+    //         $activ = $val['column_values'][3]['text'] == "ACTIVO" ? 1 : 0;
+    //         $stor =  $suc == "OFICINA" || $suc == "MANTENIMIENTO" || $suc == "AUDITORIA/INVENTARIOS" ? "CEDIS" : $suc;//si son cualquiera de estos tres es cedis
+    //         $store = Stores::where('name',$stor)->first();
+    //         $position = Position::where('name',$val['column_values'][2]['text'])->first();
+    //         $res = [
+    //             "complete_name"=>$val['name'],
+    //             "id_rc"=>$val['column_values'][0]['text'],
+    //             "_store"=>$store->id,
+    //             "_position"=>$position ? $position->id  : null ,
+    //             "picture"=>$val['column_values'][12]['text'],
+    //             "stores"=>$store,
+    //             "position"=>$position,
+    //             "clasification"=>$val['column_values'][13]['text'],
+    //             "ingress"=>$val['column_values'][7]['text'] == "" ? "1999-01-01" : $val['column_values'][7]['text']  ,
+    //             "acitve"=>$activ
+    //         ];
+    //         return $res;
+    //     }, $row);
+
+    //     $usersdb = Staff::with('stores','position')->where('acitve',1)->select('complete_name','id_rc','_store','_position','picture','clasification','ingress','acitve')->get()->toArray();
+
+
+    //     $res = [
+    //         "mon"=>$usersmon,
+    //         "mysq"=>$usersdb,
+    //     ];
+    //     return $res;
+    // }
+
+
     public function Index(){
+        // $upins = [//se guardan registros actualizados o insertados
+        //     'inserts'=>[],
+        //     'updates'=>[]
+        // ];
+        // $fail = [//contenedor para los fails jaja
+        //     'inserts'=>[],
+        //     'updates'=>[],
+        //     'names'=>[],
+        //     'sucursal'=>[]
+        // ];
+        $exist=[
+            "usermon"=>[],
+            "Actualizados"=>[],
+            "Insertados"=>[],
+        ];
+
         $token = env('TOKEN_MA');//token monday
         $apiUrl = 'https://api.monday.com/v2';//conexion api monday
         $headers = ['Content-Type: application/json', 'Authorization: ' . $token];//capeceras monday
@@ -768,8 +844,6 @@ class StaffController extends Controller
                 "_store"=>$store->id,
                 "_position"=>$position ? $position->id  : null ,
                 "picture"=>$val['column_values'][12]['text'],
-                "stores"=>$store,
-                "position"=>$position,
                 "clasification"=>$val['column_values'][13]['text'],
                 "ingress"=>$val['column_values'][7]['text'] == "" ? "1999-01-01" : $val['column_values'][7]['text']  ,
                 "acitve"=>$activ
@@ -777,14 +851,47 @@ class StaffController extends Controller
             return $res;
         }, $row);
 
-        $usersdb = Staff::with('stores','position')->where('acitve',1)->select('complete_name','id_rc','_store','_position','picture','clasification','ingress','acitve')->get()->toArray();
+        $usersdb = Staff::where('acitve',1)->select('complete_name','id_rc','_store','_position','picture','clasification','ingress','acitve')->get()->toArray();
+        $textusermon  = array_map(function($val){ return implode(',',$val);},$usersmon);
+        $textuserdb = array_map(function($val){ return implode(',',$val);},$usersdb);
+        $diff = array_diff($textusermon,$textuserdb);
+        $newuser = array_map(function($val){return  explode(',',$val); },$diff);
+        $difef = array_map(function($val){
+            $res = [
+                "complete_name"=>$val[0],
+                "id_rc"=>$val[1],
+                "_store"=>$val[2],
+                "_position"=>$val[3],
+                "picture"=>$val[4],
+                "clasification"=>$val[5],
+                "ingress"=>$val[6]  ,
+                "acitve"=>$val[7]
+            ];
+            return mb_convert_encoding($res,'UTF-8'); },$newuser);
+        $upduse = array_values($difef);
+        foreach($upduse as $usnw){
+            $existe = Staff::with('stores','position')->where('complete_name',$usnw)->first();
+            if($existe){
+                // $existe->id_rc = $usnw['id_rc'];
+                // $existe->_store = $usnw['_store'];
+                // $existe->_position = $usnw['_position'];
+                // $existe->picture = $usnw['picture'];
+                // $existe->clasification = $usnw['clasification'];
+                // $existe->ingress = $usnw['ingress'];
+                // $existe->acitve = $usnw['acitve'];
+                // $existe->save();
+                // $res = $existe->fresh();
 
-
-        $res = [
-            "mon"=>$usersmon,
-            "mysq"=>$usersdb,
-        ];
-        return $res;
+                $exist['Actualizados'][]=$existe;
+            }else{
+                // $insert= Staff::insert($usnw);
+                // if($insert){
+                    $exist['Insertados'][]=$usnw;
+                // }
+            }
+        }
+        $exist['usermon'] = $usersmon;
+        return response()->json($exist,200);
     }
 
     public function staffReply(){
