@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class RestockController extends Controller
 {
-    public function getSupply(){
-        $staff = Staff::whereIn('_store',[1])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
+    public function getSupply($sid){
+        $staff = Staff::whereIn('_store',[$sid])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
         return $staff;
     }
 
@@ -155,8 +155,8 @@ class RestockController extends Controller
         return response()->json($change,200);
     }
 
-    public function getVerified(){
-        $staff = Staff::whereIn('_store',[1,2])->whereIn('_position',[6,10,1])->where('acitve',1)->get();
+    public function getVerified($sid){
+        $staff = Staff::whereIn('_store',[$sid])->whereIn('_position',[6,10,1])->where('acitve',1)->get();
         return $staff;
     }
 
@@ -182,15 +182,15 @@ class RestockController extends Controller
     }
 
 
-    public function getChof(){
-        $staff = Staff::whereIn('_store',[1,2])->whereIn('_position',[3])->where('acitve',1)->get();
+    public function getChof($sid){
+        $staff = Staff::whereIn('_store',[$sid])->whereIn('_position',[3])->where('acitve',1)->get();
 
         return $staff;
     }
 
     public function getCheck($cli){
         $store = Stores::with('Staff')->where('_client',$cli)->value('id');
-        $staff = Staff::where('_store',$store,)->whereIn('_position',[7,8,16,17])->get();
+        $staff = Staff::where('_store',$store,)->whereIn('_position',[7,8,16,17,23])->get();
 
         return $staff;
     }
@@ -390,5 +390,19 @@ class RestockController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Ocurrió un error: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function getTransfer(Request $request){
+        $traspaso = $request->all();
+        $stores = Stores::find(1);
+        $ip = $stores->ip_address;
+        // $ip = '192.168.10.160:1619';
+        $getdev = Http::post($ip.'/storetools/public/api/Resources/returnTra',$traspaso);
+        if($getdev->status() != 200){
+            return false;
+        }else{
+            return $getdev;
+        }
+
     }
 }

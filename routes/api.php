@@ -151,9 +151,9 @@ Route::prefix('/cashier')->group(function(){
 });
 
 Route::prefix('/restock')->group(function(){
-    Route::get('/getSupply',[RestockController::class, 'getSupply']);
-    Route::get('/getVerified',[RestockController::class, 'getVerified']);
-    Route::get('/getChof',[RestockController::class, 'getChof']);
+    Route::get('/getSupply/{sid}',[RestockController::class, 'getSupply']);
+    Route::get('/getVerified/{sid}',[RestockController::class, 'getVerified']);
+    Route::get('/getChof/{sid}',[RestockController::class, 'getChof']);
     Route::get('/getInvoices',[RestockController::class, 'getInvoices']);
     Route::get('/AutomateRequisition',[RestockController::class, 'AutomateRequisition']);
     Route::get('/getCheck/{cli}',[RestockController::class, 'getCheck']);
@@ -162,6 +162,7 @@ Route::prefix('/restock')->group(function(){
     Route::post('/saveChofi',[RestockController::class, 'saveChofi']);
     Route::post('/saveCheck',[RestockController::class, 'saveCheck']);
     Route::post('/getSalida',[RestockController::class, 'getSalida']);
+    Route::post('/getTransfer',[RestockController::class, 'getTransfer']);
     Route::post('/getSupplier',[RestockController::class, 'getSupplier']);
     Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
     Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
@@ -170,6 +171,5 @@ Route::prefix('/restock')->group(function(){
 
 Route::prefix('/sales')->group(function(){
     Route::get('/getSale',[SalesController::class, 'Index']);
-
-
+    Route::get('/getStores',[SalesController::class, 'getStores']);
 });

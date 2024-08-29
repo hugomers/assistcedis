@@ -17,4 +17,9 @@ class SalesController extends Controller
         $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
         return response()->json($stores);
     }
+
+    // public function getStores(){
+    //     $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
+    // }
+
 }
