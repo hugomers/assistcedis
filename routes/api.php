@@ -12,7 +12,7 @@ use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\RestockController;
 use App\Http\Controllers\SalesController;
-
+use App\Http\Controllers\TransferController;
 
 ;
 
@@ -172,4 +172,16 @@ Route::prefix('/restock')->group(function(){
 Route::prefix('/sales')->group(function(){
     Route::get('/getSale',[SalesController::class, 'Index']);
     Route::get('/getStores',[SalesController::class, 'getStores']);
+});
+
+
+Route::prefix('/transfer')->group(function(){
+    Route::get('/getTransfers/{sid}',[TransferController::class, 'Index']);
+    Route::get('/getTransfer/{oid}',[TransferController::class, 'getTransfer']);
+    Route::post('/addTransfer',[TransferController::class, 'addTransfer']);
+    Route::post('/addProduct',[TransferController::class, 'addProduct']);
+    Route::post('/editProduct',[TransferController::class, 'editProduct']);
+    Route::post('/removeProduct',[TransferController::class, 'removeProduct']);
+    Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
+
 });
