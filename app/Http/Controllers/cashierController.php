@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\Printer;
 
 
-class cashierController extends Controller
+class CashierController extends Controller
 {
     public function getStaff($id){
         $staff = Staff::where([['_store',$id], ['_position',11]])->get();
