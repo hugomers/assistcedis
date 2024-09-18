@@ -8,27 +8,44 @@ use App\Models\Transfers;
 use App\Models\Warehouses;
 use Illuminate\Support\Facades\Http;
 use App\Models\TransferBodies;
+use Illuminate\Support\Facades\DB;
 
 
 class TransferController extends Controller
 {
     public function Index($sid){
-        $transfer = Transfers::where('_store',$sid)->get();
+        $now = now()->format('Y-m-d');
+        $transfer = Transfers::with(['store','origin','destiny','bodie'])->where('_store',$sid)->whereDate('created_at',$now)->get();
         $warehouse = Warehouses::all();
 
         $resp = [
             'warehouses'=>$warehouse,
-            'transfer'=>$transfer
+            'transfer'=>$transfer,
         ];
 
         return response()->json($resp,200);
     }
 
+    public function getTransfersDate(Request $request){
+        $fechas = $request->date;
+        $sid = $request->store;
+        if(isset($fechas['from'])){
+            $desde = $fechas['from'];
+            $hasta = $fechas['to'];
+        }else{
+            $desde = $fechas;
+            $hasta = $fechas;
+        }
+        $transfer = Transfers::with(['store','origin','destiny','bodie'])->where('_store',$sid)->whereBetween(DB::raw('DATE(created_at)'), [$desde, $hasta])->get();
+        return response()->json($transfer,200);
+
+    }
+
     public function addTransfer(Request $request){
         $transfer = $request->all();
-        // $store = Stores::find($transfer['_store']);
-        // $ip = $store->ip_address;
-        $ip = '192.168.10.160:1619';
+        $store = Stores::find($transfer['_store']);
+        $ip = $store->ip_address;
+        // $ip = '192.168.10.160:1619';
         $insTraAcc = http::post($ip.'/storetools/public/api/TransferBW/addTransfer',$transfer);
         $status = $insTraAcc->status();
         if($status == 201){
@@ -77,8 +94,6 @@ class TransferController extends Controller
         $modify = TransferBodies::where([['_transfer',$product['_transfer']],['product',$product['product']]])->update(['amount'=>$product['amount']]);
         if($modify){
             return response()->json('Producto Editado',200);
-        }else{
-            return response()->json('Hubo un problema al editar el producto',500);
         }
     }
 
@@ -101,13 +116,13 @@ class TransferController extends Controller
             "products"=>$products
         ];
 
-        // $store = Stores::find($transfer['_store']);
-        // $ip = $store->ip_address;
-        $ip = '192.168.10.160:1619';
+        $store = Stores::find($transfer['_store']);
+        $ip = $store->ip_address;
+        // $ip = '192.168.10.160:1619';
         $insTraAcc = http::post($ip.'/storetools/public/api/TransferBW/endTransfer',$data);
         $status = $insTraAcc->status();
         if($status == 201){
-            $traspaso = Transfers::find($transfer['id'])->update(['updated_by'=>$user]);
+            $traspaso = Transfers::where('id',$transfer['id'])->update(['updated_by'=>$user]);
             if($traspaso){
                 return response()->json('Traspaso Finalizado',200);
             }

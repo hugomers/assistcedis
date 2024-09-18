@@ -178,6 +178,7 @@ Route::prefix('/sales')->group(function(){
 Route::prefix('/transfer')->group(function(){
     Route::get('/getTransfers/{sid}',[TransferController::class, 'Index']);
     Route::get('/getTransfer/{oid}',[TransferController::class, 'getTransfer']);
+    Route::post('/getTransfersDate',[TransferController::class, 'getTransfersDate']);
     Route::post('/addTransfer',[TransferController::class, 'addTransfer']);
     Route::post('/addProduct',[TransferController::class, 'addProduct']);
     Route::post('/editProduct',[TransferController::class, 'editProduct']);
