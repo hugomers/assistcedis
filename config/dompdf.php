@@ -259,7 +259,7 @@ return array(
          * allowing remote access to dompdf.php or on allowing remote html code to be passed to
          * $dompdf = new DOMPDF(, $dompdf->load_html(...,
          * This allows anonymous users to download legally doubtful internet content which on
-         * tracing back appears to being downloaded by your server, or allows malicious php code
+         * tracing back appears to being downed by your server, or allows malicious php code
          * in remote html pages to be executed by your server with your account privileges.
          *
          * @var bool

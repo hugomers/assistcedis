@@ -12,6 +12,7 @@ use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\RestockController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\DepositsController;
 use App\Http\Controllers\TransferController;
 
 ;
@@ -184,5 +185,15 @@ Route::prefix('/transfer')->group(function(){
     Route::post('/editProduct',[TransferController::class, 'editProduct']);
     Route::post('/removeProduct',[TransferController::class, 'removeProduct']);
     Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
+
+});
+
+Route::prefix('/deposits')->group(function(){
+    Route::post('/getForms',[DepositsController::class,'getForms']);
+    Route::post('/getFormsStore/{sid}',[DepositsController::class,'getFormsStore']);
+    Route::post('/forms',[DepositsController::class, 'newForm']);
+    Route::post('/changeStatus',[DepositsController::class, 'changeStatus']);
+    Route::post('/changeTicket',[DepositsController::class, 'changeTicket']);
+
 
 });
