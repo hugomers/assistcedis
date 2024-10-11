@@ -367,7 +367,8 @@ class ZktecoController extends Controller
     }
 
     public function changeDate($d){
-        $zk = new ZKTeco($d);
+        $device = AssistDevice::find($d);
+        $zk = new ZKTeco($device->ip_address);
         if($zk->connect()){
             $date= date('Y-m-d H:i:s');
             $zk->setTime($date);
@@ -387,7 +388,8 @@ class ZktecoController extends Controller
     }
 
     public function deleteAttendance($d){
-        $zk = new ZKTeco($d);
+        $device = AssistDevice::find($d);
+        $zk = new ZKTeco($device->ip_address);
         if($zk->connect()){
             $zk->clearAttendance();
             $zk->disconnect();
