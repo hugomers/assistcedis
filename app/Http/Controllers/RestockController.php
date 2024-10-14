@@ -140,10 +140,11 @@ class RestockController extends Controller
         $pedido = $request->pedido;
         $verificador = $request->verified;
         $supply = $request->surtidor;
+        $warehouse = $request->warehouse;
         $change = DB::connection('vizapi')
         ->table('requisition_partitions')
         ->where([['_requisition',$pedido],['_suplier_id',$supply]])
-        ->update(['_out_verified'=>$verificador]);
+        ->update(['_out_verified'=>$verificador, '_warehouse'=>$warehouse]);
 
 
         // $newres = new Restock;
