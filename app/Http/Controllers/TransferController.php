@@ -89,6 +89,17 @@ class TransferController extends Controller
         }
     }
 
+    public function addProductMasive(Request $request){
+        $products = $request->all();
+        $add = TransferBodies::insert($products);
+        if($add){
+            return response()->json('Producto Insertado',200);
+        }else{
+            return response()->json('Hubo problema al agregar el producto',500);
+        }
+
+    }
+
     public function editProduct(Request $request){
         $product = $request->all();
         $modify = TransferBodies::where([['_transfer',$product['_transfer']],['product',$product['product']]])->update(['amount'=>$product['amount']]);
@@ -129,6 +140,33 @@ class TransferController extends Controller
 
         }else{
             return response()->json(json_decode($insTraAcc),200);
+        }
+    }
+
+    public function transferPreventa(Request $request){
+        $notfound = [];
+        $ok = [];
+        $pedidos = $request->codes;
+        $sucursal = $request->_workpoint;
+        foreach($pedidos as $pedido){
+            $change = DB::connection('vizapi')->table('orders')->where([['id',$pedido],['_workpoint_from',$sucursal]])->first();
+            if($change){
+                array_push($ok,$pedido);
+            }else{
+                array_push($notfound,$pedido);
+            }
+        }
+        if(count($ok) > 0){
+
+            $products = DB::connection('vizapi')->table('product_ordered as PO')->join('products AS P','P.id','PO._product')->whereIn('PO._order',$ok)->select('P.code AS product', 'P.description AS description', 'PO.units AS amount')->get();
+            $res = [
+                "products"=>$products,
+                "Encontrados"=>$ok,
+                "Faltantes"=>$notfound
+            ];
+           return response()->json($res,200);
+        }else{
+            return response()->json('No hay pedidos que buscar',200);
         }
     }
 }

@@ -185,9 +185,11 @@ Route::prefix('/transfer')->group(function(){
     Route::post('/getTransfersDate',[TransferController::class, 'getTransfersDate']);
     Route::post('/addTransfer',[TransferController::class, 'addTransfer']);
     Route::post('/addProduct',[TransferController::class, 'addProduct']);
+    Route::post('/addProductMasive',[TransferController::class, 'addProductMasive']);
     Route::post('/editProduct',[TransferController::class, 'editProduct']);
     Route::post('/removeProduct',[TransferController::class, 'removeProduct']);
     Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
+    Route::post('/transferPreventa',[TransferController::class, 'transferPreventa']);
 
 });
 
