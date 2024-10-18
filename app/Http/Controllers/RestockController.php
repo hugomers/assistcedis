@@ -417,14 +417,14 @@ class RestockController extends Controller
         $fechas = $request->fechas;
         $clente = $sucursal['_client'];
         // $invoicesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
-        $invoicesResponse = Http::timeout(200)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
+        $invoicesResponse = Http::timeout(500)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
 
         if($invoicesResponse->status() == 200){
             $unicos = array_values(array_unique(array_map(function($val){return "'".'FAC '.$val['FACTURA']."'";},$invoicesResponse->json())));
             $salidas =  implode(',',$unicos);
             // return $salidas;
             // $entriesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
-            $entriesResponse = Http::timeout(200)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
+            $entriesResponse = Http::timeout(500)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
             $res = [
                 "salidas"=>json_decode($invoicesResponse),
                 "entradas"=>json_decode($entriesResponse),
