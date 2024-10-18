@@ -157,6 +157,7 @@ Route::prefix('/restock')->group(function(){
     Route::get('/getChof/{sid}',[RestockController::class, 'getChof']);
     Route::get('/getInvoices',[RestockController::class, 'getInvoices']);
     Route::get('/AutomateRequisition',[RestockController::class, 'AutomateRequisition']);
+    Route::get('/getStores',[RestockController::class, 'getStores']);
     Route::get('/getCheck/{cli}',[RestockController::class, 'getCheck']);
     Route::post('/saveSupply',[RestockController::class, 'saveSupply']);
     Route::post('/saveVerified',[RestockController::class, 'saveVerified']);
@@ -167,6 +168,8 @@ Route::prefix('/restock')->group(function(){
     Route::post('/getSupplier',[RestockController::class, 'getSupplier']);
     Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
     Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
+    Route::post('/getData',[RestockController::class, 'getData']);
+
 
 });
 
