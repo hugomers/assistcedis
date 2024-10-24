@@ -28,32 +28,63 @@ class RestockController extends Controller
         $status = $request->status;
         $pedido = $request->pedido;
         $surtidores = $request->supplyer;
+        $to = $request->_workpoint_to;
+        $from = $request->_workpoint_from;
 
-        $prod = DB::connection('vizapi')
-        ->table('product_required AS PR')
-        ->join('products AS P','P.id','PR._product')
-        ->select('P.code','PR._product', 'PR._requisition', DB::raw('(SELECT CS.path FROM product_location AS PL
+        // $locationsTo = '(SELECT CS.path FROM product_location AS PL
+        // JOIN celler_section AS CS ON CS.id = PL._location
+        // JOIN celler AS C ON C.id = CS._celler
+        // WHERE PL._product = PR._product
+        // AND CS.deleted_at IS NULL
+        // AND C._workpoint = '.$to.'
+        // ORDER BY CS.path ASC
+        // LIMIT 1) AS locationsTo';
+        // $locationsFrom = '(SELECT CS.path FROM product_location AS PL
+        // JOIN celler_section AS CS ON CS.id = PL._location
+        // JOIN celler AS C ON C.id = CS._celler
+        // WHERE PL._product = PR._product
+        // AND CS.deleted_at IS NULL
+        // AND C._workpoint = '.$from.'
+        // ORDER BY CS.path ASC
+        // LIMIT 1) AS locationsFrom';
+
+        // SUBSTRING_INDEX(CS.path, "-", 2)
+        $locationsTo = '(SELECT CS.path FROM product_location AS PL
         JOIN celler_section AS CS ON CS.id = PL._location
         JOIN celler AS C ON C.id = CS._celler
         WHERE PL._product = PR._product
         AND CS.deleted_at IS NULL
-        AND C._workpoint = 1
+        AND C._workpoint = '.$to.'
         ORDER BY CS.path ASC
-        LIMIT 1) AS locations'))
+        LIMIT 1) AS locationsTo';
+        $locationsFrom = '(SELECT CS.path FROM product_location AS PL
+        JOIN celler_section AS CS ON CS.id = PL._location
+        JOIN celler AS C ON C.id = CS._celler
+        WHERE PL._product = PR._product
+        AND CS.deleted_at IS NULL
+        AND C._workpoint = '.$from.'
+        ORDER BY CS.path ASC
+        LIMIT 1) AS locationsFrom';
+
+        $prod = DB::connection('vizapi')
+        ->table('product_required AS PR')
+        ->join('products AS P','P.id','PR._product')
+        ->select('P.code','PR._product', 'PR._requisition', DB::raw($locationsTo),DB::raw($locationsFrom))
         ->where('PR._requisition', $pedido)
-        ->orderBy("locations",'asc')
+        ->orderBy("locationsTo",'asc')
+        ->orderBy("locationsFrom",'asc')
         ->get();
 
         $vcollect = collect($prod);
         $groupby = $vcollect->groupBy(function($val) {
-            if(isset($val->locations)){
-                return explode('-',$val->locations)[0];
+            if(isset($val->locationsTo)){
+                return explode('-',$val->locationsTo)[0];
             }else{ return '';}
         })->sortKeys();
         foreach($groupby as $piso){
             $products = $piso->sortBy(function($val){
                 if($val){
-                    $location = $val->locations;
+                    $location = $val->locationsTo;
                     $res ='';
                     $parts = explode('-',$location);
                     foreach($parts as $part){
@@ -145,14 +176,6 @@ class RestockController extends Controller
         ->table('requisition_partitions')
         ->where([['_requisition',$pedido],['_suplier_id',$supply]])
         ->update(['_out_verified'=>$verificador, '_warehouse'=>$warehouse]);
-
-
-        // $newres = new Restock;
-        // $newres->_staff = $supply['id'];
-        // $newres->_requisition = $pedido;
-        // $newres->_status = $status;
-        // $newres->save();
-        // $newres->fresh()->toArray();
         return response()->json($change,200);
     }
 
