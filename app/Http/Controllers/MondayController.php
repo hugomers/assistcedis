@@ -1318,6 +1318,13 @@ class MondayController extends Controller
     }
 
     public function justification(){
+        $fails = [
+            'type'=>[],
+            'user'=>[],
+            'autorized'=>[],
+            'inserted'=>[],
+        ];
+        $goals = [];
         // $query = 'query {
         //     items_by_column_values (board_id: 4403681072, column_id: "estado1", column_value: "Sin Enviar") {
         //         id
@@ -1347,58 +1354,55 @@ class MondayController extends Controller
         // return $received[0]['column_values'][3]['text'];
 
         foreach($received as $new){
-            $type = DB::table('justification_types')->where('name',$new['column_values'][3]['text'])->value('id');
-            $user = DB::table('staff')->where('complete_name',$new['column_values'][2]['text'])->value('id');
-            $id_mon = $new['id'];
-            $created = date('Y-m-d H:i:s', strtotime($new['column_values'][1]['text']) - 3600);
-            $inip = $new['column_values'][4]['text'];
-            $finip = $new['column_values'][5]['text'];
-            $percen = $new['column_values'][10]['text'];
-            $notes = $new['column_values'][6]['text'];
-            $autorized = $new['column_values'][11]['text'];
-
-            $justi [] = [
-                "_staff"=>$user,
-                "created_at"=>$created,
-                "start_date"=>$inip,
-                "final_date"=>$finip,
-                "_type"=>$type,
-                "percentaje"=>$percen,
-                "notes"=>$notes,
-                "mid"=>$id_mon,
-                "autorized"=>$autorized,
-            ];
-        }
-
-        $data = array_filter($justi, function($element){
-            return isset($element['autorized']) && $element['autorized'] === 'AUTORIZADO';
-        });
-
-        foreach($data as $dat){
-
-            $nuevo = [
-                "_staff"=>$dat['_staff'],
-                "created_at"=>$dat['created_at'],
-                "start_date"=>$dat['start_date'],
-                "final_date"=>$dat['final_date'],
-                "_type"=>$dat['_type'],
-                "percentage"=>$dat['percentaje'],
-                "notes"=>$dat['notes'],
-                "mid"=>$dat['mid']
-            ];
-            $insert = DB::table('assist_justification')->insert($nuevo);
-            if($insert){
-               $change = 'mutation {
-                change_simple_column_value (item_id:'.$dat['mid'].', board_id:4403681072, column_id:"estado1", value: "Enviado") {
-                  id
+            $type = DB::table('justification_types')->where('name',$new['column_values'][3]['text'])->value('id');//tipo en base de datos
+            if($type){
+                $user = DB::table('staff')->where('complete_name',$new['column_values'][2]['text'])->value('id');//usuario en base de datos
+                if($user){
+                    $autorized = $new['column_values'][11]['text'];//estado de autorizacions
+                    if($autorized === 'AUTORIZADO'){
+                        $id_mon = $new['id'];//id de monday
+                        $created = date('Y-m-d H:i:s', strtotime($new['column_values'][1]['text']) - 3600);//fecha de creacion
+                        $inip = $new['column_values'][4]['text'];//fehca inicio
+                        $finip = $new['column_values'][5]['text'];//fecha de fin
+                        $percen = $new['column_values'][10]['text'];//porcentaje
+                        $notes = $new['column_values'][6]['text'];//notas
+                        $justi  = [
+                            "_staff"=>$user,
+                            "created_at"=>$created,
+                            "start_date"=>$inip,
+                            "final_date"=>$finip,
+                            "_type"=>$type,
+                            "percentaje"=>$percen,
+                            "notes"=>$notes,
+                            "mid"=>$id_mon,
+                        ];
+                        $insert = DB::table('assist_justification')->insert($justi);
+                        if($insert){
+                            $goasl[]=['Justificacion'=>$id_mon];
+                            $change = 'mutation {
+                                change_simple_column_value (item_id:'.$id_mon.', board_id:4403681072, column_id:"estado1", value: "Enviado") {
+                                  id
+                                }
+                              }';
+                              $valchan = $this->apimon($change);
+                        }else{
+                            $fail['inserted'][]=['Message'=>'No se inserto la justificacion','id_monday'=>$new['id'],'Justificacion'=>$new['column_values'][6]['text']];
+                        }
+                    }else{
+                        $fail['autorized'][]=['Message'=>'La justificacion no esta autorizada','id_monday'=>$new['id'],'Justificacion'=>$new['column_values'][6]['text']];
+                    }
+                }else{
+                    $fails['user'][] =['Message'=>'El usuario '.$new['column_values'][2]['text'].' no existe en db','id_monday'=>$new['id']];
                 }
-              }';
-              $valchan = $this->apimon($change);
+            }else{
+                $fails['type'][]=['Message'=>'El tipo'.$new['column_values'][3]['text'].' no existe en db','id_monday'=>$new['id']];
             }
-
         }
-
-        return response()->json("Justificaciones Replicadas",200);
+        $res = [
+            "goals"=>count($goals),
+            "fails"=>$fails
+        ];
+        return response()->json($res,200);
     }
 
     public function Cifras(){

@@ -247,10 +247,14 @@ class ZktecoController extends Controller
     }
 
     public function getReport(){
-        $semana = now()->format('W') - 1;
-        $anio = now()->format('Y');
-        $staffData = DB::select('call report_assist('.$semana.','.$anio.')');
-        $sucursal = DB::table('assist_devices as AD')->join('stores as S','S.id','AD._store')->select('S.name as label','S.name as value')->get();
+        // $semana = now()->format('W') - 1;
+        // $anio = now()->format('Y');
+        $staffData = DB::table('report_week')->select('*',
+            DB::raw('faltas(LUNES) +  faltas(MARTES) +faltas(MIERCOLES) +faltas(JUEVES) +faltas(VIERNES) +faltas(SABADO) +faltas(DOMINGO)  AS FALTAS'),
+            DB::raw('retardos(LUNES) + retardos(MARTES) + retardos(MIERCOLES) + retardos(JUEVES) + retardos(VIERNES) + retardos(SABADO) + retardos(DOMINGO) AS RETARDOS'),
+            DB::raw('vacaciones(LUNES) + vacaciones(MARTES) + vacaciones(MIERCOLES) + vacaciones(JUEVES) + vacaciones(VIERNES) + vacaciones(SABADO) + vacaciones(DOMINGO)  AS VACACIONES'))
+            ->get();
+        $sucursal = DB::table('assist_devices as AD')->join('stores as S','S.id','AD._store')->select('S.name','AD.ip_address','AD.id')->get();
         $res = [
             "reporte"=>$staffData,
             "sucursal"=>$sucursal
@@ -348,11 +352,11 @@ class ZktecoController extends Controller
                             // $fails[]=$device->nick_name." no existe el id ".$assist[1]." con el nombre ".$find[0]['name']." favor de revisar ";
                         }
 
-                }
-                $insert = DB::table('assist')->insert($report);
-                if($insert){
-                    $goals[] = $device->nick_name." se insertaron ".count($report)." registros";
-                }
+                    }
+                    $insert = DB::table('assist')->insert($report);
+                    if($insert){
+                        $goals[] = $device->nick_name." se insertaron ".count($report)." registros";
+                    }
                 }else{
                     $goals[] = $device->nick_name." No hay registros";
                 }
