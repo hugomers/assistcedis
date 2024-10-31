@@ -1372,7 +1372,7 @@ class MondayController extends Controller
                             "start_date"=>$inip,
                             "final_date"=>$finip,
                             "_type"=>$type,
-                            "percentaje"=>$percen,
+                            "percentage"=>$percen,
                             "notes"=>$notes,
                             "mid"=>$id_mon,
                         ];
