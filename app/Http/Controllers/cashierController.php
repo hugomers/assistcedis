@@ -39,10 +39,10 @@ class CashierController extends Controller
             $solicita = Staff::find($request->_created_by);
             $cajero = Staff::find($request->_cashier);
             $ip = $store->ip_address;
-            // $ip = "192.168.10.112:1619";
+            // $ip = "192.168.10.160:1619";
             if($tipo == 1 || $tipo == 2){//descuadre
                 $dat = [
-                    "_cash"=>$request->cash
+                    "_cash"=>intval($request->cash)
                 ];
                 $opening =Http::post($ip.'/storetools/public/api/Cashier/opencashier',$dat);
                 $status = $opening->status();
