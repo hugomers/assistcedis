@@ -254,7 +254,7 @@ class ZktecoController extends Controller
             DB::raw('retardos(LUNES) + retardos(MARTES) + retardos(MIERCOLES) + retardos(JUEVES) + retardos(VIERNES) + retardos(SABADO) + retardos(DOMINGO) AS RETARDOS'),
             DB::raw('vacaciones(LUNES) + vacaciones(MARTES) + vacaciones(MIERCOLES) + vacaciones(JUEVES) + vacaciones(VIERNES) + vacaciones(SABADO) + vacaciones(DOMINGO)  AS VACACIONES'))
             ->get();
-        $sucursal = DB::table('assist_devices as AD')->join('stores as S','S.id','AD._store')->select('S.name','AD.ip_address','AD.id')->get();
+        $sucursal = DB::table('assist_devices as AD')->join('stores as S','S.id','AD._store')->select('S.name','AD.ip_address','AD.id','S.id as _store')->get();
         $res = [
             "reporte"=>$staffData,
             "sucursal"=>$sucursal
