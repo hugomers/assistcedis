@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
 class RestockController extends Controller
 {
     public function getSupply($sid){
-        $staff = Staff::whereIn('_store',[$sid])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
+        $id = $sid == 24 ? 12 : $sid;
+        $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
         return $staff;
     }
 
@@ -180,7 +181,8 @@ class RestockController extends Controller
     }
 
     public function getVerified($sid){
-        $staff = Staff::whereIn('_store',[$sid])->whereIn('_position',[6,10,1])->where('acitve',1)->get();
+        $id = $sid == 24 ? 12 : $sid;
+        $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[6,10,1])->where('acitve',1)->get();
         return $staff;
     }
 
@@ -207,7 +209,8 @@ class RestockController extends Controller
 
 
     public function getChof($sid){
-        $staff = Staff::whereIn('_store',[$sid])->whereIn('_position',[3])->where('acitve',1)->get();
+        $id = $sid == 24 ? 12 : $sid;
+        $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[3])->where('acitve',1)->get();
 
         return $staff;
     }
