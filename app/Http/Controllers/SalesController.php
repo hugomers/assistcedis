@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 class SalesController extends Controller
 {
     public function Index(){
-        $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
+        $stores = Stores::whereNotIn('id',[1,2,5,14,15,12])->get();
         return response()->json($stores);
     }
 
