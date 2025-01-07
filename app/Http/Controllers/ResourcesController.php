@@ -410,11 +410,11 @@ class ResourcesController extends Controller
     }
 
     public function gettras(Request $request){
-
+        $anio = date('Y');
         $stores = Stores::find($request->id);
         $ip = $stores->ip_address;
         // $ip = '192.168.10.112:1619';
-        $ge = transfer::where('_store_from',$stores->id)->get();
+        $ge = transfer::where('_store_from',$stores->id)->whereYear('created_at', $anio)->get();
         $getdev = Http::get($ip.'/storetools/public/api/Resources/gettras');
         $data = $getdev->json();
         $rees = [
