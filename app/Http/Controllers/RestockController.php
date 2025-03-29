@@ -187,15 +187,24 @@ class RestockController extends Controller
     }
 
     public function saveChofi(Request $request){
+        // return $request->all();
         $status = $request->status;
         $pedido = $request->pedido;
         $verificador = $request->supplyer;
         $chofer = $request->chofi;
+        $ped = DB::connection('vizapi')->table('requisition as R')->join('workpoints as W', 'W.id', '=', 'R._workpoint_from')
+        ->where('R.id', $pedido)
+        ->first();
 
         $change = DB::connection('vizapi')
         ->table('requisition_partitions')
         ->where([['_requisition',$pedido],['_suplier_id',$verificador]])
         ->update(['_driver'=>$chofer['id']]);
+        if($change){
+            $message = 'El colaborador '.$chofer['complete_name'].' transporta el pedido '.$pedido.' de la sucursal '.$ped->name;
+            $to = '120363194490127898@g.us';
+            $sendMessage = $this->envMssg($message,$to);
+        }
 
 
         $newres = new Restock;
@@ -462,4 +471,21 @@ class RestockController extends Controller
 
 
     }
+
+    public function envMssg($message,$to){
+        $url = env('URLWHA');
+        $token = env('WATO');
+
+        $response = Http::withOptions([
+            'verify' => false, // Esto deshabilita la verificación SSL, similar a CURLOPT_SSL_VERIFYHOST y CURLOPT_SSL_VERIFYPEER en cURL
+        ])->withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'token' => $token,
+            'to' => $to,
+            'body' => $message,
+        ]);
+    }
+
+
 }
