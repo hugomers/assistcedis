@@ -13,7 +13,10 @@ use App\Http\Controllers\CashierController;
 use App\Http\Controllers\RestockController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\DepositsController;
+
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\RequisitionController;
+
 
 ;
 
@@ -177,6 +180,18 @@ Route::prefix('/sales')->group(function(){
     Route::get('/getSale',[SalesController::class, 'Index']);
     Route::get('/getStores',[SalesController::class, 'getStores']);
 });
+
+Route::prefix('/requisition')->group(function(){
+    Route::get('/getRequisitionsStore',[RequisitionController::class, 'getRequisitionsStore']);
+    Route::get('/{id}',[RequisitionController::class, 'getRequisitions']);
+    Route::get('/{id}/{req}',[RequisitionController::class, 'getRequisition']);
+    Route::get('/{id}/{req}/print',[RequisitionController::class, 'printReq']);
+    Route::get('/{id}/{req}/change',[RequisitionController::class, 'changeStatus']);
+    Route::post('/createRequisition',[RequisitionController::class, 'createRequisition']);
+    Route::post('/finishRequisition',[RequisitionController::class, 'finishRequisition']);
+
+});
+
 
 
 Route::prefix('/transfer')->group(function(){
