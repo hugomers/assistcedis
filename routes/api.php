@@ -13,7 +13,7 @@ use App\Http\Controllers\CashierController;
 use App\Http\Controllers\RestockController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\DepositsController;
-
+use App\Http\Controllers\OutputsController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\RequisitionController;
 
@@ -207,6 +207,22 @@ Route::prefix('/transfer')->group(function(){
     Route::post('/transferPreventa',[TransferController::class, 'transferPreventa']);
 
 });
+
+Route::prefix('/output')->group(function(){
+    Route::get('/getOutputs/{sid}',[OutputsController::class, 'Index']);
+    Route::get('/getOutput/{oid}',[OutputsController::class, 'getOutput']);
+    Route::post('/getOutsDate',[OutputsController::class, 'getOutsDate']);
+    Route::post('/addOutputs',[OutputsController::class, 'addOuts']);
+    Route::post('/addProductMasive',[OutputsController::class, 'addProductMasive']);
+    Route::post('/addProduct',[OutputsController::class, 'addProduct']);
+    Route::post('/editProduct',[OutputsController::class, 'editProduct']);
+    Route::post('/removeProduct',[OutputsController::class, 'removeProduct']);
+    Route::post('/endOutput',[OutputsController::class, 'endOutput']);
+    Route::post('/outputPreventa',[OutputsController::class, 'outputPreventa']);
+
+});
+
+
 
 Route::prefix('/deposits')->group(function(){
     Route::post('/getForms',[DepositsController::class,'getForms']);
