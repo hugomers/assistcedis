@@ -16,6 +16,8 @@ use App\Http\Controllers\DepositsController;
 use App\Http\Controllers\OutputsController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\RefundController;
+
 
 
 ;
@@ -230,6 +232,25 @@ Route::prefix('/deposits')->group(function(){
     Route::post('/forms',[DepositsController::class, 'newForm']);
     Route::post('/changeStatus',[DepositsController::class, 'changeStatus']);
     Route::post('/changeTicket',[DepositsController::class, 'changeTicket']);
+
+
+});
+
+
+Route::prefix('/refunds')->group(function(){
+    Route::get('/getRefunds/{sid}',[RefundController::class,'Index']);
+    Route::get('/getRefund/{sid}/{rid}',[RefundController::class,'getRefund']);
+    Route::get('/getRefundto/{sid}/{rid}',[RefundController::class,'getRefundTo']);
+    Route::post('/addRefund',[RefundController::class,'addRefund']);
+    Route::post('/addProduct',[RefundController::class,'addProduct']);
+    Route::post('/editProduct',[RefundController::class,'editProduct']);
+    Route::post('/editProductReceipt',[RefundController::class,'editProductReceipt']);
+    Route::post('/deleteProduct',[RefundController::class,'deleteProduct']);
+    Route::post('/endRefund',[RefundController::class,'endRefund']);
+    Route::post('/nexState',[RefundController::class,'nexState']);
+    Route::post('/finallyRefund',[RefundController::class,'finallyRefund']);
+
+
 
 
 });
