@@ -4,6 +4,8 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use App\Http\Controllers\CashController;
+
 
 class Kernel extends ConsoleKernel
 {
@@ -12,7 +14,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->call(function () {
+            $controller = new CashController();
+            $controller->RepliedSales();
+        })->everyFifteenMinutes()->between('7:00', '23:59')->name("REPLICADOR DE VENTAS :)");//Respaldo solo de el ejercico actual
     }
 
     /**

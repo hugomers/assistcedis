@@ -20,5 +20,8 @@ class Stores extends Model
     public function requisition(){
         return $this->hasMany('App\Models\Requisition','_stores');
     }
+    public function sale(){
+        return $this->hasMany('App\Models\Sale','_store');
+    }
 
 }

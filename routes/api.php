@@ -17,10 +17,9 @@ use App\Http\Controllers\OutputsController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\RequisitionController;
 use App\Http\Controllers\RefundController;
+use App\Http\Controllers\CashController;
+use App\Http\Controllers\UserController;
 
-
-
-;
 
 
 
@@ -91,10 +90,15 @@ Route::prefix('/zkt')->group(function(){
 Route::prefix('/staff')->group(function(){
     Route::get('',[StaffController::class, 'Index']);
     Route::get('staffReply',[StaffController::class, 'staffReply']);
-
-
+});
+Route::prefix('/users')->group(function(){
+    Route::get('getResources/{uid}',[UserController::class, 'getResources']);
+    Route::post('createUser',[UserController::class, 'createUser']);
+    Route::post('createMasiveUser',[UserController::class, 'createMasiveUser']);
+    Route::post('trySignin',[UserController::class, 'trySignin']);
 
 });
+
 
 Route::prefix('/resources')->group(function(){
     Route::post('/actadmin',[ResourcesController::class, 'actasAdministrativas']);
@@ -249,8 +253,31 @@ Route::prefix('/refunds')->group(function(){
     Route::post('/endRefund',[RefundController::class,'endRefund']);
     Route::post('/nexState',[RefundController::class,'nexState']);
     Route::post('/finallyRefund',[RefundController::class,'finallyRefund']);
+});
+
+Route::prefix('/cashs')->group(function(){
+    Route::post('/getWithdrawals',[CashController::class,'getWithdrawals']);
+    Route::post('/reprintWithdrawal',[CashController::class,'reprintWithdrawal']);
+    Route::post('/reprintSale',[CashController::class,'reprintSale']);
+    Route::post('/getDependiente',[CashController::class,'getDependiente']);
+    Route::post('/index',[CashController::class,'index']);
+    Route::post('/getCash',[CashController::class,'getCash']);
+    Route::post('/openCash',[CashController::class,'openCash']);
+    Route::post('/addSale',[CashController::class,'addSale']);
+    Route::post('/addSaleStandar',[CashController::class,'addSaleStandar']);
+    Route::post('/closeCash',[CashController::class,'closeCash']);
+    Route::post('/addWitrawal',[CashController::class,'addWitrawal']);
+    Route::post('/addIngress',[CashController::class,'addIngress']);
+    Route::post('/getIngress',[CashController::class,'getIngress']);
+    Route::post('/reprintIngress',[CashController::class,'reprintIngress']);
+    Route::post('/addAdvances',[CashController::class,'addAdvances']);
+    Route::post('/getSales',[CashController::class,'getSales']);
+    Route::post('/RepliedSales',[CashController::class,'RepliedSales']);
 
 
+    // Route::post('/getIngress',[CashController::class,'getIngress']);
+    // Route::post('/reprintIngress',[CashController::class,'reprintIngress']);
 
 
 });
+
