@@ -31,35 +31,56 @@ class CashierController extends Controller
     }
 
     public function Opening(Request $request){
-        $opening = Opening::insert($request->all());
+        $form = $request->all();
+        $print = $form['print'] ?? null;
+        unset($form['print']);
+        if($request->hasFile('current_cut')){
+            $file = $request->file('current_cut');
+            $uniqueName  =  uniqid() . '.' . $file->getClientOriginalExtension();
+            // $folderPath = 'public/uploads/cuts/' . $form['_store'];
+            // $file->storeAs($folderPath, $uniqueName); // lo abres vato
+            $form['current_cut'] = $uniqueName;
+        }
+        // return $form;
+        // $opening = Opening::insert($form); //este lo abres vato
+        $opening = new Opening($form);
+        // return $opening;
         // $opening = true;
-        if($opening){
-            $tipo = $request->_type;
-            $store = Stores::find($request->_store);
-            $solicita = Staff::find($request->_created_by);
-            $cajero = Staff::find($request->_cashier);
-            $ip = $store->ip_address;
-            // $ip = "192.168.10.160:1619";
+        if($opening->save()){
+            $tipo = $form['_type'];
+            $store = Stores::find($form['_store']);
+            $solicita = Staff::find($form['_created_by']);
+            $cajero = Staff::find($form['_cashier']);
+            // $ip = $store->ip_address;
+            $ip = "192.168.10.160:1619";
             if($tipo == 1 || $tipo == 2){//descuadre
                 $dat = [
-                    "_cash"=>intval($request->cash)
+                    "_cash"=>intval($form['cash'])
                 ];
-                $opening =Http::post($ip.'/storetools/public/api/Cashier/opencashier',$dat);
-                $status = $opening->status();
-                if($status == 201){
+                $openBox =Http::post($ip.'/storetools/public/api/Cashier/opencashier',$dat);
+                if($openBox->status() == 201){
+                    $opening->details_cut = json_encode($openBox->json());
+                    $opening->save();
                     return response()->json('La Caja a sido Abierta',200);
                 }else{
                     return response()->json('Hubo un error en la apertura de la caja',401);
                 };
             }else if($tipo == 3){//retirada
+                $nuevomont = isset($form['withdrawal_mount']) ? $form['withdrawal_mount'] : null;
                 $dat = [
-                    "montonuevo"=>$request->withdrawal_mount,
-                    "retirada"=>$request->withdrawal_number,
-                    "_cash"=>$request->cash
+                    "montonuevo"=>$nuevomont,
+                    "retirada"=>$form['withdrawal_number'],
+                    "_cash"=>$form['cash'],
+                    "print"=>$print,
                 ];
-                $opening =Http::post($ip.'/storetools/public/api/Cashier/changewithdrawal',$dat);
-                $status = $opening->status();
+                $openBox =Http::post($ip.'/storetools/public/api/Cashier/changewithdrawal',$dat);
+                // return  $openBox;
+                $status = $openBox->status();
                 if($status == 201){
+                    $respuesta = $openBox->json();
+                    $opening->withdrawal_original_mount = $respuesta['monto_original'];
+                    $opening->details_cut = json_encode($respuesta['corte']);
+                    $opening->save();
                     return response()->json('La Retirada se modifico con exito',200);
                 }else{
                     return response()->json('Hubo un error en la modificacion de la retirada',401);
