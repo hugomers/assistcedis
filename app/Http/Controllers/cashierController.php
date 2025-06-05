@@ -37,15 +37,11 @@ class CashierController extends Controller
         if($request->hasFile('current_cut')){
             $file = $request->file('current_cut');
             $uniqueName  =  uniqid() . '.' . $file->getClientOriginalExtension();
-            // $folderPath = 'public/uploads/cuts/' . $form['_store'];
-            // $file->storeAs($folderPath, $uniqueName); // lo abres vato
+            $folderPath = 'public/uploads/cuts/' . $form['_store'];
+            $file->storeAs($folderPath, $uniqueName); // lo abres vato
             $form['current_cut'] = $uniqueName;
         }
-        // return $form;
-        // $opening = Opening::insert($form); //este lo abres vato
         $opening = new Opening($form);
-        // return $opening;
-        // $opening = true;
         if($opening->save()){
             $tipo = $form['_type'];
             $store = Stores::find($form['_store']);
