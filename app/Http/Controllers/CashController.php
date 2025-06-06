@@ -32,6 +32,7 @@ use Carbon\Carbon;
 class CashController extends Controller
 {
     public function index(Request $request){
+        //
         $res = [
             "cashes"=>[],
             "cashiers"=>[],
