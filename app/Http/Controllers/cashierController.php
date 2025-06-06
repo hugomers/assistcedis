@@ -70,8 +70,7 @@ class CashierController extends Controller
                 ];
                 return $dat;
                 $openBox =Http::post($ip.'/storetools/public/api/Cashier/changewithdrawal',$dat);
-                $status = $openBox->status();
-                if($status == 201){
+                if($openBox->status() == 201){
                     $respuesta = $openBox->json();
                     $opening->withdrawal_original_mount = $respuesta['monto_original'];
                     $opening->details_cut = json_encode($respuesta['corte']);
