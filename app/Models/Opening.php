@@ -25,6 +25,7 @@ class Opening extends Model
         'reason_modify',
         'withdrawal_mount',
         'details_cut',
+        'print'
     ];
     protected $table = 'openin_boxes';
 }

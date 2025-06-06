@@ -188,4 +188,20 @@ class RefundController extends Controller
 
         }
     }
+
+    public function getRefundDirerences($sid){
+        $devs = Refund::with([
+            'storefrom',
+            'storeto',
+            'status',
+            'type',
+            'createdby',
+            'bodie' => function($q){ $q->where('to_delivered','!=','to_received');}
+            ])
+            ->where([['_store_to',$sid],['_status',4]])
+            ->whereHas('bodie', function($q){   $q->whereColumn('to_delivered', '!=', 'to_received');})
+            ->get();
+        return response()->json($devs);
+
+    }
 }

@@ -243,6 +243,7 @@ Route::prefix('/deposits')->group(function(){
 
 Route::prefix('/refunds')->group(function(){
     Route::get('/getRefunds/{sid}',[RefundController::class,'Index']);
+    Route::get('/getRefundDirerences/{sid}',[RefundController::class,'getRefundDirerences']);
     Route::get('/getRefund/{sid}/{rid}',[RefundController::class,'getRefund']);
     Route::get('/getRefundto/{sid}/{rid}',[RefundController::class,'getRefundTo']);
     Route::post('/addRefund',[RefundController::class,'addRefund']);
