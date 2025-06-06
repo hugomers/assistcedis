@@ -68,6 +68,7 @@ class CashierController extends Controller
                     "_cash"=>$form['cash'],
                     "print"=>$print,
                 ];
+                return $data;
                 $openBox =Http::post($ip.'/storetools/public/api/Cashier/changewithdrawal',$dat);
                 $status = $openBox->status();
                 if($status == 201){
