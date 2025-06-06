@@ -32,6 +32,7 @@ class CashierController extends Controller
 
     public function Opening(Request $request){
         $form = $request->all();
+        return $form;
         $print = $form['print'] ?? null;
         if($request->hasFile('current_cut')){
             $file = $request->file('current_cut');
@@ -68,7 +69,6 @@ class CashierController extends Controller
                     "_cash"=>$form['cash'],
                     "print"=>$print,
                 ];
-                return $dat;
                 $openBox =Http::post($ip.'/storetools/public/api/Cashier/changewithdrawal',$dat);
                 if($openBox->status() == 201){
                     $respuesta = $openBox->json();
