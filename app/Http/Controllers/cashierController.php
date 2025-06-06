@@ -33,7 +33,7 @@ class CashierController extends Controller
     public function Opening(Request $request){
         $form = $request->all();
         $print = $form['print'] ?? null;
-        unset($form['print']);
+        // unset($form['print']);
         if($request->hasFile('current_cut')){
             $file = $request->file('current_cut');
             $uniqueName  =  uniqid() . '.' . $file->getClientOriginalExtension();
