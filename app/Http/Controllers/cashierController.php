@@ -32,7 +32,6 @@ class CashierController extends Controller
 
     public function Opening(Request $request){
         $form = $request->all();
-        return $form;
         $print = $form['print'] ?? null;
         if($request->hasFile('current_cut')){
             $file = $request->file('current_cut');
