@@ -47,8 +47,8 @@ class CashierController extends Controller
             $store = Stores::find($form['_store']);
             $solicita = Staff::find($form['_created_by']);
             $cajero = Staff::find($form['_cashier']);
-            // $ip = $store->ip_address;
-            $ip = "192.168.10.160:1619";
+            $ip = $store->ip_address;
+            // $ip = "192.168.10.160:1619";
             if($tipo == 1 || $tipo == 2){//descuadre
                 $dat = [
                     "_cash"=>intval($form['cash'])
