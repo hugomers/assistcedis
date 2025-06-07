@@ -33,7 +33,6 @@ class CashierController extends Controller
     public function Opening(Request $request){
         $form = $request->all();
         $print = $form['print'] ?? null;
-        //;
         if($request->hasFile('current_cut')){
             $file = $request->file('current_cut');
             $uniqueName  =  uniqid() . '.' . $file->getClientOriginalExtension();
@@ -41,8 +40,8 @@ class CashierController extends Controller
             $file->storeAs($folderPath, $uniqueName); // lo abres vato
             $form['current_cut'] = $uniqueName;
         }
-        $opening = new Opening($form);
-        if($opening->save()){
+        // $opening = new Opening($form);
+        // if($opening->save()){
             $tipo = $form['_type'];
             $store = Stores::find($form['_store']);
             $solicita = Staff::find($form['_created_by']);
@@ -54,12 +53,14 @@ class CashierController extends Controller
                     "_cash"=>intval($form['cash'])
                 ];
                 $openBox =Http::post($ip.'/storetools/public/api/Cashier/opencashier',$dat);
+                // return $openBox;
                 if($openBox->status() == 201){
+                    $opening = new Opening($form);
                     $opening->details_cut = json_encode($openBox->json());
                     $opening->save();
                     return response()->json('La Caja a sido Abierta',200);
                 }else{
-                    return response()->json('Hubo un error en la apertura de la caja',401);
+                    return response()->json($openBox->json(),$openBox->status());
                 };
             }else if($tipo == 3){//retirada
                 $nuevomont = isset($form['withdrawal_mount']) ? $form['withdrawal_mount'] : null;
@@ -72,20 +73,20 @@ class CashierController extends Controller
                 $openBox =Http::post($ip.'/storetools/public/api/Cashier/changewithdrawal',$dat);
                 if($openBox->status() == 201){
                     $respuesta = $openBox->json();
+                    $opening = new Opening($form);
                     $opening->withdrawal_original_mount = $respuesta['monto_original'];
                     $opening->details_cut = json_encode($respuesta['corte']);
                     $opening->save();
                     return response()->json('La Retirada se modifico con exito',200);
                 }else{
-                    return response()->json('Hubo un error en la modificacion de la retirada',401);
+                    return response()->json($openBox->json(),$openBox->status());
                 }
-
             }else{
                 return response()->json('No existe el tipo de Apertur',401);
             }
-        }else{
-            return response()->json('No se pudo insertar la apertura',401);
-        }
+        // }else{
+        //     return response()->json('No se pudo insertar la apertura',401);
+        // }
     }
 
     public function getPrinter($id){
