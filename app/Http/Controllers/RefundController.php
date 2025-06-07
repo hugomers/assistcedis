@@ -196,6 +196,7 @@ class RefundController extends Controller
             'status',
             'type',
             'createdby',
+            'receiptby',
             'bodie' => function($q){ $q->where('to_delivered','!=','to_received');}
             ])
             ->where([['_store_to',$sid],['_status',4]])
@@ -204,4 +205,117 @@ class RefundController extends Controller
         return response()->json($devs);
 
     }
+
+    public function correction(Request $request){
+        $refun = $request->all();
+        $response = [
+            "Eliminar"=>[],
+            "Salida"=>[],
+            "Entrada"=>[],
+            "abonoysalida"=>[]
+        ];
+        $originalIndexed = [];
+        $deletedProducts = [];
+        $changedInDestination = [];
+        $changedInOrigin = [];
+        $cedis = Stores::find(1);
+        $refOri = Refund::with(['bodie'])->where('id',$refun['id'])->first();
+        if($refOri){
+            $productsOri = $refOri->bodie->toArray(); // Productos originales
+            $productsDes = $refun['bodie'];           // Productos modificados
+
+            foreach ($productsOri as $product) {
+                $originalIndexed[$product['product']] = [
+                    'product' => $product['product'],
+                    'to_received' => isset($product['to_received']) ? (int)$product['to_received'] : 0,
+                    'to_delivered' => isset($product['to_delivered']) ? (int)$product['to_delivered'] : 0,
+                ];
+            }
+
+            foreach ($productsDes as $product) {
+                $id = $product['product'];
+                $refund = $product['_refund'];
+                $dev = $refOri->fs_id;
+                $abo = $refOri->season_ticket;
+                $fac = $refOri->invoice;
+                $ent = $refOri->entry;
+                $currentToReceived = isset($product['to_received']) ? (int)$product['to_received'] : 0;
+                $currentToDelivered = isset($product['to_delivered']) ? (int)$product['to_delivered'] : 0;
+
+                if (isset($originalIndexed[$id])) {
+                    $original = $originalIndexed[$id];
+                    if ($original['to_delivered'] !== $currentToDelivered) {
+                        $changedInOrigin[] = [
+                            'idRefund'=>$refund,
+                            'refund'=>$dev,
+                            'abono'=>$abo,
+                            'factura'=>$fac,
+                            'ent'=>$ent,
+                            'product' => $id,
+                            'from' => $original['to_delivered'],
+                            'to' => $currentToDelivered,
+                        ];
+                    }
+                    if ($original['to_received'] !== $currentToReceived) {
+                        $changedInDestination[] = [
+                            'idRefund'=>$refund,
+                            'refund'=>$dev,
+                            'abono'=>$abo,
+                            'factura'=>$fac,
+                            'ent'=>$ent,
+                            'product' => $id,
+                            'from' => $original['to_received'],
+                            'to' => $currentToReceived,
+                        ];
+                    }
+                    unset($originalIndexed[$id]);
+                }
+            }
+
+            if(count($changedInOrigin) > 0){//cambiar total solo en devolucion
+                foreach($changedInOrigin as $delivered){
+                    $refBodie = RefundBodie::where([['_refund',$delivered['idRefund']],['product',$delivered['product']]])->update(['to_delivered'=>$delivered['to']]);
+                }
+                $ModDelivered = Http::post($refOri->storefrom['ip_address'].'/storetools/public/api/refunds/editRefund',$changedInOrigin);
+                // $ModDelivered = Http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/editRefund',$changedInOrigin);
+                if($ModDelivered->status() == 201){
+                    $response['Salida'] = $ModDelivered->json();
+                }
+            }
+
+            if(count($changedInDestination) > 0){//cambiar todo
+                foreach($changedInDestination as $received){
+                    $refBodie = RefundBodie::where([['_refund',$received['idRefund']],['product',$received['product']]])->update(['to_received'=>$received['to']]);
+                }
+                $ModReceived = Http::post($refOri->storeto['ip_address'].'/storetools/public/api/refunds/editEntry',$changedInDestination);
+                // $ModReceived = Http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/editEntry',$changedInDestination);
+                if($ModReceived->status()==201){
+                    $responseRece = $ModReceived->json();
+                    $response['Entrada'] = $responseRece;
+                    if($refOri->type['id'] == 2){
+                        $dataAbono = [
+                            "folioAbono"=>$abo,
+                            "folioFactura"=>$fac,
+                            "total"=>$responseRece['total'],
+                        ];
+                        $modSeason = Http::post($cedis->ip_address.'/storetools/public/api/refunds/editSeason',$changedInDestination);
+                        // $modSeason = Http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/editSeason',$dataAbono);
+                        if($modSeason->status() == 201 ){
+                            $response['abonoysalida'] = $ModReceived;
+                        }
+                    }
+                }
+            }
+
+            $result = [
+                'toDelivered' => $changedInOrigin,//enviado
+                'toReceived' => $changedInDestination,//recibido
+                'res' => $response,
+            ];
+
+            return response()->json($result);
+        }
+    }
+
+
 }

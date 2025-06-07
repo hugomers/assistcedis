@@ -178,8 +178,6 @@ Route::prefix('/restock')->group(function(){
     Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
     Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
     Route::post('/getData',[RestockController::class, 'getData']);
-
-
 });
 
 Route::prefix('/sales')->group(function(){
@@ -197,8 +195,6 @@ Route::prefix('/requisition')->group(function(){
     Route::post('/finishRequisition',[RequisitionController::class, 'finishRequisition']);
 
 });
-
-
 
 Route::prefix('/transfer')->group(function(){
     Route::get('/getTransfers/{sid}',[TransferController::class, 'Index']);
@@ -225,9 +221,7 @@ Route::prefix('/output')->group(function(){
     Route::post('/removeProduct',[OutputsController::class, 'removeProduct']);
     Route::post('/endOutput',[OutputsController::class, 'endOutput']);
     Route::post('/outputPreventa',[OutputsController::class, 'outputPreventa']);
-
 });
-
 
 
 Route::prefix('/deposits')->group(function(){
@@ -239,7 +233,6 @@ Route::prefix('/deposits')->group(function(){
 
 
 });
-
 
 Route::prefix('/refunds')->group(function(){
     Route::get('/getRefunds/{sid}',[RefundController::class,'Index']);
@@ -254,6 +247,8 @@ Route::prefix('/refunds')->group(function(){
     Route::post('/endRefund',[RefundController::class,'endRefund']);
     Route::post('/nexState',[RefundController::class,'nexState']);
     Route::post('/finallyRefund',[RefundController::class,'finallyRefund']);
+    Route::post('/correction',[RefundController::class,'correction']);
+
 });
 
 Route::prefix('/cashs')->group(function(){
@@ -274,11 +269,7 @@ Route::prefix('/cashs')->group(function(){
     Route::post('/addAdvances',[CashController::class,'addAdvances']);
     Route::post('/getSales',[CashController::class,'getSales']);
     Route::post('/RepliedSales',[CashController::class,'RepliedSales']);
-
-
     // Route::post('/getIngress',[CashController::class,'getIngress']);
     // Route::post('/reprintIngress',[CashController::class,'reprintIngress']);
-
-
 });
 
