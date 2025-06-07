@@ -23,6 +23,6 @@ class CashRegister extends Model
         return $this->belongsTo('App\Models\CashStatus','_status');
     }
     public function tpv(){
-        return $this->belongsTo('App\Models\CashTpv','_tpv');
+        return $this->belongsTo('App\Models\CashTPV','_tpv');
     }
 }
