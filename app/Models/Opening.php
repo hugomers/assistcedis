@@ -28,4 +28,22 @@ class Opening extends Model
         'print'
     ];
     protected $table = 'openin_boxes';
+
+
+    public function createdby(){
+        return $this->belongsTo('App\Models\Staff', '_created_by', 'id');
+    }
+    public function cashier(){
+        return $this->belongsTo('App\Models\Staff', '_cashier', 'id');
+    }
+    public function type(){
+        return $this->belongsTo('App\Models\OpeningType', '_type', 'id');
+    }
+    public function store(){
+        return $this->belongsTo('App\Models\Stores', '_store', 'id');
+    }
+
+
+
+
 }

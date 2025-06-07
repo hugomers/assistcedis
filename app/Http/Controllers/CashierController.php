@@ -10,6 +10,8 @@ use App\Models\OpeningType;
 use App\Models\Stores;
 use Illuminate\Support\Facades\Http;
 use App\Models\Printer;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\Printer as EscposPrinter;
 
 
 class CashierController extends Controller
@@ -95,7 +97,129 @@ class CashierController extends Controller
     }
 
     public function getCutsBoxes($sid){
-        $opens = Opening::where('_store',$sid)->whereDate('created_at','>=','2025-06-05')->get();
-        return $opens;
+        $opens = Opening::with(['createdby','cashier','type','store'])->where('_store',$sid)->whereDate('created_at','>=','2025-06-05')->get();
+        $printers = Printer::where('_store',$sid)->get();
+        $res = [
+            "opens"=>$opens,
+            "prints"=>$printers
+        ];
+        return response()->json($res);
+    }
+
+    public function getCurrenCut(Request $request){
+        $opens = Opening::with(['createdby','cashier','type'])->where('id',$request->id)->first();
+        $print = $request->print;
+        $printed = $this->printCut(json_decode($opens->details_cut, true),$print,$opens->store['name']);
+        return $printed;
+    }
+
+    public function printCut($header,$print,$store){
+        // return $header->toCollect();
+        $connector = new NetworkPrintConnector($print, 9100, 3);
+        if($connector){
+            $printer = new EscposPrinter($connector);
+            $printer->text(" \n");
+            $printer->text(" \n");
+            $printer->text("           --REIMPRESION DE CORTE--           \n");
+            $printer->text(" \n");
+            $printer->text(" \n");
+            $printer->text(str_repeat("─", 48) . "\n");
+            $printer->text("CIERRE DE TERMINAL"." \n");
+            $printer->text($store." \n");
+            $printer->text(str_repeat("─", 48) . "\n");
+            $printer->text("Terminal: ".$header['corte']['DESTER']." \n");
+            $printer->text("Fecha: ".$header['corte']['FECHA']." \n");
+            $printer->text("Hora: ".$header['corte']['HORA']." \n");
+            $printer->selectPrintMode(EscposPrinter::MODE_FONT_B);
+            $printer->text(str_repeat("─", 64) . "\n");
+            $printer->text(str_pad("Saldo Inicial: ", 47).str_pad(number_format(floatval($header['corte']['SINATE']),2), 16, ' ', STR_PAD_LEFT)." \n");
+            $printer->text(" \n");
+            $printer->text(str_pad("Ventas efectivo: ", 47).str_pad(number_format(floatval($header['corte']['VENTASEFE']),2), 16, ' ', STR_PAD_LEFT)." \n");
+            $printer->text(" \n");
+            $printer->text(str_pad("Ingresos de efectivo: ", 47).str_pad(number_format(floatval($header['corte']['INGRESOS']),2), 16, ' ', STR_PAD_LEFT)." \n");
+            $printer->text(" \n");
+            $printer->text(str_pad("Retiradas de efectivo: ", 47).str_pad(number_format(floatval($header['corte']['RETIRADAS']) * -1 ,2), 16, ' ', STR_PAD_LEFT)." \n");
+            $printer->text(" \n");
+            $efetot = (floatval($header['corte']['VENTASEFE']) +  floatval($header['corte']['INGRESOS']) +   floatval($header['corte']['SINATE']) ) - floatval($header['corte']['RETIRADAS']);
+            // $printer->text(str_pad("Efectivo: ", 47). str_pad(number_format((  floatval($cuts['VENTASEFE']) - floatval($cuts['RETIRADAS'])   + floatval($cuts['SINATE'])  ),2), 16, ' ', STR_PAD_LEFT) ." \n");
+            $printer->text(str_pad("Efectivo: ", 47). str_pad(number_format($header['totalEfe'],2), 16, ' ', STR_PAD_LEFT) ." \n");
+            $printer->text(" \n");
+            $printer->text(str_pad("Declaracion de efectivo: ", 47).str_pad(number_format(floatval($header['corte']['EFEATE']),2), 16, ' ', STR_PAD_LEFT)." \n");
+            $printer->text(" \n");
+            $printer->text(str_pad("Descuadre: ", 47). str_pad(number_format((floatval($header['corte']['EFEATE']) -  $header['totalEfe'] ),2), 16, ' ', STR_PAD_LEFT) ." \n");
+            $printer->text(" \n");
+            $printer->text(str_pad("Importe Pendiente Cobro: ", 47).str_pad(number_format(floatval($header['corte']['IMPDC']),2), 16, ' ', STR_PAD_LEFT)." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            $printer->text(" \n");
+            $printer->text("Ingresos de efectivo:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            if(count($header['ingresos']) > 0){
+                foreach($header['ingresos'] as $ingreso){
+                    $textoCortos = mb_strimwidth($ingreso['CONING'], 0, 40, "...");
+                    $printer->text(str_pad($textoCortos, 47).str_pad(number_format(floatval($ingreso['IMPING']),2), 16, ' ', STR_PAD_LEFT)." \n");
+                }
+            }
+            $printer->text(" \n");
+            $printer->text("Retiradas de efectivo:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            if(count($header['retiradas']) > 0){
+                foreach($header['retiradas'] as $retirada){
+                    $textoCortod = mb_strimwidth($retirada['CONRET'], 0, 40, "...");
+                    $printer->text(str_pad($textoCortod, 47).str_pad(number_format(floatval($retirada['IMPRET']),2), 16, ' ', STR_PAD_LEFT)." \n");
+                }
+            }
+            $printer->text(" \n");
+            $printer->text("Vales Creados:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            if(count($header['vales']) > 0){
+                foreach($header['vales'] as $vale){
+                    $textoCorto = mb_strimwidth($vale['OBSANT'], 0, 40, "...");
+                    $printer->text(str_pad($textoCorto, 47).str_pad(number_format(floatval($vale['IMPANT']),2), 16, ' ', STR_PAD_LEFT)." \n");
+                }
+            }
+            $printer->text(" \n");
+
+            $printer->text("Desglose por forma de pago:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            if(count($header['totales']) > 0){
+                foreach($header['totales'] as $pagos){
+                    $textoCortoF = mb_strimwidth($pagos['CPTLCO'], 0, 40, "...");
+                    $printer->text(str_pad($textoCortoF, 47).str_pad(number_format(floatval($pagos['IMPORTE']),2), 16, ' ', STR_PAD_LEFT)." \n");
+                }
+            }
+            $printer->text(" \n");
+            $printer->text("Desglose de otros cobros de documentos:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            $printer->setJustification(EscposPrinter::JUSTIFY_RIGHT);
+            $printer->text("Total Cobros: 0.00"." \n");
+            $printer->text(" \n");
+            $printer->setJustification(EscposPrinter::JUSTIFY_LEFT);
+            $printer->text("Detalle de operaciones:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            if(count($header['movimientos']) > 0){
+                $printer->setJustification(EscposPrinter::JUSTIFY_RIGHT);
+                $printer->text("N. de operaciones: ". number_format(floatval($header['movimientos']['MOVIMIENTOS']),2)." \n");
+                $printer->text("Total de operaciones: ".number_format(floatval($header['movimientos']['TOTAL']),2) ." \n");
+            }
+            $printer->text(" \n");
+
+            $printer->setJustification(EscposPrinter::JUSTIFY_LEFT);
+            $printer->text("Detalle de monedas y billetes:"." \n");
+            $printer->text(str_repeat("─", 64) . "\n");
+            $printer->text(str_pad('   2: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO0ATE']),5) . str_repeat(' ', 20) . '  5: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI6ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('   1: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO1ATE']),5) . str_repeat(' ', 20) . ' 10: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI5ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('0.50: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO2ATE']),5) . str_repeat(' ', 20) . ' 20: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI4ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('0.20: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO3ATE']),5) . str_repeat(' ', 20) . ' 50: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI3ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('0.10: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO4ATE']),5) . str_repeat(' ', 20) . '100: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI2ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('0.05: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO5ATE']),5) . str_repeat(' ', 20) . '200: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI1ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('0.02: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO6ATE']),5) . str_repeat(' ', 20) . '500: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['BI0ATE']),5), 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(str_pad('0.01: '. str_repeat(' ', 4)  . str_pad(floatval($header['corte']['MO7ATE']),5) . str_repeat(' ', 35) , 64, ' ', STR_PAD_BOTH). "\n");
+            $printer->text(" \n");
+            $printer->cut();
+            $printer->close();
+            return true;
+        }else{
+            return "No se pudo imprimir";
+        }
     }
 }

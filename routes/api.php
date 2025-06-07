@@ -158,7 +158,7 @@ Route::prefix('/cashier')->group(function(){
     Route::get('/getCutsBoxes/{sid}',[CashierController::class, 'getCutsBoxes']);
     Route::post('/AddFile',[CashierController::class, 'AddFile']);
     Route::post('/Opening',[CashierController::class, 'Opening']);
-
+    Route::post('/getCurrenCut',[CashierController::class, 'getCurrenCut']);
 });
 
 Route::prefix('/restock')->group(function(){
