@@ -64,8 +64,8 @@ class CashController extends Controller
             ->get();
             $res = [
                 "cashes"=>$cash,
-                // "cashiers"=>User::with(['staff'])->where([['_rol',3],['_store',$sid]])->get(),
-                "cashiers"=>User::with(['staff'])->where([['_rol',13],['_store',$sid]])->get(),
+                "cashiers"=>User::with(['staff'])->where([['_rol',3],['_store',$sid]])->get(),
+                // "cashiers"=>User::with(['staff'])->where([['_rol',13],['_store',$sid]])->get(),
 
                 "printers"=>CashPrinter::where('_store',$sid)->get(),
             ];

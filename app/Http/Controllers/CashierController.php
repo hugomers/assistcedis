@@ -47,8 +47,8 @@ class CashierController extends Controller
             $store = Stores::find($form['_store']);
             $solicita = Staff::find($form['_created_by']);
             $cajero = Staff::find($form['_cashier']);
-            $ip = $store->ip_address;
-            // $ip = "192.168.10.160:1619";
+            // $ip = $store->ip_address;
+            $ip = "192.168.10.160:1619";
             if($tipo == 1 || $tipo == 2){//descuadre
                 $dat = [
                     "_cash"=>intval($form['cash'])
@@ -91,5 +91,10 @@ class CashierController extends Controller
     public function getPrinter($id){
         $printers = Printer::where('_store',$id)->get();
         return response()->json($printers,200) ;
+    }
+
+    public function getCutsBoxes($sid){
+        $opens = Opening::where('_store',$sid)->whereDate('created_at','>=','2025-06-05')->get();
+        return $opens;
     }
 }

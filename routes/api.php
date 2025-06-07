@@ -155,6 +155,7 @@ Route::prefix('/abonos')->group(function(){
 Route::prefix('/cashier')->group(function(){
     Route::get('/getStaff/{id}',[CashierController::class, 'getStaff']);
     Route::get('/getPrinters/{id}',[CashierController::class, 'getPrinter']);
+    Route::get('/getCutsBoxes/{sid}',[CashierController::class, 'getCutsBoxes']);
     Route::post('/AddFile',[CashierController::class, 'AddFile']);
     Route::post('/Opening',[CashierController::class, 'Opening']);
 
