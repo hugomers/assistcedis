@@ -246,7 +246,7 @@ class ResourcesController extends Controller
         if($sol){
             $cedis = Stores::find(1);
             $ip = $cedis->ip_address;
-            // $ip = '192.168.10.232:1619';
+            // $ip = '192.168.10.160:1619';
             $addcli = Http::post($ip.'/storetools/public/api/Resources/createClient',$request->all());
             $respuesta =  $addcli->status();
             if($respuesta == 400){
@@ -259,6 +259,25 @@ class ResourcesController extends Controller
                 $sol->fs_id = $ifsol;
                 $sol->save();
                 $res = $sol->fresh()->toArray();
+
+                $client = $request->all();
+
+                $ins = [
+                    'id' => intval($ifsol),
+                    'name' => mb_convert_encoding((string)($client['nom_cli'] ?? ''), "UTF-8", "Windows-1252"),
+                    'phone' => mb_convert_encoding((string)($client['celphone'] ?? ''), "UTF-8", "Windows-1252"),
+                    'email' => mb_convert_encoding((string)($client['email'] ?? ''), "UTF-8", "Windows-1252"),
+                    'rfc' => '',
+                    'address' => json_encode([
+                        "calle" => mb_convert_encoding((string)($client['street'] ?? ''), "UTF-8", "Windows-1252"),
+                        "colonia" => mb_convert_encoding((string)($client['col'] ?? ''), "UTF-8", "Windows-1252"),
+                        "cp" => intval($client['cp'] ?? 0),
+                        "municipio" => mb_convert_encoding((string)($client['mun'] ?? ''), "UTF-8", "Windows-1252")
+                    ]),
+                    '_price_list' => intval($client['price'] ?? 0),
+                    "created_at" => now()
+                ];
+                $insDB = DB::connection('vizapi')->table('client')->insert($ins);
                 return response()->json($res,201);
             }
         }else{return response()->json("no existe el id",404);
