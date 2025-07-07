@@ -15,7 +15,7 @@ class ProductVA extends Model
                     ->withPivot('units', 'comments', 'stock');
     }
     public function stocks(){
-        return $this->belongsToMany('App\Models\WorkPointVA', 'product_stock', '_product', '_workpoint')
+        return $this->belongsToMany('App\Models\WorkpointVA', 'product_stock', '_product', '_workpoint')
                     ->withPivot('min', 'max', 'stock', 'gen', 'exh', 'des', 'fdt', 'V23', 'LRY', 'in_transit', '_status');
     }
     public function prices(){

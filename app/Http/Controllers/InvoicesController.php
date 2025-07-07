@@ -360,7 +360,7 @@ class InvoicesController extends Controller
             $resume[] = [ "key"=>"pdss", "name"=>"Productos disponibles sin stock", "total"=>$pdss[0]->total ];
             $resume[] = [ "key"=>"pndcs", "name"=>"Productos no disponibles con stock", "total"=>$pndcs[0]->total ];
 
-            $printers = WorkPointVA::with("printers")->where("id",$request->storeTo)->get();
+            $printers = WorkpointVA::with("printers")->where("id",$request->storeTo)->get();
 
             $users = User::with('staff')->where('_store',$request->storeTo)->whereIn('_rol',[1,2,4,15,16])->get();
 

@@ -37,11 +37,11 @@ class Invoice extends Model
     }
 
     public function to(){
-        return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_to');
+        return $this->belongsTo('App\Models\WorkpointVA', '_workpoint_to');
     }
 
     public function from(){
-        return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_from');
+        return $this->belongsTo('App\Models\WorkpointVA', '_workpoint_from');
     }
 
     public function created_by(){
