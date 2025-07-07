@@ -8,6 +8,8 @@ use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
 use App\Models\partitionRequisition;
+use App\Models\partitionLog;
+use App\Models\InvoiceBodies;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 
@@ -31,25 +33,8 @@ class RestockController extends Controller
         $surtidores = $request->supplyer;
         $to = $request->_workpoint_to;
         $from = $request->_workpoint_from;
+        $partitions = [];
 
-        // $locationsTo = '(SELECT CS.path FROM product_location AS PL
-        // JOIN celler_section AS CS ON CS.id = PL._location
-        // JOIN celler AS C ON C.id = CS._celler
-        // WHERE PL._product = PR._product
-        // AND CS.deleted_at IS NULL
-        // AND C._workpoint = '.$to.'
-        // ORDER BY CS.path ASC
-        // LIMIT 1) AS locationsTo';
-        // $locationsFrom = '(SELECT CS.path FROM product_location AS PL
-        // JOIN celler_section AS CS ON CS.id = PL._location
-        // JOIN celler AS C ON C.id = CS._celler
-        // WHERE PL._product = PR._product
-        // AND CS.deleted_at IS NULL
-        // AND C._workpoint = '.$from.'
-        // ORDER BY CS.path ASC
-        // LIMIT 1) AS locationsFrom';
-
-        // SUBSTRING_INDEX(CS.path, "-", 2)
         $locationsTo = '(SELECT CS.path FROM product_location AS PL
         JOIN celler_section AS CS ON CS.id = PL._location
         JOIN celler AS C ON C.id = CS._celler
@@ -58,6 +43,7 @@ class RestockController extends Controller
         AND C._workpoint = '.$to.'
         ORDER BY CS.path ASC
         LIMIT 1) AS locationsTo';
+
         $locationsFrom = '(SELECT CS.path FROM product_location AS PL
         JOIN celler_section AS CS ON CS.id = PL._location
         JOIN celler AS C ON C.id = CS._celler
@@ -129,55 +115,71 @@ class RestockController extends Controller
 
         foreach ($surtidores as $surtidor) {
             $asigpro = $surtidor['products'];
-
-
             foreach($asigpro as $product){
                 $upd = [
-                    "_suplier"=>$surtidor['complete_name'],
-                    "_suplier_id"=>$surtidor['id']
+                    "_suplier"=>$surtidor['staff']['complete_name'],
+                    "_suplier_id"=>$surtidor['staff']['id']
                 ];
-                $dbproduct = DB::connection('vizapi')
-                ->table('product_required')
-                ->where([['_requisition',$product->_requisition],['_product',$product->_product]])
+                $dbproduct = InvoiceBodies::where([['_requisition',$product->_requisition],['_product',$product->_product]])
                 ->update($upd);
             }
         }
 
         foreach($surtidores as $surtidor){
             $newres = new Restock;
-            $supply = $surtidor['id'];
+            $supply = $surtidor['staff']['id'];
             $newres->_staff = $supply;
             $newres->_requisition = $pedido;
             $newres->_status = $status;
             $newres->save();
             $newres->fresh()->toArray();
-
             $ins = [
                 "_requisition"=>$pedido,
                 "_suplier_id"=>$supply,
-                "_suplier"=>$surtidor['complete_name'],
+                "_suplier"=>$surtidor['staff']['complete_name'],
                 "_status"=>$status
             ];
-
-            $inspart = DB::connection('vizapi')->table('requisition_partitions')->insertGetId($ins);
-            $updtable = DB::connection('vizapi')
-            ->table('product_required')
-            ->where([['_requisition',$pedido],['_suplier_id',$supply]])
-            ->update(['_partition'=>$inspart]);
+            $inspart = new partitionRequisition($ins);
+            $inspart->save();
+            $res = $inspart->load( ['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+            $partitions[] = $res;
+            $setted = InvoiceBodies::where([['_requisition',$pedido],['_suplier_id',$supply]])->update(['_partition'=>$res->id]);
         }
-        return response()->json($surtidores,200);
+        return response()->json($partitions,200);
     }
 
     public function saveVerified(Request $request){
-        $pedido = $request->pedido;
+        $partition = $request->partition;
         $verificador = $request->verified;
         $supply = $request->surtidor;
         $warehouse = $request->warehouse;
-        $change = DB::connection('vizapi')
-        ->table('requisition_partitions')
-        ->where([['_requisition',$pedido],['_suplier_id',$supply]])
-        ->update(['_out_verified'=>$verificador, '_warehouse'=>$warehouse]);
-        return response()->json($change,200);
+        $status = $request->state;
+
+        $change = partitionRequisition::find($partition);
+        $change->_out_verified = $verificador;
+        $change->entry_key = md5($partition);
+        $change->_warehouse = $warehouse;
+        $change->_status = $status;
+        $change->save();
+        $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+        $idlog = partitionLog::max('id') + 1;
+
+        $inslo = [
+            'id'=>$idlog,
+            '_requisition'=>$freshPartition->_requisition,
+            '_partition'=>$freshPartition->id,
+            '_status'=>$status,
+            'details'=>json_encode(['responsable'=>$freshPartition->getOutVerifiedStaff()->complete_name]),
+        ];
+
+        $logs = partitionLog::insert($inslo);
+        $endpart = $this->verifyPartition($freshPartition->_requisition);
+        $res = [
+            "partition"=>$freshPartition,
+            "partitionsEnd"=>$endpart
+        ];
+
+        return response()->json($res,200);
     }
 
     public function getVerified($sid){
@@ -187,35 +189,72 @@ class RestockController extends Controller
     }
 
     public function saveChofi(Request $request){
-        // return $request->all();
-        $status = $request->status;
-        $pedido = $request->pedido;
-        $verificador = $request->supplyer;
+        $partition = $request->partition;
         $chofer = $request->chofi;
-        $ped = DB::connection('vizapi')->table('requisition as R')->join('workpoints as W', 'W.id', '=', 'R._workpoint_from')
-        ->where('R.id', $pedido)
-        ->first();
+        $status = $request->state;
 
-        $change = DB::connection('vizapi')
-        ->table('requisition_partitions')
-        ->where([['_requisition',$pedido],['_suplier_id',$verificador]])
-        ->update(['_driver'=>$chofer['id']]);
+        $change = partitionRequisition::find($partition);
+        $change->_driver = $chofer;
+        $change->_status = $status;
+        $change->save();
+        $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+        $idlog = partitionLog::max('id') + 1;
+
+        $inslo = [
+            'id'=>$idlog,
+            '_requisition'=>$partition->_requisition,
+            '_partition'=>$partition->id,
+            '_status'=>$status,
+            'details'=>json_encode(['responsable'=>$partition->getOutDrivingStaff()->complete_name]),
+        ];
+        $logs = partitionLog::insert($inslo);
+        $endpart = $this->verifyPartition($partition->_requisition);
+
         if($change){
-            $message = 'El colaborador '.$chofer['complete_name'].' transporta el pedido '.$pedido.' de la sucursal '.$ped->name;
-            $to = '120363194490127898@g.us';
+            $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' transporta el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+            // $to = '120363194490127898@g.us';
+            $to = '5573461022';
             $sendMessage = $this->envMssg($message,$to);
         }
-
-
-        $newres = new Restock;
-        $newres->_staff = $chofer['id'];
-        $newres->_requisition = $pedido;
-        $newres->_status = $status;
-        $newres->save();
-        $newres->fresh()->toArray();
-        return response()->json($newres,200);
+        $res = [
+            "partition"=>$partition,
+            "partitionsEnd"=>$endpart
+        ];
+        return response()->json($res,200);
     }
 
+    public function saveReceipt(Request $request){
+        $partition = $request->partition;
+        $chofer = $request->chofi;
+        $status = $request->state;
+        $change = partitionRequisition::find($partition);
+        // $change->_driver = $chofer;
+        $change->_status = $status;
+        $change->save();
+        $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+        $idlog = partitionLog::max('id') + 1;
+
+        $inslo = [
+            'id'=>$idlog,
+            '_requisition'=>$partition->_requisition,
+            '_partition'=>$partition->id,
+            '_status'=>$status,
+            'details'=>json_encode(['responsable'=>$partition->getOutDrivingStaff()->complete_name]),
+        ];
+        $logs = partitionLog::insert($inslo);
+        $endpart = $this->verifyPartition($partition->_requisition);
+        if($change){
+            $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+            // $to = '120363194490127898@g.us';
+            $to = '5573461022';
+            $sendMessage = $this->envMssg($message,$to);
+        }
+        $res = [
+            "partition"=>$partition,
+            "partitionsEnd"=>$endpart
+        ];
+        return response()->json($res,200);
+    }
 
     public function getChof($sid){
         $id = $sid == 24 ? 12 : $sid;
@@ -232,24 +271,40 @@ class RestockController extends Controller
     }
 
     public function saveCheck(Request $request){
-        $status = $request->status;
-        $pedido = $request->pedido;
-        $verificador = $request->verified;
-        $suplier = $request->supplyer;
+        $partition = $request->partition;
+        $check = $request->verified;
+        $status = $request->state;
+        $entry_key = $request->key;
+        $change = partitionRequisition::find($partition);
+        if($change->entry_key == $entry_key){
+        // $change = partitionRequisition::find($partition);
+            $change->_in_verified = $check;
+            $change->_status = $status;
+            $change->save();
+            $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+            $idlog = partitionLog::max('id') + 1;
 
-        $change = DB::connection('vizapi')
-        ->table('requisition_partitions')
-        ->where([['_requisition',$pedido],['_suplier_id',$suplier]])
-        ->update(['_in_verified'=>$verificador]);
+            $inslo = [
+                'id'=>$idlog,
+                '_requisition'=>$partition->_requisition,
+                '_partition'=>$partition->id,
+                '_status'=>$status,
+                'details'=>json_encode(['responsable'=>$partition->getCheckStaff()->complete_name]),
+            ];
+            $logs = partitionLog::insert($inslo);
+            $endpart = $this->verifyPartition($partition->_requisition);
+
+            $res = [
+                "partition"=>$partition,
+                "partitionsEnd"=>$endpart
+            ];
+            return response()->json($res,200);
+
+        }else{
+            return response()->json(["message"=>"La llave no coincide"],401);
+        }
 
 
-        $newres = new Restock;
-        $newres->_staff = $verificador;
-        $newres->_requisition = $pedido;
-        $newres->_status = $status;
-        $newres->save();
-        $newres->fresh()->toArray();
-        return response()->json($newres,200);
     }
 
     public function getSalida(Request $request){
@@ -269,43 +324,40 @@ class RestockController extends Controller
     public function changeStatus(Request $request){
         $pedido = $request->id;
         $status = $request->state;
-        $supply = $request->suply;
-
-        $change = DB::connection('vizapi')
-        ->table('requisition_partitions')
-        ->where([['_requisition',$pedido],['_suplier_id',$supply]])
-        ->update(['_status'=>$status]);
-
-        $partition = DB::connection('vizapi')
-        ->table('requisition_partitions AS P')
-        ->join('requisition_process AS RP','P._status','RP.id')
-        ->select('P.*','RP.name', 'RP.id as idr')
-        ->where([['_requisition',$pedido],['_suplier_id',$supply]])
-        ->first();
-
-        $idlog = DB::connection('vizapi')->table('partition_logs')->max('id') + 1;
+        $responsable = null;
+        $partitions = partitionRequisition::find($pedido);
+        $partitions->_status = $status;
+        $partitions->save();
+        // 'type', 'status', 'to', 'from', 'created_by', 'log', 'partition.status', 'partition.log'
+        $partition = $partitions->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+        switch ($status) {
+            case 6:
+             $responsable = $partition->getOutVerifiedStaff();
+                break;
+            case 10:
+            $responsable =  $partition->getCheckStaff();
+                break;
+            default:
+            $responsable =  'Vizapp';
+                break;
+        }
+        $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
             'id'=>$idlog,
-            '_requisition'=>$pedido,
+            '_requisition'=>$partition->_requisition,
             '_partition'=>$partition->id,
             '_status'=>$status,
-            'details'=>json_encode(['responsable'=>'vizapp']),
+            'details'=>json_encode(['responsable'=>$responsable]),
         ];
 
-        $logs = DB::connection('vizapi')
-        ->table('partition_logs')
-        ->insert($inslo);
-        // if($change > 0){
-            $endpart = $this->verifyPartition($pedido);
-            $res = [
-                "partition"=>$partition,
-                "partitionsEnd"=>$endpart
-            ];
-            return response()->json($res,200);
-        // }else{
-            // return response()->json('No se hizo el cambio de status',500);
-        // }
+        $logs = partitionLog::insert($inslo);
+        $endpart = $this->verifyPartition($partition->_requisition);
+        $res = [
+            "partition"=>$partition,
+            "partitionsEnd"=>$endpart
+        ];
+        return response()->json($res,200);
     }
 
     public function sendMessages(Request $request){
@@ -328,10 +380,7 @@ class RestockController extends Controller
     }
 
     public function verifyPartition($pedido){
-        $partition = DB::connection('vizapi')
-        ->table('requisition_partitions')
-        ->where([['_requisition',$pedido]])
-        ->min('_status');
+        $partition = partitionRequisition::where([['_requisition',$pedido]])->min('_status');
         return $partition;
     }
 

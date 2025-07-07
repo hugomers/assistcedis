@@ -5,6 +5,8 @@ namespace App\Console;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Http\Controllers\CashController;
+use App\Http\Controllers\SalesController;
+
 
 
 class Kernel extends ConsoleKernel
@@ -14,10 +16,19 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // $schedule->call(function () {
+        //     $controller = new CashController();
+        //     $controller->RepliedSales();
+        // })->everyFifteenMinutes()->between('7:00', '23:59')->name("REPLICADOR DE VENTAS :)");//Respaldo solo de el ejercico actual
+
         $schedule->call(function () {
-            $controller = new CashController();
-            $controller->RepliedSales();
-        })->everyFifteenMinutes()->between('7:00', '23:59')->name("REPLICADOR DE VENTAS :)");//Respaldo solo de el ejercico actual
+            $controller = new SalesController();
+            $controller->generate();
+        })->dailyAt('19:00')->name("ENVIO REPORTE DE VENTAS :)");//Respaldo solo de el ejercico actual
+
+
+
+
     }
 
     /**

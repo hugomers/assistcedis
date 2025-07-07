@@ -19,9 +19,7 @@ use App\Http\Controllers\RequisitionController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\CashController;
 use App\Http\Controllers\UserController;
-
-
-
+use App\Http\Controllers\InvoicesController;
 
 
 /*
@@ -172,6 +170,7 @@ Route::prefix('/restock')->group(function(){
     Route::post('/saveSupply',[RestockController::class, 'saveSupply']);
     Route::post('/saveVerified',[RestockController::class, 'saveVerified']);
     Route::post('/saveChofi',[RestockController::class, 'saveChofi']);
+    Route::post('/saveReceipt',[RestockController::class, 'saveReceipt']);
     Route::post('/saveCheck',[RestockController::class, 'saveCheck']);
     Route::post('/getSalida',[RestockController::class, 'getSalida']);
     Route::post('/getTransfer',[RestockController::class, 'getTransfer']);
@@ -184,6 +183,8 @@ Route::prefix('/restock')->group(function(){
 Route::prefix('/sales')->group(function(){
     Route::get('/getSale',[SalesController::class, 'Index']);
     Route::get('/getStores',[SalesController::class, 'getStores']);
+    Route::get('/generate',[SalesController::class, 'generate']);
+
 });
 
 Route::prefix('/requisition')->group(function(){
@@ -270,7 +271,36 @@ Route::prefix('/cashs')->group(function(){
     Route::post('/addAdvances',[CashController::class,'addAdvances']);
     Route::post('/getSales',[CashController::class,'getSales']);
     Route::post('/RepliedSales',[CashController::class,'RepliedSales']);
-    // Route::post('/getIngress',[CashController::class,'getIngress']);
-    // Route::post('/reprintIngress',[CashController::class,'reprintIngress']);
+});
+
+
+Route::prefix('/invoices')->group(function(){
+    Route::get('/index',[InvoicesController::class,'index']);
+    Route::get('/getStoresAutomate',[InvoicesController::class,'getStoresAutomate']);
+    Route::get('/{oid}',[InvoicesController::class,'order']);
+    Route::get('/{oid}/newinvoice',[InvoicesController::class,'newinvoice']);
+    Route::get('/{oid}/newTransfer',[InvoicesController::class,'newTransfer']);
+    Route::get('/{oid}/fresh', [InvoicesController::class,'orderFresh']);
+    Route::get('/{pid}/partitionFresh', [InvoicesController::class,'partitionFresh']);
+    Route::get('/getInvoice/{inv}',[InvoicesController::class,'getInvoice']);
+    Route::post('/addInvoice',[InvoicesController::class,'addInvoice']);
+    Route::post('/addProduct',[InvoicesController::class,'addProduct']);
+    Route::post('/checkin',[InvoicesController::class,'checkin']);
+    Route::post('/editProduct',[InvoicesController::class,'editProduct']);
+    Route::post('/deleteProduct',[InvoicesController::class,'deleteProduct']);
+    Route::post('/changestate',[InvoicesController::class,'changestate']);
+    Route::get('/report/{rep}', [InvoicesController::class,'report']);
+    Route::post('/massaction',[InvoicesController::class,'massaction']);
+    Route::post('/addInvoiceFS',[InvoicesController::class,'addInvoiceFS']);
+    Route::post('/addTransferFS',[InvoicesController::class,'addTransferFS']);
+    Route::post('/endTransferFS',[InvoicesController::class,'endTransferFS']);
+    Route::post('/addEntryFS',[InvoicesController::class,'addEntryFS']);
+    Route::post('/indexDashboard',[InvoicesController::class,'indexDashboard']);
+    Route::post('/print/forsupply',[InvoicesController::class,'printforsupply']);
+    Route::post('/print/Partition',[InvoicesController::class,'pritnforPartition']);
+    Route::post('/changestateRequisition',[InvoicesController::class,'changestateRequisition']);
+    Route::post('/setdelivery',[InvoicesController::class,'setdelivery']);
+    Route::post('/setreceived',[InvoicesController::class,'setreceived']);
+    Route::post('/correction',[InvoicesController::class,'correction']);
 });
 

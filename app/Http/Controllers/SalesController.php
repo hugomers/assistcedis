@@ -10,6 +10,9 @@ use App\Models\Restock;
 use App\Models\partitionRequisition;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\Snappy\Facades\SnappyImage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
 
 class SalesController extends Controller
 {
@@ -18,8 +21,80 @@ class SalesController extends Controller
         return response()->json($stores);
     }
 
-    // public function getStores(){
-    //     $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
-    // }
+    public function generate(){
+        $sales = [];
+        $mes  = date('n');
+        // return $mes;
+        $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
+        foreach ($stores as $store) {
+            try {
+                $response = Http::timeout(5)->get("http://{$store->ip_address}/access/public/reports/getSalesPerMonth/{$mes}");
+
+                if ($response->ok()) {
+                    $data = $response->json();
+                    $sales[] = [
+                        'sucursal' => strtoupper($store->name),
+                        'total' => $data['saleshoy'] ?? 0,
+                        'tickets' => $data['hoytck'] ?? 0
+                    ];
+                } else {
+                    $sales[] = [
+                        'sucursal' => strtoupper($store->name),
+                        'total' => 0,
+                        'tickets' => 0,
+                        'status' => 'offline'
+                    ];
+                }
+            } catch (\Exception $e) {
+                $sales[] = [
+                    'sucursal' => strtoupper($store->name),
+                    'total' => 0,
+                    'tickets' => 0,
+                    'status' => 'offline'
+                ];
+            }
+        }
+
+        usort($sales, fn($a, $b) => $b['total'] <=> $a['total']);
+
+        $html = view('sales_table', [
+            'data' => $sales
+        ])->render();
+
+        $filename = 'sales_' . Str::random(8) . '.png';
+        $tempPath = storage_path("app/$filename");
+
+        SnappyImage::loadHTML($html)->save($tempPath);
+
+        $imageData = file_get_contents($tempPath);
+
+        $this->sendToWhatsApp($imageData);
+
+        File::delete($tempPath);
+
+        return response()->json(['status' => 'Imagen enviada y eliminada']);
+    }
+
+    protected function sendToWhatsApp($imageData){
+        $tokem = env('WATO');
+        $to = env('groupSales');
+        $url = env('URLIMG');
+
+        $payload = [
+            'to' => $to,
+            'caption' => 'Buenas Tardes les comparto las ventas de el dia de hoy :)',
+        ];
+        $payload['image'] = base64_encode($imageData);
+        $response = Http::withOptions([
+            'verify' => false,
+        ])->withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'token' => $tokem,
+            'to' => $payload['to'],
+            'caption' => $payload['caption'],
+            'image' => $payload['image'],
+        ]);}
+
 
 }

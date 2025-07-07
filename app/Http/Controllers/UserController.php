@@ -7,6 +7,7 @@ use App\Models\Staff;
 use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
+use App\Models\Moduls;
 use App\Models\User;
 use App\Models\partitionRequisition;
 use Illuminate\Support\Facades\Http;
@@ -80,9 +81,29 @@ class UserController extends Controller
     public function getResources($uid){
         $user = User::with([
             'stores.store',
-            'rol.modules' => function($q) {$q->orderBy('_modules','asc');},
-            'rol.modules.module'])->where('id',$uid)->first();
-        return response()->json($user);
+            'rol.modules' => function($q) {
+                $q->orderBy('_modules', 'asc');
+            },
+            'rol.modules.module._modul'
+        ])->find($uid);
+        $groupedModules = [];
+
+        foreach ($user->rol->modules as $rolModule) {
+            $module = $rolModule->module;
+
+            if ($module && $module->_modul) {
+                $modulId = $module->_modul->id;
+                if (!isset($groupedModules[$modulId])) {
+                    $groupedModules[$modulId] = $module->_modul->toArray();
+                    $groupedModules[$modulId]['modules'] = [];
+                }
+
+                $groupedModules[$modulId]['modules'][] = $module;
+            }
+        }
+
+        $user->grouped_modules = array_values($groupedModules); // resetear índices
+                return response()->json($user);
 
     }
 }
