@@ -160,6 +160,8 @@ Route::prefix('/cashier')->group(function(){
 });
 
 Route::prefix('/restock')->group(function(){
+    Route::get('/changeRaiz',[RestockController::class, 'changeRaiz']);
+
     Route::get('/getSupply/{sid}',[RestockController::class, 'getSupply']);
     Route::get('/getVerified/{sid}',[RestockController::class, 'getVerified']);
     Route::get('/getChof/{sid}',[RestockController::class, 'getChof']);
@@ -168,6 +170,7 @@ Route::prefix('/restock')->group(function(){
     Route::get('/getStores',[RestockController::class, 'getStores']);
     Route::get('/getCheck/{cli}',[RestockController::class, 'getCheck']);
     Route::post('/saveSupply',[RestockController::class, 'saveSupply']);
+    Route::post('/createParitions',[RestockController::class, 'createParitions']);
     Route::post('/saveVerified',[RestockController::class, 'saveVerified']);
     Route::post('/saveChofi',[RestockController::class, 'saveChofi']);
     Route::post('/saveReceipt',[RestockController::class, 'saveReceipt']);
@@ -302,5 +305,7 @@ Route::prefix('/invoices')->group(function(){
     Route::post('/setdelivery',[InvoicesController::class,'setdelivery']);
     Route::post('/setreceived',[InvoicesController::class,'setreceived']);
     Route::post('/correction',[InvoicesController::class,'correction']);
+    Route::post('/sendMessageDiff',[InvoicesController::class,'sendMessageDiff']);
+
 });
 

@@ -32,7 +32,7 @@ class ProductVA extends Model
         return $this->belongsTo('App\Models\ProductUnitVA', '_unit');
     }
     public function category(){
-        return $this->belongsTo('App\ProductCategoriesVA', '_category');
+        return $this->belongsTo('App\Models\ProductCategoriesVA', '_category');
     }
 
 }

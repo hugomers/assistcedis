@@ -210,7 +210,8 @@ class InvoicesController extends Controller
                 $partition = partitionRequisition::find($request->id);
                 $partition->invoice = $folio['folio'];
                 $partition->save();
-                return response()->json($folio['folio'],200);
+                $res = $partition->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+                return response()->json($res,200);
             }else{
                 return response()->json($addInvoice->json(),$addInvoice->status());
             }
@@ -235,7 +236,8 @@ class InvoicesController extends Controller
                 $partition = partitionRequisition::find($request->id);
                 $partition->invoice = $folio['folio'];
                 $partition->save();
-                return response()->json($folio['folio'],200);
+                $res = $partition->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+                return response()->json($res,200);
             }else{
                 return response()->json($addInvoice->json(),$addInvoice->status());
             }
@@ -260,7 +262,8 @@ class InvoicesController extends Controller
                 $partition = partitionRequisition::find($request->id);
                 $partition->invoice_received = $folio['folio'];
                 $partition->save();
-                return response()->json($folio['folio'],200);
+                $res = $partition->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+                return response()->json($res,200);
             }else{
                 return response()->json($addInvoice->json(),$addInvoice->status());
             }
@@ -285,7 +288,8 @@ class InvoicesController extends Controller
                 $partition = partitionRequisition::find($request->id);
                 $partition->invoice_received = $folio['folio'];
                 $partition->save();
-                return response()->json($folio['folio'],200);
+                $res = $partition->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+                return response()->json($res,200);
             }else{
                 return response()->json($addInvoice->json(),$addInvoice->status());
             }
@@ -378,34 +382,57 @@ class InvoicesController extends Controller
 
     public function order(Request $request){
         $id = $request->route("oid");
-
+        $conteoPorRoot = [];
         try {
             $order = Invoice::with([
-                        'type',
-                        'status',
-                        'log',
-                        'from',
-                        'to',
-                        'partition.status',
-                        'partition.log',
-                        'partition.products',
-                        'products' => function($query){
-                                            $query->selectRaw('
-                                                        products.*,
-                                                        getSection(products._category) AS section,
-                                                        getFamily(products._category) AS family,
-                                                        getCategory(products._category) AS category
-                                                    ')
-                                                    ->with([
-                                                        'units',
-                                                        'variants',
-                                                        'stocks' => function($q){ return $q->whereIn('_workpoint', [1,2]); },
-                                                        'locations' => fn($qq) => $qq->whereHas('celler', function($qqq){ $qqq->where('_workpoint', 1); }),
-                                                    ]);
-                                        }
-                    ])->findOrFail($id);
+                'type',
+                'status',
+                'log',
+                'from',
+                'to',
+                'partition.status',
+                'partition.log',
+                'partition.products',
+                'products.category.familia.seccion',
+                'products.units',
+                'products.variants',
+                'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1, 2]),
+            ])->findOrFail($id);
+            $toWorkpointId = $order->to->id;
+            $order->load([
+                'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at')
+            ]);
 
-            return response()->json($order);
+            if($order->_status === 2){
+                foreach ($order->products as $pro) {
+                    if ($pro->locations->isEmpty()) {
+                        $conteoPorRoot['sin_ubicacion'] = [
+                            'id' => null,
+                            'name' => 'Sin ubicación',
+                            'cantidad' => ($conteoPorRoot['sin_ubicacion']['cantidad'] ?? 0) + 1
+                        ];
+                        continue;
+                    }
+                    $loc = $pro->locations->first();
+                    $root = $loc->getRootNode();
+                    $rootId = $root->id ?? 'desconocido';
+                    $rootName = $root->name ?? 'Desconocido';
+
+                    if (!isset($conteoPorRoot[$rootId])) {
+                        $conteoPorRoot[$rootId] = [
+                            'id' => $rootId,
+                            'name' => $rootName,
+                            'cantidad' => 0
+                        ];
+                    }
+                    $conteoPorRoot[$rootId]['cantidad']++;
+                }
+            }
+            $res = [
+                "order"=>$order,
+                "ubicaciones"=>$conteoPorRoot
+            ];
+            return response()->json($res);
         } catch (\Error $e) { return response()->json($e,500); }
     }
 
@@ -446,12 +473,12 @@ class InvoicesController extends Controller
             $query->with(['locations' => function($query) use($workpoint_to){
                 $query->whereHas('celler', function($query) use($workpoint_to){
                     $query->where('_workpoint', $workpoint_to);
-                });
+                })->whereNull('deleted_at');
             }]);
         }]);
         // return $requisition;
         $cellerPrinter = new PrinterController();
-        $cellerPrinter;
+        // $cellerPrinter;
         $res = $cellerPrinter->PartitionTicket($ip, $requisition);
         return response()->json(["success" => $res, "printer" => $ip]);
     }
@@ -738,7 +765,7 @@ class InvoicesController extends Controller
                             '_product' => $id,
                             'code'=>$product['code'],
                             '_supply_by'=> $modifiedPivot['_supply_by'],
-                            'pxc' => $product['pieces'],
+                            'pxc' => $modifiedPivot['ipack'],
                             'toReceived' => $modifiedPivot['toReceived'],
                             'invoice' => $partition->invoice_received,
                             '_requisition'=>$partition->_requisition
@@ -749,7 +776,7 @@ class InvoicesController extends Controller
                             '_product' => $id,
                             'code'=>$product['code'],
                             '_supply_by'=> $modifiedPivot['_supply_by'],
-                            'pxc' => $product['pieces'],
+                            'pxc' => $modifiedPivot['ipack'],
                             'toDelivered' => $modifiedPivot['toDelivered'],
                             'invoice' => $partition->invoice,
                             '_requisition'=>$partition->_requisition
@@ -778,8 +805,9 @@ class InvoicesController extends Controller
                 $ModDelivered = $this->ChangeDelivered($to,$changedToDelivered);
                 if($ModDelivered['success']){
                     foreach($changedToDelivered as $delivered){
+                        $canti = $this->calculateCan($delivered['_supply_by'],$delivered['toDelivered'],$delivered['pxc']);
                         $requisition = Invoice::find($delivered['_requisition']);
-                        $requisition->products()->updateExistingPivot($delivered['_product'], ['toDelivered' =>  $delivered['toDelivered']]);
+                        $requisition->products()->updateExistingPivot($delivered['_product'], ['toDelivered' =>  $delivered['toDelivered'],'units'=>$canti]);
                     }
                     $response['Salida']['message'] = $ModDelivered['message'];
                     $response['Salida']['success'] = true;
@@ -791,8 +819,9 @@ class InvoicesController extends Controller
                 $ModReceived = $this->ChangeReceived($changedToReceived, $from);
                 if($ModReceived['success']){
                     foreach($changedToReceived as $received){
+                        $canti = $this->calculateCan($delivered['_supply_by'],$delivered['toReceived'],$delivered['pxc']);
                         $requisition = Invoice::find($received['_requisition']);
-                        $requisition->products()->updateExistingPivot($received['_product'], ['toReceived' =>  $received['toReceived']]);
+                        $requisition->products()->updateExistingPivot($received['_product'], ['toReceived' =>  $received['toReceived'],'units'=>$canti]);;
                     }
                     $response['Entrada']['message'] = $ModReceived['message'];
                     $response['Entrada']['success'] = true;
@@ -810,6 +839,21 @@ class InvoicesController extends Controller
             return response()->json('No se encontro la particion',400);
         }
     }
+
+    public function calculateCan($supply,$to,$pieces){
+        $canti = 0;
+        if($supply == 1){
+            $canti = $to ;
+        } elseif($supply == 2){
+            $canti = $to * 12;
+        }elseif($supply == 3){
+            $canti = $to * $pieces;
+        }elseif($supply == 4){
+            $canti = ($to * ($pieces / 2)) ;
+        }
+        return $canti;
+    }
+
     public function DeleteProdAccess($ip,$products){
         try {
             $delProduct = HTTP::post($ip.'/storetools/public/api/Modification/deleteProduct',$products);
@@ -882,5 +926,53 @@ class InvoicesController extends Controller
             "sections"=>$categories
         ];
         return response()->json($res,200);
+    }
+
+    public function sendMessageDiff(Request $request){
+        $res = [];
+        $products = $request->products;
+            foreach($products as $product){
+                    $pivot = $product['pivot'];
+                    if($pivot['checkout'] == 1){
+                    $envia = $pivot['toDelivered'];
+                    $recibe = $pivot['toReceived'];
+                    if($envia != $recibe){
+                        $mul = 1;
+                        switch($pivot['_supply_by']){
+                            case 1:
+                                $mul = 1;
+                                break;
+                            case 2:
+                                $mul = 12;
+                                break;
+                            case 3:
+                                $mul = $product['pieces'];
+                                break;
+                        };
+                        $res [] = "{$product['code']}:\nSalida: " . ($envia * $mul) . "\nEntrada: " . ($recibe * $mul);
+                    }
+                }
+            }
+        if(count($res) > 0){
+            $message = "Hay diferencias en la particion ".$request->id." P-(".$request->requisition['id'].") "." \nSucursal: ".$request->requisition['from']['name']."\n"."Diferencias: \n".implode("\n\n", $res) ;
+            // $to = '120363419230539005@g.us';
+            $to = '5573461022';
+            $sendMessage = $this->envMssg($message,$to);
+        }
+    }
+
+    public function envMssg($message,$to){
+        $url = env('URLWHA');
+        $token = env('WATO');
+
+        $response = Http::withOptions([
+            'verify' => false, // Esto deshabilita la verificación SSL, similar a CURLOPT_SSL_VERIFYHOST y CURLOPT_SSL_VERIFYPEER en cURL
+        ])->withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'token' => $token,
+            'to' => $to,
+            'body' => $message,
+        ]);
     }
 }

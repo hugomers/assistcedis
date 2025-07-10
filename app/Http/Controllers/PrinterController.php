@@ -773,7 +773,7 @@ class PrinterController extends Controller
         $printer->setTextSize(1,1);
         $printer->text("\n PARTICION ". " - ".$requisition->id." \n");
         $printer->text("\n AGENTE:    ".$requisition->requisition->created_by->names."\n");
-        $printer->text("\n SURTIDOR:    ".$requisition->_suplier."\n");
+        // $printer->text("\n SURTIDOR:    ".$requisition->_suplier."\n");
         // $printer->text(" SOLICITUD: ".$finished_at->pivot->created_at."\n");
 
         if($requisition->notes){

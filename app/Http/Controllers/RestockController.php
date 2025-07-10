@@ -12,7 +12,15 @@ use App\Models\partitionLog;
 use App\Models\InvoiceBodies;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use App\Models\Invoice;
+use App\Models\Transfers;
+use App\Models\Warehouses;
+use App\Models\WorkpointVA;
+use App\Models\CellerSectionVA;
 
+use App\Models\User;
+use App\Models\ProductVA;
+use App\Models\ProductCategoriesVA;
 class RestockController extends Controller
 {
     public function getSupply($sid){
@@ -21,131 +29,248 @@ class RestockController extends Controller
         return $staff;
     }
 
-    // public function getSupplier(){
-    //     $id = $request->id;
-    //     $restock = Restock::where('_requisition', $id)->get();
-    //     return $restock;
+    // public function saveSupply(Request $request){
+    //     $status = $request->status;
+    //     $pedido = $request->pedido;
+    //     $ubicaciones = $request->ubicaciones;
+    //     $to = $request->_workpoint_to;
+    //     $from = $request->_workpoint_from;
+    //     $partitions = [];
+
+    //     $locationsTo = '(SELECT CS.path FROM product_location AS PL
+    //     JOIN celler_section AS CS ON CS.id = PL._location
+    //     JOIN celler AS C ON C.id = CS._celler
+    //     WHERE PL._product = PR._product
+    //     AND CS.deleted_at IS NULL
+    //     AND C._workpoint = '.$to.'
+    //     ORDER BY CS.path ASC
+    //     LIMIT 1) AS locationsTo';
+
+    //     $locationsFrom = '(SELECT CS.path FROM product_location AS PL
+    //     JOIN celler_section AS CS ON CS.id = PL._location
+    //     JOIN celler AS C ON C.id = CS._celler
+    //     WHERE PL._product = PR._product
+    //     AND CS.deleted_at IS NULL
+    //     AND C._workpoint = '.$from.'
+    //     ORDER BY CS.path ASC
+    //     LIMIT 1) AS locationsFrom';
+
+    //     $prod = DB::connection('vizapi')
+    //     ->table('product_required AS PR')
+    //     ->join('products AS P','P.id','PR._product')
+    //     ->select('P.code','PR._product', 'PR._requisition', DB::raw($locationsTo),DB::raw($locationsFrom))
+    //     ->where('PR._requisition', $pedido)
+    //     ->orderBy("locationsTo",'asc')
+    //     ->orderBy("locationsFrom",'asc')
+    //     ->get();
+
+    //     $vcollect = collect($prod);
+    //     $groupby = $vcollect->groupBy(function($val) {
+    //         if(isset($val->locationsTo)){
+    //             return explode('-',$val->locationsTo)[0];
+    //         }else{ return '';}
+    //     })->sortKeys();
+    //     foreach($groupby as $piso){
+    //         $products = $piso->sortBy(function($val){
+    //             if($val){
+    //                 $location = $val->locationsTo;
+    //                 $res ='';
+    //                 $parts = explode('-',$location);
+    //                 foreach($parts as $part){
+    //                     $numbers = preg_replace('/[^0-9]/', '', $part);
+    //                     $letters = preg_replace('/[^a-zA-Z]/', '', $part);
+    //                     if(strlen($numbers)==1){
+    //                         $numbers = '0'.$numbers;
+    //                     }
+    //                     $res = $res.$letters.$numbers.'-';
+    //                 }
+    //                 return $res = $res.$letters.$numbers.'-';
+
+    //             }
+    //             return '';
+    //         });
+    //         foreach($products as $product){
+    //             $uns []= $locations = $product;
+    //          }
+    //     }
+
+
+    //     $asig = [];
+    //     $num_productos = count($uns);
+    //     $num_surtidores = count($surtidores);
+    //     $supplyper = floor($num_productos / $num_surtidores);
+
+    //     $remainder = $num_productos % $num_surtidores;
+    //     $counter = 0;
+    //     for ($i = 0; $i < $num_surtidores; $i ++){
+    //         if($remainder > 0){
+    //             $asig[] = $supplyper + 1;
+    //             $remainder--;
+    //         }else{
+    //             $asig[]= $supplyper;
+    //         }
+    //     }
+    //     foreach($asig as $key => $val){
+    //         $surtidores[$key]['products'] = array_splice($uns,0,$val);
+    //     }
+
+
+    //     foreach ($surtidores as $surtidor) {
+    //         $asigpro = $surtidor['products'];
+    //         foreach($asigpro as $product){
+    //             $upd = [
+    //                 "_suplier"=>$surtidor['staff']['complete_name'],
+    //                 "_suplier_id"=>$surtidor['staff']['id']
+    //             ];
+    //             $dbproduct = InvoiceBodies::where([['_requisition',$product->_requisition],['_product',$product->_product]])
+    //             ->update($upd);
+    //         }
+    //     }
+
+    //     foreach($surtidores as $surtidor){
+    //         $newres = new Restock;
+    //         $supply = $surtidor['staff']['id'];
+    //         $newres->_staff = $supply;
+    //         $newres->_requisition = $pedido;
+    //         $newres->_status = $status;
+    //         $newres->save();
+    //         $newres->fresh()->toArray();
+    //         $ins = [
+    //             "_requisition"=>$pedido,
+    //             "_suplier_id"=>$supply,
+    //             "_suplier"=>$surtidor['staff']['complete_name'],
+    //             "_status"=>$status
+    //         ];
+    //         $inspart = new partitionRequisition($ins);
+    //         $inspart->save();
+    //         $res = $inspart->load( ['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+    //         $partitions[] = $res;
+    //         $setted = InvoiceBodies::where([['_requisition',$pedido],['_suplier_id',$supply]])->update(['_partition'=>$res->id]);
+    //     }
+    //     return response()->json($partitions,200);
     // }
 
     public function saveSupply(Request $request){
+        $partition = $request->partition;
+        $supply = $request->surtidor;
+        $warehouse = $request->warehouse;
+        $status = $request->state;
+
+        $change = partitionRequisition::find($partition);
+        $change->_suplier =$supply['complete_name'] ;
+        $change->_suplier_id = $supply['id'];
+        $change->_status = $status;
+        $change->save();
+        $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+        $idlog = partitionLog::max('id') + 1;
+
+        $inslo = [
+            'id'=>$idlog,
+            '_requisition'=>$freshPartition->_requisition,
+            '_partition'=>$freshPartition->id,
+            '_status'=>$status,
+            'details'=>json_encode(['responsable'=>$freshPartition->getSupplyStaff()->complete_name]),
+        ];
+
+        $logs = partitionLog::insert($inslo);
+        $endpart = $this->verifyPartition($freshPartition->_requisition);
+        $res = [
+            "partition"=>$freshPartition,
+            "partitionsEnd"=>$endpart
+        ];
+        return response()->json($res,200);
+    }
+
+    public function createParitions(Request $request){
         $status = $request->status;
         $pedido = $request->pedido;
-        $surtidores = $request->supplyer;
+        $ubicaciones = $request->ubicaciones;
         $to = $request->_workpoint_to;
         $from = $request->_workpoint_from;
+        $ip = env('PRINTER_P3');
+        // $products = [];
+        $order = Invoice::with([
+            'type',
+            'status',
+            'log',
+            'from',
+            'to',
+            'partition.status',
+            'partition.log',
+            'partition.products',
+            'products.category.familia.seccion',
+            'products.units',
+            'products.variants',
+            'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1,2]),
+            // 'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', 1))->whereNull('deleted_at')
+        ])->findOrFail($pedido);
+        $toWorkpointId = $order->to->id;
+        $order->load([
+            'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at')
+        ]);
+        $productosAsignados = collect(); // Control de productos ya asignados
         $partitions = [];
 
-        $locationsTo = '(SELECT CS.path FROM product_location AS PL
-        JOIN celler_section AS CS ON CS.id = PL._location
-        JOIN celler AS C ON C.id = CS._celler
-        WHERE PL._product = PR._product
-        AND CS.deleted_at IS NULL
-        AND C._workpoint = '.$to.'
-        ORDER BY CS.path ASC
-        LIMIT 1) AS locationsTo';
-
-        $locationsFrom = '(SELECT CS.path FROM product_location AS PL
-        JOIN celler_section AS CS ON CS.id = PL._location
-        JOIN celler AS C ON C.id = CS._celler
-        WHERE PL._product = PR._product
-        AND CS.deleted_at IS NULL
-        AND C._workpoint = '.$from.'
-        ORDER BY CS.path ASC
-        LIMIT 1) AS locationsFrom';
-
-        $prod = DB::connection('vizapi')
-        ->table('product_required AS PR')
-        ->join('products AS P','P.id','PR._product')
-        ->select('P.code','PR._product', 'PR._requisition', DB::raw($locationsTo),DB::raw($locationsFrom))
-        ->where('PR._requisition', $pedido)
-        ->orderBy("locationsTo",'asc')
-        ->orderBy("locationsFrom",'asc')
-        ->get();
-
-        $vcollect = collect($prod);
-        $groupby = $vcollect->groupBy(function($val) {
-            if(isset($val->locationsTo)){
-                return explode('-',$val->locationsTo)[0];
-            }else{ return '';}
-        })->sortKeys();
-        foreach($groupby as $piso){
-            $products = $piso->sortBy(function($val){
-                if($val){
-                    $location = $val->locationsTo;
-                    $res ='';
-                    $parts = explode('-',$location);
-                    foreach($parts as $part){
-                        $numbers = preg_replace('/[^0-9]/', '', $part);
-                        $letters = preg_replace('/[^a-zA-Z]/', '', $part);
-                        if(strlen($numbers)==1){
-                            $numbers = '0'.$numbers;
-                        }
-                        $res = $res.$letters.$numbers.'-';
-                    }
-                    return $res = $res.$letters.$numbers.'-';
-
+        foreach ($ubicaciones as $ubicacion) {
+            $rootId = $ubicacion['id'];
+            $partitionCount = (int) $ubicacion['partition'];
+            $productosFiltrados = $order->products->filter(function ($producto) use ($rootId, $productosAsignados) {
+                if ($productosAsignados->contains($producto->id)) {
+                    return false;
                 }
-                return '';
+                foreach ($producto->locations as $loc) {
+                    $rootNode = $loc->getRootNode();
+                    if ($rootNode && $rootNode->id == $rootId) {
+                        return true; // Solo si alguna raíz coincide
+                    }
+                }
+                return false;
             });
-            foreach($products as $product){
-                $uns []= $locations = $product;
-             }
-        }
-
-
-        $asig = [];
-        $num_productos = count($uns);
-        $num_surtidores = count($surtidores);
-        $supplyper = floor($num_productos / $num_surtidores);
-
-        $remainder = $num_productos % $num_surtidores;
-        $counter = 0;
-        for ($i = 0; $i < $num_surtidores; $i ++){
-            if($remainder > 0){
-                $asig[] = $supplyper + 1;
-                $remainder--;
-            }else{
-                $asig[]= $supplyper;
+            $productosAsignados = $productosAsignados->merge($productosFiltrados->pluck('id'));
+            $productosArray = $productosFiltrados->values();
+            $totalProductos = $productosArray->count();
+            $chunkSize = $partitionCount > 0 ? (int) ceil($totalProductos / $partitionCount) : $totalProductos;
+            for ($i = 1; $i <= $partitionCount; $i++) {
+                    $npartition = new partitionRequisition([
+                        '_requisition' => $order->id,
+                        '_status' => $status,
+                    ]);
+                    $npartition->save();
+                if ($totalProductos > 0) {
+                    $productosParaEstaPartition = $productosArray->slice(($i - 1) * $chunkSize, $chunkSize);
+                    foreach ($productosParaEstaPartition as $producto) {
+                        $order->products()->updateExistingPivot($producto->id, [
+                            '_partition' => $npartition->id,
+                        ]);
+                    }
+                }
+                $reqio = $npartition->load(['status','log','products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at'),'requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+                $cellerPrinter = new PrinterController();
+                $cellerPrinter->PartitionTicket($ip, $reqio);
+                $partitions[] = $reqio;
             }
-        }
-        foreach($asig as $key => $val){
-            $surtidores[$key]['products'] = array_splice($uns,0,$val);
-        }
-
-
-        foreach ($surtidores as $surtidor) {
-            $asigpro = $surtidor['products'];
-            foreach($asigpro as $product){
-                $upd = [
-                    "_suplier"=>$surtidor['staff']['complete_name'],
-                    "_suplier_id"=>$surtidor['staff']['id']
-                ];
-                $dbproduct = InvoiceBodies::where([['_requisition',$product->_requisition],['_product',$product->_product]])
-                ->update($upd);
-            }
-        }
-
-        foreach($surtidores as $surtidor){
-            $newres = new Restock;
-            $supply = $surtidor['staff']['id'];
-            $newres->_staff = $supply;
-            $newres->_requisition = $pedido;
-            $newres->_status = $status;
-            $newres->save();
-            $newres->fresh()->toArray();
-            $ins = [
-                "_requisition"=>$pedido,
-                "_suplier_id"=>$supply,
-                "_suplier"=>$surtidor['staff']['complete_name'],
-                "_status"=>$status
-            ];
-            $inspart = new partitionRequisition($ins);
-            $inspart->save();
-            $res = $inspart->load( ['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-            $partitions[] = $res;
-            $setted = InvoiceBodies::where([['_requisition',$pedido],['_suplier_id',$supply]])->update(['_partition'=>$res->id]);
         }
         return response()->json($partitions,200);
+    }
+
+    public function pritnforPartition(Request $request){
+        $ip = $request->ip;
+        $port = $request->port;
+        $workpoint_to = $request->_workpoint_to;
+        $requisition = partitionRequisition::find($request->_partition);
+        // $workpoint_to_print = Workpoint::find(1);
+        $requisition->load(['requisition.from','requisition.created_by','requisition.to', 'log', 'products' => function($query) use($workpoint_to)  {
+            $query->with(['locations' => function($query) use($workpoint_to){
+                $query->whereHas('celler', function($query) use($workpoint_to){
+                    $query->where('_workpoint', $workpoint_to);
+                })->whereNull('deleted_at');
+            }]);
+        }]);
+        // return $requisition;
+        $cellerPrinter = new PrinterController();
+        $cellerPrinter;
+        $res = $cellerPrinter->PartitionTicket($ip, $requisition);
+        return response()->json(["success" => $res, "printer" => $ip]);
     }
 
     public function saveVerified(Request $request){
@@ -332,10 +457,10 @@ class RestockController extends Controller
         $partition = $partitions->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
         switch ($status) {
             case 6:
-             $responsable = $partition->getOutVerifiedStaff();
+             $responsable = $partition->getOutVerifiedStaff()->complete_name;
                 break;
             case 10:
-            $responsable =  $partition->getCheckStaff();
+            $responsable =  $partition->getCheckStaff()->complete_name;
                 break;
             default:
             $responsable =  'Vizapp';
@@ -536,5 +661,75 @@ class RestockController extends Controller
         ]);
     }
 
+    public function changeRaiz(){
+        // return 'holi';
+        $agrupaciones = [
+            [
+                'nuevo_path' => 'P1',
+                'nuevo_nombre' => 'PISO 1',
+                'ids' => [4555, 10627, 305,1115], // IDs de CUARTO, ESCALERAS, MONTACARGAS que deben quedar debajo de PISO 1
+            ],
+            [
+                'nuevo_path' => 'P2',
+                'nuevo_nombre' => 'PISO 2',
+                'ids' => [339, 457, 538, 573, 913, 10878, 15588, 2478723,246],
+            ],
+            [
+                'nuevo_path' => 'P3',
+                'nuevo_nombre' => 'PISO 3',
+                'ids' => [588, 666, 792, 926, 958, 10689, 15608],
+            ],
+            [
+                'nuevo_path' => 'P4',
+                'nuevo_nombre' => 'PISO 4',
+                'ids' => [990, 1046, 1069, 10952, 13813, 19321, 21800, 21801,1092],
+            ],
+            [
+                'nuevo_path' => 'PB',
+                'nuevo_nombre' => 'PLANTA BAJA',
+                'ids' => [1, 224], // Aquí pones los IDs reales
+            ],
+        ];
 
+        DB::transaction(function () use ($agrupaciones) {
+            foreach ($agrupaciones as $grupo) {
+                // Crear nuevo nodo raíz
+                $nuevo = CellerSectionVA::create([
+                    'name' => $grupo['nuevo_nombre'],
+                    'alias' => $grupo['nuevo_path'],
+                    'path'  => $grupo['nuevo_path'],
+                    'root'  => 0,
+                    'deep'  => 0,
+                    '_celler' => 1
+                ]);
+
+                // Buscar nodos actuales (deep = 0) por ID
+                $nodos = CellerSectionVA::whereIn('id', $grupo['ids'])->get();
+
+                foreach ($nodos as $nodo) {
+                    $oldPath = $nodo->path;
+
+                    // Actualizar nodo actual: ahora es hijo del nuevo
+                    $nodo->update([
+                        'root' => $nuevo->id,
+                        'deep' => 1,
+                        'path' => $grupo['nuevo_path'] . '-' . $nodo->alias,
+                    ]);
+
+                    // Buscar descendientes y actualizarlos
+                    $descendientes = CellerSectionVA::where('path', 'like', $oldPath . '-%')->get();
+
+                    foreach ($descendientes as $desc) {
+                        $desc->update([
+                            'deep' => $desc->deep + 1,
+                            'path' => $grupo['nuevo_path'] . '-' . $desc->path,
+                        ]);
+                    }
+                }
+            }
+        });
+
+
+
+    }
 }
