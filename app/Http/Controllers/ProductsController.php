@@ -5,10 +5,28 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use App\Models\ProductVA;
 use App\Models\Stores;
 
 class ProductsController extends Controller
 {
+
+
+    public function getProduct($id){
+
+        $product = ProductVA::with([
+            'stocks'=> fn($q)=> $q->whereNotIn('_workpoint',[12,14,15,22,21]),
+            'category.familia.seccion',
+            'prices'
+            // 'purchases',
+            // 'sales'
+        ])
+        ->find($id);
+        $product->total_stock = $product->stocks->sum(fn($item) => $item->pivot->stock);
+        $product->details = $product->combinedAmountByYear();
+        return $product;
+    }
+
     public function translateWarehouses(Request $request){
         $stor =[
             'fails'=>[],

@@ -20,6 +20,9 @@ use App\Http\Controllers\RefundController;
 use App\Http\Controllers\CashController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoicesController;
+use App\Http\Controllers\InvoicesReceived;
+
+
 
 
 /*
@@ -107,6 +110,7 @@ Route::prefix('/assist')->group(function(){
 });
 
 Route::prefix('/Products')->group(function(){
+    Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
     Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
     Route::post('/transfers',[ProductsController::class, 'transferStores']);
     Route::post('/trapasDev',[ProductsController::class, 'trapasDev']);
@@ -115,6 +119,7 @@ Route::prefix('/Products')->group(function(){
     Route::post('/reportDepure',[ProductsController::class, 'reportDepure']);
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
     Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
+
 
 });
 
@@ -187,7 +192,6 @@ Route::prefix('/sales')->group(function(){
     Route::get('/getSale',[SalesController::class, 'Index']);
     Route::get('/getStores',[SalesController::class, 'getStores']);
     Route::get('/generate',[SalesController::class, 'generate']);
-
 });
 
 Route::prefix('/requisition')->group(function(){
@@ -307,5 +311,11 @@ Route::prefix('/invoices')->group(function(){
     Route::post('/correction',[InvoicesController::class,'correction']);
     Route::post('/sendMessageDiff',[InvoicesController::class,'sendMessageDiff']);
 
+});
+
+Route::prefix('/invoicesReceived')->group(function(){
+    Route::get('/',[InvoicesReceived::class, 'getInvoices']);
+    Route::get('/replyInvoices',[InvoicesReceived::class, 'replyInvoices']);
+    Route::get('/updateInvoices',[InvoicesReceived::class, 'updateInvoices']);
 });
 
