@@ -39,8 +39,8 @@ class InvoicesReceived extends Controller
         ];
         $noEncontrados = []; // Array para productos no encontrados
         foreach($anios as $anio){
-            // $response = HTTP::post($cedis->ip_address.'/storetools/public/api/invoiceReceived/getIndex', $anio);
-            $response = HTTP::post('192.168.10.160:1619/storetools/public/api/invoiceReceived/getIndex', $anio);
+            $response = HTTP::post($cedis->ip_address.'/storetools/public/api/invoiceReceived/getIndex', $anio);
+            // $response = HTTP::post('192.168.10.160:1619/storetools/public/api/invoiceReceived/getIndex', $anio);
 
             $facturas = $response->json();
 
