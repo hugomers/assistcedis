@@ -136,7 +136,7 @@ class InvoicesReceived extends Controller
                     $noEncontrados[] = [
                         'factura' => $item['code'],
                         'product_code' => $prod['_product'],
-                        'anio' => $anio['anio']
+                        // 'anio' => $anio['anio']
                     ];
                 }
             }
