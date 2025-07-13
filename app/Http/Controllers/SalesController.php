@@ -27,6 +27,7 @@ class SalesController extends Controller
         // return $mes;
         $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
         foreach ($stores as $store) {
+            echo($store->name);
             try {
                 $response = Http::timeout(5)->get("http://{$store->ip_address}/access/public/reports/getSalesPerMonth/{$mes}");
 
@@ -71,7 +72,7 @@ class SalesController extends Controller
         $this->sendToWhatsApp($imageData);
 
         File::delete($tempPath);
-
+        echo('Holi');
         return response()->json(['status' => 'Imagen enviada y eliminada']);
     }
 
