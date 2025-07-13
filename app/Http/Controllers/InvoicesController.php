@@ -955,8 +955,8 @@ class InvoicesController extends Controller
             }
         if(count($res) > 0){
             $message = "Hay diferencias en la particion ".$request->id." P-(".$request->requisition['id'].") "." \nSucursal: ".$request->requisition['from']['name']."\n"."Diferencias: \n".implode("\n\n", $res) ;
-            // $to = '120363419230539005@g.us';
-            $to = '5573461022';
+            $to = '120363419230539005@g.us';
+            // $to = '5573461022';
             $sendMessage = $this->envMssg($message,$to);
         }
     }

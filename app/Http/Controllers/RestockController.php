@@ -337,8 +337,8 @@ class RestockController extends Controller
 
         if($change){
             $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' transporta el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
-            // $to = '120363194490127898@g.us';
-            $to = '5573461022';
+            $to = '120363194490127898@g.us';
+            // $to = '5573461022';
             $sendMessage = $this->envMssg($message,$to);
         }
         $res = [
@@ -370,8 +370,8 @@ class RestockController extends Controller
         $endpart = $this->verifyPartition($partition->_requisition);
         if($change){
             $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
-            // $to = '120363194490127898@g.us';
-            $to = '5573461022';
+            $to = '120363194490127898@g.us';
+            // $to = '5573461022';
             $sendMessage = $this->envMssg($message,$to);
         }
         $res = [
