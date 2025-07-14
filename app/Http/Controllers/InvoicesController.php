@@ -320,7 +320,7 @@ class InvoicesController extends Controller
                 $to
             ];
 
-            $query = Invoice::with(['type', 'status', 'to', 'from', 'created_by', 'log', 'partition.status', 'partition.log'])
+            $query = Invoice::with(['type', 'status', 'to', 'from', 'created_by', 'log', 'partition.status', 'partition.log','products.variants'])
                 ->withCount(["products"])
                 ->whereBetween(DB::raw('DATE(created_at)'),[$from,$to])->where(function ($q2) use ($request) {
                         $q2->where('_workpoint_to', $request->storeTo)
@@ -393,13 +393,17 @@ class InvoicesController extends Controller
                 'partition.status',
                 'partition.log',
                 'partition.products',
+                // 'products.category.familia.seccion',
+                // 'products.units',
+                // 'products.variants',
+                // 'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1, 2]),
+            ])->findOrFail($id);
+            $toWorkpointId = $order->to->id;
+            $order->load([
                 'products.category.familia.seccion',
                 'products.units',
                 'products.variants',
                 'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1, 2]),
-            ])->findOrFail($id);
-            $toWorkpointId = $order->to->id;
-            $order->load([
                 'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at')
             ]);
 
