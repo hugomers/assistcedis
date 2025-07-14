@@ -187,7 +187,7 @@ class RestockController extends Controller
         $ubicaciones = $request->ubicaciones;
         $to = $request->_workpoint_to;
         $from = $request->_workpoint_from;
-        $ip = env('PRINTER_P3');
+
         // $products = [];
         $order = Invoice::with([
             'type',
@@ -245,6 +245,11 @@ class RestockController extends Controller
                     }
                 }
                 $reqio = $npartition->load(['status','log','products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at'),'requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+                if($toWorkpointId == 2){
+                    $ip = env('PRINTERTEX');
+                }else{
+                    $ip = env('PRINTER_P3');
+                }
                 $cellerPrinter = new PrinterController();
                 $cellerPrinter->PartitionTicket($ip, $reqio);
                 $partitions[] = $reqio;
@@ -629,12 +634,13 @@ class RestockController extends Controller
         $invoicesResponse = Http::timeout(500)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
 
         if($invoicesResponse->status() == 200){
-            $unicos = array_values(array_unique(array_map(function($val){return "'".'FAC '.$val['FACTURA']."'";},$invoicesResponse->json())));
+            $unicos = array_values(array_unique(array_map(function($val){return "'".'P-'.$val['PARTICION']."'";},$invoicesResponse->json())));
             $salidas =  implode(',',$unicos);
             // return $salidas;
             // $entriesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
             $entriesResponse = Http::timeout(500)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
             $res = [
+                "unicos"=>$salidas,
                 "salidas"=>json_decode($invoicesResponse),
                 "entradas"=>json_decode($entriesResponse),
             ];
