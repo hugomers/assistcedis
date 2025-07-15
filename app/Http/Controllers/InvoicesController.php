@@ -534,7 +534,7 @@ class InvoicesController extends Controller
 
     public function partitionFresh(Request $request){
         $id = $request->route("pid");
-        $order = partitionRequisition::with(['status','log','products.variants','products.stocks' => fn($q) => $q->whereIn('id',[1,2]),'products.locations' => fn($qq) => $qq->whereHas('celler', function($qqq){ $qqq->where('_workpoint', 1); }),'products.prices','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])
+        $order = partitionRequisition::with(['status','log','products.variants','products.prices','products.stocks' => fn($q) => $q->whereIn('id',[1,2]),'products.locations' => fn($qq) => $qq->whereHas('celler', function($qqq){ $qqq->where('_workpoint', 1); }),'products.prices','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])
         ->find($id);
         $order->verified = $order->getOutVerifiedStaff();
         $order->receipt  = $order->getCheckStaff();
