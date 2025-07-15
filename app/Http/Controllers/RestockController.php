@@ -198,18 +198,28 @@ class RestockController extends Controller
             'partition.status',
             'partition.log',
             'partition.products',
-            'products.category.familia.seccion',
-            'products.units',
-            'products.variants',
-            'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1,2]),
+            // 'products.category.familia.seccion',
+            // 'products.units',
+            // 'products.variants',
+            // 'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1,2]),
             // 'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', 1))->whereNull('deleted_at')
         ])->findOrFail($pedido);
         $toWorkpointId = $order->to->id;
         $order->load([
-            'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at')
+            'products' => fn($q) => $q->whereHas('stocks', fn($s) =>
+                $s->where('_workpoint', $toWorkpointId)->where('stock', '>', 0)
+            ),
+            'products.category.familia.seccion',
+            'products.units',
+            'products.variants',
+            'products.stocks' => fn($q) => $q->whereIn('_workpoint', [1,2]),
+            'products.locations' => fn($q) =>
+                $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))
+                ->whereNull('deleted_at'),
         ]);
         $productosAsignados = collect(); // Control de productos ya asignados
         $partitions = [];
+        // return $order;
 
         foreach ($ubicaciones as $ubicacion) {
             $rootId = $ubicacion['id'];
