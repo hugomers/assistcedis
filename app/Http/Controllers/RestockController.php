@@ -471,9 +471,9 @@ class RestockController extends Controller
         // 'type', 'status', 'to', 'from', 'created_by', 'log', 'partition.status', 'partition.log'
         $partition = $partitions->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
         switch ($status) {
-            case 6:
-             $responsable = $partition->getOutVerifiedStaff()->complete_name;
-                break;
+            // case 6:
+            //  $responsable = $partition->getOutVerifiedStaff()->complete_name;
+            //     break;
             case 10:
             $responsable =  $partition->getCheckStaff()->complete_name;
                 break;
