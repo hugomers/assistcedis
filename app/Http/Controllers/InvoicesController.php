@@ -210,6 +210,9 @@ class InvoicesController extends Controller
                 $partition = partitionRequisition::find($request->id);
                 $partition->invoice = $folio['folio'];
                 $partition->save();
+                $partition->verified = $partition->getOutVerifiedStaff();
+                $partition->receipt  = $partition->getCheckStaff();
+
                 $res = $partition->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
                 return response()->json($res,200);
             }else{
