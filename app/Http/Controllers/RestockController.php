@@ -416,12 +416,20 @@ class RestockController extends Controller
         $status = $request->state;
         $entry_key = $request->key;
         $change = partitionRequisition::find($partition);
+        $bfore = $change->_status;
+
         if($change->entry_key == $entry_key){
         // $change = partitionRequisition::find($partition);
             $change->_in_verified = $check;
             $change->_status = $status;
             $change->save();
             $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+            if($bfore == 7){
+                $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+                $to = '120363194490127898@g.us';
+                // $to = '5573461022';
+                $sendMessage = $this->envMssg($message,$to);
+            }
             $idlog = partitionLog::max('id') + 1;
 
             $inslo = [
