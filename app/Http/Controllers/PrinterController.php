@@ -67,25 +67,70 @@ class PrinterController extends Controller
                     $printer->text("N° ".$sale['_cash']."-". str_pad($sale['document_id'], 6, "0", STR_PAD_LEFT)." Fecha: ".$sale["created_at"] ." \n");
                     $printer->text("Forma de Pago: ".mb_convert_encoding($sale["pfpa"]['name'],'UTF-8')." \n");
                     $printer->text("Cliente: ".mb_convert_encoding($sale["client_name"],'UTF-8')." \n");
-                    $printer->text("_______________________________________________ \n");
-                    $printer->text("ARTICULO        UD.        PRECIO        TOTAL \n");
-                    $printer->text("_______________________________________________ \n");
-                    $printer -> setFont(Printer::FONT_B);
-                    foreach($sale['bodie'] as $product){
-                        $printer->setJustification(printer::JUSTIFY_LEFT);
-                        $printer->text(mb_convert_encoding($product['code'], 'UTF-8')."   ".mb_convert_encoding($product['description'], 'UTF-8')." \n");
-                        $printer->setJustification(printer::JUSTIFY_RIGHT);
-                        $quantity = str_pad(number_format($product['amount'],2,'.',''),15);
+
+                    // $printer->text("_______________________________________________ \n");
+                    // $printer->text("ARTICULO        UD.        PRECIO        TOTAL \n");
+                    // $printer->text("_______________________________________________ \n");
+                    // $printer -> setFont(Printer::FONT_B);
+                    // foreach($sale['bodie'] as $product){
+                    //     $printer->setJustification(printer::JUSTIFY_LEFT);
+                    //     $printer->text(mb_convert_encoding($product['code'], 'UTF-8')."   ".mb_convert_encoding($product['description'], 'UTF-8')." \n");
+                    //     $printer->setJustification(printer::JUSTIFY_RIGHT);
+                    //     $quantity = str_pad(number_format($product['amount'],2,'.',''),15);
+                    //     $arti [] = $product['amount'];
+                    //     $price = str_pad(number_format($product['price'],2,'.',''),15);
+                    //     $total = str_pad(number_format($product['total'],2,'.',''),10);
+                    //     $printer->text($quantity." ".$price."  ".$total." \n");
+                    // }
+
+                    if($sale['iva'] == null){
+                        $printer->text(str_repeat("_", 48) . "\n");
+                        $printer->text(
+                            str_pad("ARTICULO", 15) .
+                            str_pad("UD.", 9) .
+                            str_pad("PRECIO", 14) .
+                            str_pad("TOTAL", 10). "\n"
+                        );
+                        $printer->text(str_repeat("_", 48) . "\n");
+                    }else{
+                        $printer->text(str_repeat("_", 48) . "\n");
+                        $printer->text(
+                            str_pad("ARTICULO", 12) .
+                            str_pad("UD.", 6) .
+                            str_pad("PRECIO", 9) .
+                            str_pad("S.TO", 7) .
+                            str_pad("IVA", 6) .
+                            str_pad("TOTAL", 7) . "\n"
+                        );
+                        $printer->text(str_repeat("_", 48) . "\n");
+                    }
+                    $printer->setFont(Printer::FONT_B);
+                    foreach ($sale['bodie'] as $product) {
+                        $printer->setJustification(Printer::JUSTIFY_LEFT);
+                        $printer->text(mb_convert_encoding($product['code'], 'UTF-8') . "   " . mb_convert_encoding($product['description'], 'UTF-8') . " \n");
+                        $printer->setJustification(Printer::JUSTIFY_RIGHT);
+                        $impuesto = isset($product['iva']);
+                        $amount = str_pad(number_format($product['amount'], 2,'.',''),$impuesto ? 9 : 15);  // UD. (10)
                         $arti [] = $product['amount'];
-                        $price = str_pad(number_format($product['price'],2,'.',''),15);
-                        $total = str_pad(number_format($product['total'],2,'.',''),10);
-                        $printer->text($quantity." ".$price."  ".$total." \n");
+                        $price  = str_pad(number_format($product['price'], 2,'.',''),$impuesto ? 11 : 18);   // PRECIO (15)
+                        $subtotal = $impuesto ?  str_pad(number_format($product['subtotal'], 2,'.',''),9) : null; // S.TO (7)
+                        $importeIva = $product['subtotal'] * ($product['iva'] / 100);
+                        $iva      = $impuesto ?  str_pad(number_format($importeIva, 2,'.',''),9) : null;           // IVA (6)
+                        $total  = str_pad(number_format($product['total'], 2,'.',''),$impuesto ? 10 : 12);   // TOTAL (10)
+                        $impuesto ? $printer->text($amount . $price . $subtotal . $iva . $total . "\n") : $printer->text($amount . $price . $total . "\n" );
                     }
                     $printer -> setFont(Printer::FONT_A);
                     $printer->text(" \n");
                     $printer->text(" \n");
                     $printer->setJustification(printer::JUSTIFY_RIGHT);
                     $printer->setEmphasis(true);
+                    if(isset($sale['iva'])){
+                        $printer->text(str_pad("SUBTOTAL: ",13));
+                        $printer->text("$".number_format($sale["subtotal"],2)." \n");
+                        $printer->text(str_pad("IVA: ",13));
+                        $importeTotalIva = $sale['subtotal'] * ($sale['iva'] / 100);
+                        $printer->text("$".number_format($importeTotalIva,2)." \n");
+                    }
                     $printer->text(str_pad("TOTAL: ",13));
                     $printer->text("$".number_format($sale["total"],2)." \n");
                     $printer->text(" \n");
@@ -125,7 +170,6 @@ class PrinterController extends Controller
                     $printer -> cut();
                     $printer -> close();
                 }catch(Exception $e){}
-
             } finally {
                 $printer -> close();
                 return true;
@@ -752,7 +796,7 @@ class PrinterController extends Controller
 
         if($requisition->printed>0){
             $printer->setTextSize(1,1);
-            $printer->text(" *** REIMPRESION *** \n");
+            $printer->text(" *** REIMPRESION PARTICION *** \n");
         }else{
             $printer->setTextSize(2,2);
             $printer->text(" *** Particion  *** \n");
@@ -770,7 +814,11 @@ class PrinterController extends Controller
         // $printer->text("Particion ". " - ".$requisition->id." \n");
         $printer->setReverseColors(false);
         $printer->setJustification(Printer::JUSTIFY_LEFT);
+
         $printer->setTextSize(1,1);
+        $printer->setReverseColors(true);
+        $printer->text("\n NOTAS:    ".$requisition->requisition->notes."\n");
+        $printer->setReverseColors(false);
         $printer->text("\n PARTICION ". " - ".$requisition->id." \n");
         $printer->text("\n AGENTE:    ".$requisition->requisition->created_by->names."\n");
         // $printer->text("\n SURTIDOR:    ".$requisition->_suplier."\n");
@@ -788,7 +836,6 @@ class PrinterController extends Controller
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->selectPrintMode(Printer::MODE_FONT_A);
         }
-
         $printer->text("------------------------------------------------\n\n");
         $printer->setTextSize(1,2);
         $y = 1;
