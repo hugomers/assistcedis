@@ -41,6 +41,14 @@ return [
         'env'     => [],
     ],
 
+    // 'image' => [
+    //     'enabled' => true,
+    //     'binary'  => '"C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe"',
+    //     'timeout' => false,
+    //     'options' => [],
+    //     'env'     => [],
+    // ],
+
     'image' => [
         'enabled' => true,
         'binary'  => '/usr/bin/wkhtmltoimage',
@@ -48,5 +56,6 @@ return [
         'options' => [],
         'env'     => [],
     ],
+
 
 ];

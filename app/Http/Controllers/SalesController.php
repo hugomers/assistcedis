@@ -23,27 +23,28 @@ class SalesController extends Controller
 
     public function generate(){
         $sales = [];
-        $mes  = date('n');
-        // return $mes;
         $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
         foreach ($stores as $store) {
-            echo($store->name);
+            // echo($store->name);
             try {
-                $response = Http::timeout(5)->get("http://{$store->ip_address}/access/public/reports/getSalesPerMonth/{$mes}");
-
+                // $response = Http::timeout(5)->get("http://192.168.10.160:1619/storetools/public/api/reports/getSales");
+                $response = Http::timeout(5)->get("http://{$store->ip_address}/storetools/public/api/reports/getSales");
                 if ($response->ok()) {
                     $data = $response->json();
                     $sales[] = [
                         'sucursal' => strtoupper($store->name),
                         'total' => $data['saleshoy'] ?? 0,
-                        'tickets' => $data['hoytck'] ?? 0
+                        'tickets' => $data['hoytck'] ?? 0,
+                        'desglose' => $data['desglose'] ?? 0,
+                        'status' => true
                     ];
                 } else {
                     $sales[] = [
                         'sucursal' => strtoupper($store->name),
                         'total' => 0,
                         'tickets' => 0,
-                        'status' => 'offline'
+                        'desglose' => [],
+                        'status' => false
                     ];
                 }
             } catch (\Exception $e) {
@@ -51,34 +52,32 @@ class SalesController extends Controller
                     'sucursal' => strtoupper($store->name),
                     'total' => 0,
                     'tickets' => 0,
-                    'status' => 'offline'
+                    'desglose' => [],
+                    'status' => false
                 ];
             }
         }
-
+        // return $sales;
         usort($sales, fn($a, $b) => $b['total'] <=> $a['total']);
-
         $html = view('sales_table', [
             'data' => $sales
         ])->render();
-
         $filename = 'sales_' . Str::random(8) . '.png';
         $tempPath = storage_path("app/$filename");
-
         SnappyImage::loadHTML($html)->save($tempPath);
-
         $imageData = file_get_contents($tempPath);
-
         $this->sendToWhatsApp($imageData);
-
         File::delete($tempPath);
-        echo('Holi');
-        return response()->json(['status' => 'Imagen enviada y eliminada']);
+        // return response()->json(['status' => 'Imagen enviada y eliminada']);
+        return response()->json($sales);
+
     }
 
     protected function sendToWhatsApp($imageData){
         $tokem = env('WATO');
-        $to = env('groupSales');
+        // $to = env('groupSales');
+        $to = '5573461022';
+
         $url = env('URLIMG');
 
         $payload = [
