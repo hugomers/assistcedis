@@ -119,6 +119,7 @@ Route::prefix('/Products')->group(function(){
     Route::post('/reportDepure',[ProductsController::class, 'reportDepure']);
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
     Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
+    Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
 
 
 });
@@ -166,7 +167,6 @@ Route::prefix('/cashier')->group(function(){
 
 Route::prefix('/restock')->group(function(){
     Route::get('/changeRaiz',[RestockController::class, 'changeRaiz']);
-
     Route::get('/getSupply/{sid}',[RestockController::class, 'getSupply']);
     Route::get('/getVerified/{sid}',[RestockController::class, 'getVerified']);
     Route::get('/getChof/{sid}',[RestockController::class, 'getChof']);
@@ -186,6 +186,8 @@ Route::prefix('/restock')->group(function(){
     Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
     Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
     Route::post('/getData',[RestockController::class, 'getData']);
+    Route::post('/refresTransit',[RestockController::class, 'refresTransit']);
+
 });
 
 Route::prefix('/sales')->group(function(){
@@ -278,6 +280,10 @@ Route::prefix('/cashs')->group(function(){
     Route::post('/addAdvances',[CashController::class,'addAdvances']);
     Route::post('/getSales',[CashController::class,'getSales']);
     Route::post('/RepliedSales',[CashController::class,'RepliedSales']);
+    Route::post('/getOrderCash',[CashController::class,'getOrderCash']);
+
+
+
 });
 
 
