@@ -24,14 +24,14 @@ class UserController extends Controller
         $pass = $request->pass;
         $rol = $request->_rol;
         $staff = $request->_staff;
-
+        $store = $request->_store;
         $user = new User();
         $user->nick = $nick;
         $user->password = Hash::make($pass);
         $user->_staff = $staff;
         $user->_rol = $rol;
+        $user->_store = $store;
         $user->save();
-
         return response()->json($user);
     }
 
@@ -42,12 +42,13 @@ class UserController extends Controller
             $pass = $user['pass'];
             $rol = $user['rol'];
             $staff = $user['_staff'];
-
+            $store = $user['_store'];
             $user = new User();
             $user->nick = $nick;
             $user->password = Hash::make($pass);
             $user->_staff = $staff;
             $user->_rol = $rol;
+            $user->_store = $store;
             $user->save();
         }
         return response('Usuarios Creados',200);
@@ -105,5 +106,13 @@ class UserController extends Controller
         $user->grouped_modules = array_values($groupedModules); // resetear índices
                 return response()->json($user);
 
+    }
+
+    public function changeAvatar(Request $request){
+        $user = User::find($request->id);
+        $user->avatar = $request->avatar;
+        $user->save();
+        $res = $user->fresh();
+        return response()->json($res);
     }
 }
