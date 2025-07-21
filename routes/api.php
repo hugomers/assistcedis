@@ -187,7 +187,7 @@ Route::prefix('/restock')->group(function(){
 });
 
 Route::prefix('/sales')->group(function(){
-    // Route::get('/getSale',[SalesController::class, 'Index']);
+    Route::get('/getSale',[SalesController::class, 'Index']);
 
     Route::get('/getStores',[SalesController::class, 'getStores']);
     Route::get('/generate',[SalesController::class, 'generate']);
