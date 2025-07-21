@@ -21,8 +21,7 @@ use App\Http\Controllers\CashController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoicesController;
 use App\Http\Controllers\InvoicesReceived;
-
-
+use App\Http\Controllers\PrinterController;
 
 
 /*
@@ -188,9 +187,16 @@ Route::prefix('/restock')->group(function(){
 });
 
 Route::prefix('/sales')->group(function(){
-    Route::get('/getSale',[SalesController::class, 'Index']);
+    // Route::get('/getSale',[SalesController::class, 'Index']);
+
     Route::get('/getStores',[SalesController::class, 'getStores']);
     Route::get('/generate',[SalesController::class, 'generate']);
+    Route::post('/getSale',[SalesController::class, 'getSale']);
+});
+
+
+Route::prefix('/prints')->group(function(){
+    Route::post('/PrintAttention',[PrinterController::class, 'PrintAttention']);
 });
 
 Route::prefix('/requisition')->group(function(){
