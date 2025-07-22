@@ -818,13 +818,15 @@ class PrinterController extends Controller
         $printer->text(" ".$requisition->requisition->from->alias." - ".$requisition->requisition->id." \n");
         // $printer->text("Particion ". " - ".$requisition->id." \n");
         $printer->setReverseColors(false);
+        $printer->text("\n PARTICION ". " - ".$requisition->id." \n");
+
         $printer->setJustification(Printer::JUSTIFY_LEFT);
 
         $printer->setTextSize(1,1);
         $printer->setReverseColors(true);
         $printer->text("\n NOTAS:    ".$requisition->requisition->notes."\n");
         $printer->setReverseColors(false);
-        $printer->text("\n PARTICION ". " - ".$requisition->id." \n");
+        // $printer->text("\n PARTICION ". " - ".$requisition->id." \n");
         $printer->text("\n AGENTE:    ".$requisition->requisition->created_by->names."\n");
         // $printer->text("\n SURTIDOR:    ".$requisition->_suplier."\n");
         // $printer->text(" SOLICITUD: ".$finished_at->pivot->created_at."\n");
