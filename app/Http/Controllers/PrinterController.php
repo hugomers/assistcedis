@@ -1111,8 +1111,8 @@ class PrinterController extends Controller
         $printer->text("------------------------------------------------\n\n");
         $printer->setTextSize(1,1);
         $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setBarcodeHeight(50);
-        $printer->setBarcodeWidth(2);
+        $printer->setBarcodeHeight(155);
+        $printer->setBarcodeWidth(255);
         $printer->barcode($staff['id_tpv']);
         $printer->feed(1);
         $printer->text("GRUPO VIZCARRA\n");
