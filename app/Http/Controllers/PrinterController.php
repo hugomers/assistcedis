@@ -1096,26 +1096,19 @@ class PrinterController extends Controller
             $printer = new Printer($connector);
         }catch(\Exception $e){ return null;}
         if(!$printer){ return false; }
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setReverseColors(true);
-        $printer->setEmphasis(true);
-        $printer->setReverseColors(false);
         $printer->setJustification(Printer::JUSTIFY_LEFT);
         $printer->setEmphasis(false);
         $printer->setTextSize(1,1);
         $printer->text("------------------------------------------------\n");
-        $printer->setTextSize(2,2);
-        $printer->setReverseColors(true);
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setReverseColors(false);
         $printer->setJustification(Printer::JUSTIFY_LEFT);
         $printer->setTextSize(1,2);
-        $printer->setReverseColors(true);
-        $printer->setReverseColors(false);
         $printer->text("\n AGENTE:".$staff['complete_name']."\n");
+        $printer->setJustification(Printer::JUSTIFY_CENTER);
+        $printer->setTextSize(3,2);
         $printer->text("\n ID:".$staff['id_tpv']."\n");
+        $printer->setJustification(Printer::JUSTIFY_LEFT);
+        $printer->setTextSize(1,1);
         $printer->text("------------------------------------------------\n\n");
-        $printer->setTextSize(1,2);
         $printer->setTextSize(1,1);
         $printer->setJustification(Printer::JUSTIFY_CENTER);
         $printer->setBarcodeHeight(50);
