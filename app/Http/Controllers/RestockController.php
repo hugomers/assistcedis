@@ -303,9 +303,9 @@ class RestockController extends Controller
         $change->_status = $status;
         $change->save();
         $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-        // $products = $freshPartition->products;
-        // $from = $freshPartition->requisition['from']['id'];
-        // $transit  = $this->modifyTransit($products,$from);
+        $products = $freshPartition->products;
+        $from = $freshPartition->requisition['from']['id'];
+        $transit  = $this->modifyTransit($products,$from);
         $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
@@ -326,41 +326,41 @@ class RestockController extends Controller
         return response()->json($res,200);
     }
 
-    // public function modifyTransit($products, $workpoint){
-    //     $counts = $products->filter(function ($val) {
-    //         return !empty($val['pivot']['checkout']);
-    //     });
-    //     foreach ($counts as $product) {
-    //         $mul = match ($product['pivot']['_supply_by']) {
-    //             2 => 12,
-    //             3 => $product['pivot']['ipack'] ?? 1,
-    //             default => 1,
-    //         };
-    //         $canti = $product['pivot']['toDelivered'] * $mul;
-    //         ProductStockVA::where([
-    //             ['_product', $product['id']],
-    //             ['_workpoint', $workpoint]
-    //         ])->increment('in_transit', $canti);
-    //     }
-    // }
+    public function modifyTransit($products, $workpoint){
+        $counts = $products->filter(function ($val) {
+            return !empty($val['pivot']['checkout']);
+        });
+        foreach ($counts as $product) {
+            $mul = match ($product['pivot']['_supply_by']) {
+                2 => 12,
+                3 => $product['pivot']['ipack'] ?? 1,
+                default => 1,
+            };
+            $canti = $product['pivot']['toDelivered'] * $mul;
+            ProductStockVA::where([
+                ['_product', $product['id']],
+                ['_workpoint', $workpoint]
+            ])->increment('in_transit', $canti);
+        }
+    }
 
-    // public function modifyTransitReceived($products,$workpoint){
-    //     $counts = $products->filter(function ($val) {
-    //         return !empty($val['pivot']['checkout']);
-    //     });
-    //     foreach ($counts as $product) {
-    //         $mul = match ($product['pivot']['_supply_by']) {
-    //             2 => 12,
-    //             3 => $product['pivot']['ipack'] ?? 1,
-    //             default => 1,
-    //         };
-    //         $canti = $product['pivot']['toDelivered'] * $mul;
-    //         ProductStockVA::where([
-    //             ['_product', $product['id']],
-    //             ['_workpoint', $workpoint]
-    //         ])->decrement('in_transit', $canti);
-    //     }
-    // }
+    public function modifyTransitReceived($products,$workpoint){
+        $counts = $products->filter(function ($val) {
+            return !empty($val['pivot']['checkout']);
+        });
+        foreach ($counts as $product) {
+            $mul = match ($product['pivot']['_supply_by']) {
+                2 => 12,
+                3 => $product['pivot']['ipack'] ?? 1,
+                default => 1,
+            };
+            $canti = $product['pivot']['toDelivered'] * $mul;
+            ProductStockVA::where([
+                ['_product', $product['id']],
+                ['_workpoint', $workpoint]
+            ])->decrement('in_transit', $canti);
+        }
+    }
 
     public function getVerified($sid){
         $id = $sid == 24 ? 12 : $sid;
@@ -495,12 +495,12 @@ class RestockController extends Controller
 
     }
 
-    // public function refresTransit(Request $request){
-    //     $freshPartition = partitionRequisition::with(['products','requisition.from'])->find($request->id);
-    //     $products = $freshPartition->products;
-    //     $from = $freshPartition->requisition['from']['id'];
-    //     $transit  = $this->modifyTransitReceived($products,$from);
-    // }
+    public function refresTransit(Request $request){
+        $freshPartition = partitionRequisition::with(['products','requisition.from'])->find($request->id);
+        $products = $freshPartition->products;
+        $from = $freshPartition->requisition['from']['id'];
+        $transit  = $this->modifyTransitReceived($products,$from);
+    }
 
     public function getSalida(Request $request){
         $salida = $request->all();
