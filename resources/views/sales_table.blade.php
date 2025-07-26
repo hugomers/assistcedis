@@ -34,6 +34,14 @@
             padding: 5px 10px;
             text-align: center;
         }
+        .anterior-header {
+    background-color: #f4cccc !important; /* Color rosado claro */
+    color: #000;
+}
+
+.anterior-cell {
+    background-color: #fce5cd; /* Color durazno claro */
+}
     </style>
 </head>
 <body>
@@ -43,10 +51,13 @@
                 <th rowspan="2">SUCURSAL</th>
                 <th rowspan="2">VENTA</th>
                 <th rowspan="2">TICKETS</th>
+                <th rowspan="1" colspan="2">Anterior</th>
                 <th colspan="5">DESGLOSE</th>
 
             </tr>
             <tr class="sub-header">
+                <th class="anterior-header">VENTA</th>
+                <th class="anterior-header">TICKETS</th>
                 <th>EFECTIVO</th>
                 <th>TARJETAS</th>
                 <th>TRANSFEREN</th>
@@ -64,6 +75,8 @@
                 $total_transferencia = 0;
                 $total_credito = 0;
                 $total_vale = 0;
+                $total_anterior = 0;
+                $tickets_anterior = 0;
             @endphp
             @foreach ($data as $item)
                 @php
@@ -89,6 +102,8 @@
                     }
                     $total_venta += $item['total'];
                     $total_tickets += $item['tickets'];
+                    $total_anterior += $item['anterior']['total'];
+                    $tickets_anterior += $item['anterior']['tickets'];
                     $total_efectivo += $efectivo;
                     $total_tarjetas += $tarjetas;
                     $total_transferencia += $transferencia;
@@ -98,8 +113,12 @@
 
                 <tr class="{{ $item['status'] ? '' : 'tr-error' }} ;">
                     <td>{{ $item['sucursal'] }}</td>
-                    <td>${{ number_format($item['total'], 2) }}</td>
-                    <td>{{ number_format($item['tickets'], 2) }}</td>
+                    <td >${{ number_format($item['total'], 2) }}</td>
+                    <td >{{ number_format($item['tickets'], 2) }}</td>
+
+                    <td class="{{ $item['status'] ? 'anterior-cell' : 'tr-error' }} ;">${{ number_format($item['anterior']['total'], 2) }}</td>
+                    <td class="{{ $item['status'] ? 'anterior-cell' : 'tr-error' }} ;">{{ number_format($item['anterior']['tickets'], 2) }}</td>
+
                     <td>${{ number_format($efectivo, 2) }}</td>
                     <td>${{ number_format($tarjetas, 2) }}</td>
                     <td>${{ number_format($transferencia, 2) }}</td>
@@ -114,6 +133,10 @@
                 <td>TOTALES</td>
                 <td>${{ number_format($total_venta, 2) }}</td>
                 <td>{{ number_format($total_tickets, 2) }}</td>
+
+                <td >${{ number_format($total_anterior, 2) }}</td>
+                <td >{{ number_format($tickets_anterior, 2) }}</td>
+
                 <td>${{ number_format($total_efectivo, 2) }}</td>
                 <td>${{ number_format($total_tarjetas, 2) }}</td>
                 <td>${{ number_format($total_transferencia, 2) }}</td>
