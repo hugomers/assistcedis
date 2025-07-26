@@ -158,28 +158,33 @@ class RestockController extends Controller
         $status = $request->state;
 
         $change = partitionRequisition::find($partition);
-        $change->_suplier =$supply['complete_name'] ;
-        $change->_suplier_id = $supply['id'];
-        $change->_status = $status;
-        $change->save();
-        $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-        $idlog = partitionLog::max('id') + 1;
+        if($change->_status == 3){
+            $change->_suplier =$supply['complete_name'] ;
+            $change->_suplier_id = $supply['id'];
+            $change->_status = $status;
+            $change->save();
+            $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+            $idlog = partitionLog::max('id') + 1;
 
-        $inslo = [
-            'id'=>$idlog,
-            '_requisition'=>$freshPartition->_requisition,
-            '_partition'=>$freshPartition->id,
-            '_status'=>$status,
-            'details'=>json_encode(['responsable'=>$freshPartition->getSupplyStaff()->complete_name]),
-        ];
+            $inslo = [
+                'id'=>$idlog,
+                '_requisition'=>$freshPartition->_requisition,
+                '_partition'=>$freshPartition->id,
+                '_status'=>$status,
+                'details'=>json_encode(['responsable'=>$freshPartition->getSupplyStaff()->complete_name]),
+            ];
 
-        $logs = partitionLog::insert($inslo);
-        $endpart = $this->verifyPartition($freshPartition->_requisition);
-        $res = [
-            "partition"=>$freshPartition,
-            "partitionsEnd"=>$endpart
-        ];
-        return response()->json($res,200);
+            $logs = partitionLog::insert($inslo);
+            $endpart = $this->verifyPartition($freshPartition->_requisition);
+            $res = [
+                "partition"=>$freshPartition,
+                "partitionsEnd"=>$endpart
+            ];
+            return response()->json($res,200);
+        }else{
+            return response()->json(['message'=>'El status ya esta surtido'],401);
+        }
+
     }
 
     public function createParitions(Request $request){
