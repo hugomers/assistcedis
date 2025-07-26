@@ -89,8 +89,8 @@ class SalesController extends Controller
 
     protected function sendToWhatsApp($imageData){
         $tokem = env('WATO');
-        // $to = env('groupSales');
-        $to = '5573461022';
+        $to = env('groupSales');
+        // $to = '5573461022';
         $url = env('URLIMG');
 
         $payload = [
