@@ -119,6 +119,8 @@ Route::prefix('/Products')->group(function(){
     Route::post('/replacecode',[ProductsController::class, 'replacecode']);
     Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
     Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
+    Route::post('/search-exact',[ProductsController::class,'searchExact']);
+
 
 
 });

@@ -19,7 +19,11 @@ use App\Models\SalePayment;
 use App\Models\PaymentMethod;
 use App\Models\IngressClient;
 use App\Models\Ingress;
+use App\Models\SeasonsVA;
 use App\Models\Advances;
+use App\Models\AccountVA;
+use App\Models\OrderVA;
+use App\Models\OrderLogVA;
 use App\Models\partitionRequisition;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
@@ -120,6 +124,7 @@ class CashController extends Controller
         $methods = PaymentMethod::where('id','!=',5)->get();
         $providers = ProviderWithdrawal::all();
         $clientIngress = IngressClient::all();
+        $rules = SeasonsVA::with('rules')->get();
 
         $query = CashRegister::with([
             'store',
@@ -136,6 +141,7 @@ class CashController extends Controller
         }
         if($res && $res->cashier){
             $response = [
+                "rules"=>$rules,
                 "cash"=>$res,
                 "methods"=>$methods,
                 "providers"=>$providers,
@@ -286,151 +292,151 @@ class CashController extends Controller
         });
     }
 
-    public function addSaleStandar(Request $request){
-        $sale = $request->order;
-        $cash = $request->cashier;
-        $res = null;
-        DB::transaction(function() use ($cash, &$nwSale, $sale, &$res) {
-            $payments = $sale['payments'];
-            $nextDocumentId = Sale::where('_cash', $cash['id'])->max('document_id') + 1;
-            $staff = Staff::find($sale['dependiente']['id']);
-            $nwSale = new Sale;
-            $nwSale->_client = $sale['client']['id'];
-            $nwSale->client_name = $sale['client']['name'];
-            $nwSale->_staff = $staff->id;
-            $nwSale->_cashier = $cash['cashier']['id'];
-            $nwSale->_state = 1;
-            $nwSale->total = $sale['total'];
-            $nwSale->change = $sale['change'];
-            $nwSale->_pfpa = $payments['PFPA']['id']['id'];
-            $nwSale->pfpa_import =$payments['PFPA']['val'];
-            $nwSale->_sfpa = isset($payments['SFPA']['id']) ? $payments['SFPA']['id']['id'] : null;
-            $nwSale->sfpa_import = isset($payments['SFPA']['id']) ? $payments['SFPA']['val'] : null;
-            $nwSale->_val = isset($payments['VALE']['id']) ? $payments['VALE']['id']['id'] : null;
-            $nwSale->val_import = isset($payments['VALE']['id']) ? $payments['VALE']['val'] : null;
-            $nwSale->val_code = isset($payments['VALE']['id']) ? $payments['VALE']['id']['code']  : null;
-            $nwSale->_cash = $cash['id'];
-            $nwSale->_store = $cash['_store'];
-            $nwSale->document_id = $nextDocumentId;
-            $nwSale->save();
-            $res = $nwSale->fresh();
-            if($res){
+    // public function addSaleStandar(Request $request){
+    //     $sale = $request->order;
+    //     $cash = $request->cashier;
+    //     $res = null;
+    //     DB::transaction(function() use ($cash, &$nwSale, $sale, &$res) {
+    //         $payments = $sale['payments'];
+    //         $nextDocumentId = Sale::where('_cash', $cash['id'])->max('document_id') + 1;
+    //         $staff = Staff::find($sale['dependiente']['id']);
+    //         $nwSale = new Sale;
+    //         $nwSale->_client = $sale['client']['id'];
+    //         $nwSale->client_name = $sale['client']['name'];
+    //         $nwSale->_staff = $staff->id;
+    //         $nwSale->_cashier = $cash['cashier']['id'];
+    //         $nwSale->_state = 1;
+    //         $nwSale->iva = isset($sale['iva']) ? $sale['iva'] : null;;
+    //         $nwSale->subtotal = isset($sale['subtotal']) ? $sale['subtotal'] : null;;
+    //         $nwSale->total = $sale['total'];
+    //         $nwSale->change = $sale['change'];
+    //         $nwSale->_pfpa = $payments['PFPA']['id']['id'];
+    //         $nwSale->pfpa_import =$payments['PFPA']['val'];
+    //         $nwSale->_sfpa = isset($payments['SFPA']['id']) ? $payments['SFPA']['id']['id'] : null;
+    //         $nwSale->sfpa_import = isset($payments['SFPA']['id']) ? $payments['SFPA']['val'] : null;
+    //         $nwSale->_val = isset($payments['VALE']['id']) ? $payments['VALE']['id']['id'] : null;
+    //         $nwSale->val_import = isset($payments['VALE']['id']) ? $payments['VALE']['val'] : null;
+    //         $nwSale->val_code = isset($payments['VALE']['id']) ? $payments['VALE']['id']['code']  : null;
+    //         $nwSale->_cash = $cash['id'];
+    //         $nwSale->_store = $cash['_store'];
+    //         $nwSale->document_id = $nextDocumentId;
+    //         $nwSale->save();
+    //         $res = $nwSale->fresh();
+    //         if($res){
+    //             if($payments['conditions']['super']){
+    //                 $cambio = ($payments['PFPA']['val'] + $payments['SFPA']['val'] + $payments['VALE']['val']) - $res->total;
+    //                 if($payments['conditions']['createWithdrawal']){
+    //                     $envio = [
+    //                         "cash"=>$cash,
+    //                         "withdrawal"=>[
+    //                             "concept"=>"Devolucion Sobrante pagos ticket ".$res->id,
+    //                             "import"=>$cambio,
+    //                             "providers"=>[
+    //                                 "val"=>["id"=>833]
+    //                             ]
+    //                         ]
+    //                     ];
+    //                     $addWith = $this->addWithrawalSobrante($envio);
+    //                 }else{
+    //                     $envio = [
+    //                         "sale"=>$res->id,
+    //                         "cash"=>$cash,
+    //                         "advance"=>[
+    //                             "client"=>[
+    //                                 "id"=>$res->_client,
+    //                                 "name"=>$res->client_name
+    //                             ],
+    //                         "import"=>$cambio,
+    //                         "observacion"=>"Vale Sobrante de la venta ".$res->id,
+    //                         ]
+    //                     ];
+    //                     $addAdvance = $this->addAdvancesSobrante($envio);
+    //                 }
+    //             }
+    //             $products = $sale['products'];
+    //             $insArt = array_map(function($val)use($res){
+    //                 return [
+    //                     "_sale"=>$res->id,
+    //                     "code"=>$val['code'],
+    //                     "description"=>$val['description'],
+    //                     "cost"=>$val['cost'],
+    //                     "amount"=>$val['pivot']['toDelivered'],
+    //                     "price"=>$val['pivot']['price'],
+    //                     "_rate"=>$val['pivot']['_price_list'],
+    //                     "iva"=>isset($val['pivot']['iva']) ?$val['pivot']['iva'] : null,
+    //                     "subtotal"=>isset($val['pivot']['subtotal']) ?$val['pivot']['subtotal'] : null,
+    //                     "total"=>$val['pivot']['total']
+    //                 ];
+    //             },$products);
+    //             $nrwBodi =  SaleBodie::insert($insArt);
+    //             $change = floatval($res->change);
+    //             $filtered = array_filter($payments, function($val) {
+    //                 return isset($val['id']) && !is_null($val['id']) && $val['val'] > 0;
+    //             });
+    //             $changeVale = ["total"=>0,"state"=>false];
+    //             if ($change > 0) {
+    //                 foreach ($filtered as $key => &$payment) {
+    //                     if (isset($payment['id']['alias']) && $payment['id']['alias'] === 'EFE') {
+    //                         $original = floatval($payment['val']);
+    //                         $adjusted = $original - $change;
+    //                         $payment['val'] = $adjusted >= 0 ? $adjusted : 0;
+    //                         break;
+    //                     }
+    //                 }
+    //             }else if ( isset($payments['conditions']['super']) && $payments['conditions']['super']){
+    //                 $cambio = ($payments['PFPA']['val'] + $payments['SFPA']['val'] + $payments['VALE']['val']) - $res->total;
+    //                 if($cambio > 0){
+    //                     foreach ($filtered as $key => &$payment) {
+    //                         if (isset($payment['id']['id']) && $payment['id']['id'] === 5 ) {
 
-                if($payments['conditions']['super']){
-                    $cambio = ($payments['PFPA']['val'] + $payments['SFPA']['val'] + $payments['VALE']['val']) - $res->total;
-                    if($payments['conditions']['createWithdrawal']){
-                        $envio = [
-                            "cash"=>$cash,
-                            "withdrawal"=>[
-                                "concept"=>"Devolucion Sobrante pagos ticket ".$res->id,
-                                "import"=>$cambio,
-                                "providers"=>[
-                                    "val"=>["id"=>833]
-                                ]
-                            ]
-                        ];
-                        $addWith = $this->addWithrawalSobrante($envio);
-
-                    }else{
-                        $envio = [
-                            "sale"=>$res->id,
-                            "cash"=>$cash,
-                            "advance"=>[
-                                "client"=>[
-                                    "id"=>$res->_client,
-                                    "name"=>$res->client_name
-                                ],
-                            "import"=>$cambio,
-                            "observacion"=>"Vale Sobrante de la venta ".$res->id,
-                            ]
-                        ];
-                        $addAdvance = $this->addAdvancesSobrante($envio);
-                    }
-                }
-
-                $products = $sale['products'];
-                $insArt = array_map(function($val)use($res){
-                    return [
-                        "_sale"=>$res->id,
-                        "code"=>$val['code'],
-                        "description"=>$val['description'],
-                        "cost"=>$val['cost'],
-                        "amount"=>$val['pivot']['toDelivered'],
-                        "price"=>$val['pivot']['price'],
-                        "_rate"=>$val['pivot']['_price_list'],
-                        "total"=>$val['pivot']['total']
-                    ];
-                },$products);
-                $nrwBodi =  SaleBodie::insert($insArt);
-                $change = floatval($res->change);
-                $filtered = array_filter($payments, function($val) {
-                    return isset($val['id']) && !is_null($val['id']) && $val['val'] > 0;
-                });
-                $changeVale = ["total"=>0,"state"=>false];
-                if ($change > 0) {
-                    foreach ($filtered as $key => &$payment) {
-                        if (isset($payment['id']['alias']) && $payment['id']['alias'] === 'EFE') {
-                            $original = floatval($payment['val']);
-                            $adjusted = $original - $change;
-                            $payment['val'] = $adjusted >= 0 ? $adjusted : 0;
-                            break;
-                        }
-                    }
-                }else if ( isset($payments['conditions']['super']) && $payments['conditions']['super']){
-                    $cambio = ($payments['PFPA']['val'] + $payments['SFPA']['val'] + $payments['VALE']['val']) - $res->total;
-                    if($cambio > 0){
-                        foreach ($filtered as $key => &$payment) {
-                            if (isset($payment['id']['id']) && $payment['id']['id'] === 5 ) {
-
-                                $original = floatval($payment['val']);
-                                $adjusted = $original - $cambio;
-                                $payment['val'] = $adjusted >= 0 ? $adjusted : 0;
-                                $changeVale = ['total'=>$adjusted,'state'=>true];
-                                break;
-                            }
-                        }
-                    }
-                }
-                if($res->val_code){
-                    $upd = Advances::where('fs_id',$res->val_code)->first();
-                    if($upd &&  $changeVale['state']){
-                        $upd->_status = 1;
-                        $upd->_sale_aplication = $res->id;
-                        $upd->import =  $changeVale['total'];
-                        $upd->save();
-                    }else{
-                        $upd->_status = 1;
-                        $upd->_sale_aplication = $res->id;
-                        $upd->save();
-                    }
-                }
-                $insPay = array_map(function($val) use ($res){
-                    return [
-                        "_sale"=>$res->id,
-                        '_payment' => $val['id']['id'],
-                        'import' => $val['val']
-                    ];
-                }, $filtered);
-                $nrwPaym =  SalePayment::insert($insPay);
-                if($nrwPaym && $nrwBodi){
-                    $res->load(['bodie','cashier.cash.tpv','cashier.print','cashier.user.staff','cashier.cash.store','payments','staff']);
-                    $cellerPrinter = new PrinterController();
-                    $printed = $cellerPrinter->printck($res,$payments);
-                }
-            }
-        });
-        if ($res) {
-            return response()->json($res, 200);
-        } else {
-            return response()->json(['error' => 'No se pudo guardar la venta'], 500);
-        }
-    }
+    //                             $original = floatval($payment['val']);
+    //                             $adjusted = $original - $cambio;
+    //                             $payment['val'] = $adjusted >= 0 ? $adjusted : 0;
+    //                             $changeVale = ['total'=>$adjusted,'state'=>true];
+    //                             break;
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //             if($res->val_code){
+    //                 $upd = Advances::where('fs_id',$res->val_code)->first();
+    //                 if($upd &&  $changeVale['state']){
+    //                     $upd->_status = 1;
+    //                     $upd->_sale_aplication = $res->id;
+    //                     $upd->import =  $changeVale['total'];
+    //                     $upd->save();
+    //                 }else{
+    //                     $upd->_status = 1;
+    //                     $upd->_sale_aplication = $res->id;
+    //                     $upd->save();
+    //                 }
+    //             }
+    //             $insPay = array_map(function($val) use ($res){
+    //                 return [
+    //                     "_sale"=>$res->id,
+    //                     '_payment' => $val['id']['id'],
+    //                     'import' => $val['val']
+    //                 ];
+    //             }, $filtered);
+    //             $nrwPaym =  SalePayment::insert($insPay);
+    //             if($nrwPaym && $nrwBodi){
+    //                 $res->load(['bodie','cashier.cash.tpv','cashier.print','cashier.user.staff','cashier.cash.store','payments','staff']);
+    //                 $cellerPrinter = new PrinterController();
+    //                 $printed = $cellerPrinter->printck($res,$payments);
+    //             }
+    //         }
+    //     });
+    //     if ($res) {
+    //         return response()->json($res, 200);
+    //     } else {
+    //         return response()->json(['error' => 'No se pudo guardar la venta'], 500);
+    //     }
+    // }
 
     public function addWithrawalSobrante($envio){
 
         $addWith = http::post($envio['cash']['store']['ip_address'].'/storetools/public/api/Cashier/addWithdrawal',$envio);
         // $addWith = http::post('192.168.10.160:1619'.'/storetools/public/api/Cashier/addWithdrawal',$envio);
-
         if($addWith->status() == 200){
             $newWith = new Withdrawal;
             $newWith->fs_id = $addWith['folio'];
@@ -731,5 +737,39 @@ class CashController extends Controller
         }
         return $res;
     }
+
+    public function getOrderCash(Request $request){
+        $oid = $request->oid;//order
+        $uid = $request->uid;//usuario
+        $user = AccountVA::find($uid);
+        $ip = $request->ip();//ip
+        $order = OrderVA::find($oid);
+        if($order){
+            if($order->_status > 1 && $order->_status < 10 ){
+                $order->_status = 9;
+                $order->save();
+                $res = $order->load(['products.category.familia.seccion','client','created_by','products.prices']);
+                $res->staff= $res->getStaff();
+                $this->createLog($order->id, 9, ['user' => $user, 'ip' => $ip], 'App\User', $user->id);
+                return response()->json($res);
+            }else{
+                return response()->json('El pedido no se puede cobrar',401);
+            }
+        }else{
+            return response()->json('No hay ninguna Order con ese numero',404);
+        }
+    }
+
+    public function createLog($_order, $_status, $details, $_type, $user){
+        $log = new OrderLogVA;
+        $log->_order = $_order;
+        $log->_status = $_status;
+        $log->details = json_encode($details);
+        $log->_type = $_type;
+        $log->_responsable = $user;
+        $log->save();
+        return $log;
+    }
+
 
 }

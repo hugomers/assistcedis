@@ -44,6 +44,9 @@ class ProductVA extends Model
         return $this->belongsToMany('App\Models\InvocidReceivedVA', 'product_received', '_product', '_order')
                     ->withPivot('amount', 'price', 'total');
     }
+    public function status(){
+        return $this->belongsTo('App\Models\ProductStatusVA', '_status');
+    }
 
     public function salesAmountByYear(){
         return DB::connection('vizapi')->table('sales')
@@ -84,6 +87,4 @@ class ProductVA extends Model
             ->sortBy('year')
             ->values();
     }
-
-
 }
