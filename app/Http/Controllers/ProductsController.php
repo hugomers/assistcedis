@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\ProductVA;
 use App\Models\Stores;
 
@@ -13,7 +14,6 @@ class ProductsController extends Controller
 
 
     public function getProduct($id){
-
         $product = ProductVA::with([
             'stocks'=> fn($q)=> $q->whereNotIn('_workpoint',[12,14,15,22,21]),
             'category.familia.seccion',
@@ -474,4 +474,281 @@ class ProductsController extends Controller
             return response()->json('mensaje con exito',200);
         }
     }
+
+    // public function autoComplete(Request $request){ // Función autocomplete 2.0
+    //     $workpoint = $request->_workpoint;
+    //     $query = ProductVA::with(['category.familia.seccion','prices']);
+    //     if(isset($request->autocomplete) && $request->autocomplete){ //Valida si se utilizara la función de autocompletado ?
+    //         $codes = explode('ID-', $request->autocomplete); // Si el codigo tiene ID- al inicio la busqueda sera por el id que se le asigno en el catalog maestro (tabla products)
+    //         if(count($codes)>1){
+    //             $query = $query->where('id', $codes[1]);
+    //         }elseif(isset($request->strict) && $request->strict){ //La coincidencia de la busqueda sera exacta
+    //             if(strlen($request->autocomplete)>1){
+    //                 $query = $query->whereHas('variants', function(Builder $query) use ($request){
+    //                     $query->where('barcode', $request->autocomplete);
+    //                 })
+    //                 ->orWhere(function($query) use($request){
+    //                     $query
+    //                     ->orWhere('name', $request->autocomplete)
+    //                     ->orWhere('barcode', $request->autocomplete)
+    //                     ->orWhere('code', $request->autocomplete);
+    //                 });
+    //             }
+    //         }
+    //         else{ //La busqueda se realizara por similitud
+    //             if(strlen($request->autocomplete)>1){
+    //                 $query = $query->whereHas('variants', function(Builder $query) use ($request){
+    //                     $query->where('barcode', 'like', '%'.$request->autocomplete.'%');
+    //                 })
+    //                 ->orWhere(function($query) use($request){
+    //                     $query->orWhere('name', $request->autocomplete)
+    //                     ->orWhere('barcode', $request->autocomplete)
+    //                     ->orWhere('code', $request->autocomplete)
+    //                     ->orWhere('name', 'like','%'.$request->autocomplete.'%')
+    //                     ->orWhere('code', 'like','%'.$request->autocomplete.'%');
+    //                 });
+    //             }
+    //         }
+    //     }
+    //     $query = $query->where("_status", "!=", 4);
+    //     if(isset($request->products) && $request->products){ //Se puede buscar mas de un codigo a la vez mendiente el parametro products
+    //         $query = $query->whereHas('variants', function(Builder $query) use ($request){
+    //             $query->whereIn('barcode', $request->products);
+    //         })
+    //         ->orWhereIn('name', $request->products)
+    //         ->orWhereIn('code', $request->product);
+    //     }
+
+    //     if(isset($request->_category)){ //Se puede realizar una busqueda con el filtro de sección, familia, categoría mediente el ID de lo que estamos buscando
+    //         $_categories = $this->getCategoriesChildren($request->_category); // Se obtiene los hijos de esa categoría
+    //         $query = $query->whereIn('_category', $_categories); // Se añade el filtro de la categoría para realizar la busqueda
+    //     }
+
+    //     if(isset($request->_status)){ // Se puede realizar una busqueda con el filtro de status del producto mediante el ID del status que estamos buscando
+    //         $query = $query->where('_status', $request->_status); // Se añade el filtro de la categoría para realizar la busqueda
+    //     }
+
+    //     if(isset($request->_location)){ //Se puede realizar una busqueda con filtro de ubicación del producto mediante el ID de la ubicación (sección, pasillo, tarima, etc) que estamos buscando
+    //         $_locations = $this->getSectionsChildren($request->_location); //Se obtienen todos los hijos de la sección de la busqueda para realizar la busqueda completa
+    //         $query = $query->whereHas('locations', function( Builder $query) use($_locations){
+    //             $query->whereIn('_location', $_locations); // Se añade el filtro de la sección para realizar la busqueda
+    //         });
+    //     }
+
+    //     if(isset($request->_celler) && $request->_celler){ // Se puede realizar una busqueda con filtro de almacen
+    //         $locations = \App\CellerSection::where([['_celler', $request->_celler],['deep', 0]])->get(); // Se obtiene todas las ubicaciones dentro del almacen
+    //         $ids = $locations->map(function($location){
+    //             return $this->getSectionsChildren($location->id);
+    //         });
+    //         $_locations = array_merge(...$ids); // Se genera un arreglo con solo los ids de las ubicaciones
+    //         $query = $query->whereHas('locations', function( Builder $query) use($_locations){
+    //             $query->whereIn('_location', $_locations);
+    //         });
+    //     }
+
+    //     if(isset($request->check_sales)){
+    //         //OBTENER FUNCIÓN DE CHECAR STOCKS
+    //     }
+
+    //     $query = $query->with(['units', 'status', 'variants']); // por default se obtienen las unidades y el status general
+    //     if(isset($request->_workpoint_status) && $request->_workpoint_status){ // Se obtiene el stock de la tienda se se aplica el filtro
+
+    //         if($request->_workpoint_status == "all"){
+    //             $query = $query->with(['stocks']);
+    //         }else{
+    //             $workpoints = $request->_workpoint_status;
+    //             $workpoints[] = 1; // Siempre se agrega el status de la sucursal
+    //             $query = $query->with(['stocks' => function($query) use($workpoints){ //Se obtienen los stocks de todas las sucursales que se pasa el arreglo
+    //                 $query->whereIn('_workpoint', $workpoints)->distinct();
+    //             }]);
+    //         }
+    //     }else{
+    //         $query = $query->with(['stocks' => function($query) use($workpoint){ //Se obtiene el stock de la sucursal
+    //             $query->where('_workpoint', $workpoint)->distinct();
+    //         }]);
+    //     }
+
+    //     if(isset($request->with_locations) && $request->with_locations){ //Se puede agregar todas las ubicaciones de la sucursal
+    //         $query = $query->with(['locations' => function($query) use ($workpoint) {
+    //             $query->whereHas('celler', function($query) use ($workpoint) {
+    //                 $query->where([['_workpoint', $workpoint],['_type',2]]);
+    //             });
+    //         }]);
+    //     }
+
+    //     if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
+    //         if($request->with_stock){
+    //             $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
+    //                 $query->where('_workpoint', $workpoint)->where('stock', '>', 0); //Con stock
+    //             });
+    //         }else{
+    //             $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
+    //                 $query->where('_workpoint', $workpoint)->where('stock', '<=', 0); //Sin stock
+    //             });
+    //         }
+    //     }
+
+    //     if(isset($request->with_prices) && $request->with_prices){ //Se puede agregar los precios de lista del producto
+    //         $query = $query->with(['prices' => function($query){
+    //             $query->whereIn('_type', [1, 2, 3, 4])->orderBy('id'); //Solo se envian los precios de Menudeo, Mayoreo, Docena o Media caja y caja
+    //         }]);
+    //     }
+    //     if(isset($request->with_prices_Invoice) && $request->with_prices_Invoice){
+    //         $query = $query->with(['prices' => function($q) { $q->where('id',7); } ]);
+    //     }
+    //     if(isset($request->limit) && $request->limit){ //Se puede agregar un limite de los resultados mostrados
+    //         $query = $query->limit($request->limit);
+    //     }
+    //     if(isset($request->paginate) && $request->paginate){
+    //         $products = $query->orderBy('_status', 'asc')->paginate($request->paginate);
+    //     }else{
+    //         $products = $query->orderBy('_status', 'asc')->get();
+    //     }
+    //     return response()->json($products);
+    // }
+
+    public function autoComplete(Request $request){
+        $workpoint = $request->_workpoint;
+        $query = ProductVA::with(['category.familia.seccion', 'prices']);
+
+        $autocomplete = $request->autocomplete;
+
+        // --- AUTOCOMPLETE SEARCH ---
+        if ($autocomplete && strlen($autocomplete) > 1) {
+            $codes = explode('ID-', $autocomplete);
+            if (count($codes) > 1) {
+                $query->where('id', $codes[1]);
+            } elseif ($request->strict) {
+                $query->where(function ($q) use ($autocomplete) {
+                    $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
+                    ->orWhere('name', $autocomplete)
+                    ->orWhere('barcode', $autocomplete)
+                    ->orWhere('code', $autocomplete);
+                });
+            } else {
+                $query->where(function ($q) use ($autocomplete) {
+                    $q->whereHas('variants', fn($q) => $q->where('barcode', 'like', "%{$autocomplete}%"))
+                    ->orWhere('name', 'like', "%{$autocomplete}%")
+                    ->orWhere('code', 'like', "%{$autocomplete}%")
+                    ->orWhere('barcode', $autocomplete);
+                });
+            }
+        }
+
+        // --- PRODUCT STATUS FILTER ---
+        $query->where('_status', '!=', 4);
+
+        // --- SEARCH MULTIPLE PRODUCTS ---
+        if (!empty($request->products)) {
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('variants', fn($q) => $q->whereIn('barcode', $request->products))
+                ->orWhereIn('name', $request->products)
+                ->orWhereIn('code', $request->products);
+            });
+        }
+
+        // --- CATEGORY FILTER ---
+        if ($request->_category) {
+            $_categories = $this->getCategoriesChildren($request->_category);
+            $query->whereIn('_category', $_categories);
+        }
+
+        // --- STATUS FILTER ---
+        if ($request->_status !== null) {
+            $query->where('_status', $request->_status);
+        }
+
+        // --- LOCATION FILTER ---
+        if ($request->_location) {
+            $_locations = $this->getSectionsChildren($request->_location);
+            $query->whereHas('locations', fn($q) => $q->whereIn('_location', $_locations));
+        }
+
+        // --- CELLER FILTER ---
+        if ($request->_celler) {
+            $locations = \App\CellerSection::where('_celler', $request->_celler)->where('deep', 0)->get();
+            $_locations = $locations->flatMap(fn($l) => $this->getSectionsChildren($l->id))->all();
+            $query->whereHas('locations', fn($q) => $q->whereIn('_location', $_locations));
+        }
+
+        // --- STOCK BY WORKPOINT ---
+        if ($request->_workpoint_status) {
+            if ($request->_workpoint_status === 'all') {
+                $query->with('stocks');
+            } else {
+                $workpoints = is_array($request->_workpoint_status) ? $request->_workpoint_status : [$request->_workpoint_status];
+                $workpoints[] = 1;
+                $query->with(['stocks' => fn($q) => $q->whereIn('_workpoint', $workpoints)->distinct()]);
+            }
+        } else {
+            $query->with(['stocks' => fn($q) => $q->where('_workpoint', $workpoint)->distinct()]);
+        }
+
+        // --- LOCATIONS BY WORKPOINT ---
+        if ($request->with_locations) {
+            $query->with(['locations' => function ($q) use ($workpoint) {
+                $q->whereHas('celler', fn($q) => $q->where('_workpoint', $workpoint)->where('_type', 2));
+            }]);
+        }
+
+        // --- STOCK FILTER ---
+        if ($request->check_stock) {
+            $query->whereHas('stocks', function ($q) use ($workpoint, $request) {
+                $stockOperator = $request->with_stock ? '>' : '<=';
+                $q->where('_workpoint', $workpoint)->where('stock', $stockOperator, 0);
+            });
+        }
+
+        // --- PRICES FILTER ---
+        if ($request->with_prices) {
+            $query->with(['prices' => fn($q) => $q->whereIn('_type', [1, 2, 3, 4])->orderBy('id')]);
+        }
+
+        if ($request->with_prices_Invoice) {
+            $query->with(['prices' => fn($q) => $q->where('id', 7)]);
+        }
+
+        // --- EXTRA RELATIONS ---
+        $query->with(['units', 'status', 'variants']);
+
+        // --- LIMIT OR PAGINATE ---
+        if ($request->paginate) {
+            $products = $query->orderBy('_status', 'asc')->paginate($request->paginate);
+        } else {
+            if ($request->limit) {
+                $query->limit($request->limit);
+            }
+            $products = $query->orderBy('_status', 'asc')->get();
+        }
+
+        return response()->json($products);
+    }
+
+    // public function searchExact(Request $request){
+    //     $term = strtoupper(trim($request->autocomplete));
+    //     $workpoint = $request->_workpoint;
+
+    //     $query = ProductVA::query()
+    //         ->with([
+    //             'category.familia.seccion',
+    //             'prices',
+    //             'status',
+    //             'units',
+    //             'variants',
+    //             'stocks' => fn($q) => $q->where('_workpoint', $workpoint),
+    //         ])
+    //         ->where(function ($q) use ($term) {
+    //             $q->where('code', $term)
+    //             ->orWhere('name', $term)
+    //             ->orWhere('barcode', $term)
+    //             ->orWhereHas('variants', fn($q) => $q->where('barcode', $term));
+    //         })
+    //         ->where('_status', '!=', 4)
+    //         ->limit(1);
+
+    //     return response()->json($query->get());
+    // }
+
+
+
 }
