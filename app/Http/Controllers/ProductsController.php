@@ -7,12 +7,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\ProductVA;
+use App\Models\ProvidersVA;
+use App\Models\MakersVA;
+use App\Models\ProductCategoriesVA;
+use App\Models\ProductUnitVA;
 use App\Models\Stores;
+use App\Models\WorkpointVA;
+use App\Models\ControlFigures;
+use App\Models\historyPricesVA;
+
+
 
 class ProductsController extends Controller
 {
-
-
     public function getProduct($id){
         $product = ProductVA::with([
             'stocks'=> fn($q)=> $q->whereNotIn('_workpoint',[12,14,15,22,21]),
@@ -22,9 +29,20 @@ class ProductsController extends Controller
             // 'sales'
         ])
         ->find($id);
-        $product->total_stock = $product->stocks->sum(fn($item) => $item->pivot->stock);
+        $product->total_stock = $product->stocks->sum(fn($item) => $item->pivot->stock + $item->pivot->in_transit);
         $product->details = $product->combinedAmountByYear();
         return $product;
+    }
+
+    public function index(){
+        $res = [
+        "categories" => ProductCategoriesVA::whereNotNull('alias')->get(),
+        "providers" => ProvidersVA::all(),
+        "makers" => MakersVA::all(),
+        "units" => ProductUnitVA::all(),
+        "medPerson"=>ProductVA::whereNotNull('large')->where([['large','!=',''],['_status','!=',4]])->select('large')->distinct()->get()
+        ];
+        return $res;
     }
 
     public function translateWarehouses(Request $request){
@@ -475,150 +493,13 @@ class ProductsController extends Controller
         }
     }
 
-    // public function autoComplete(Request $request){ // Función autocomplete 2.0
-    //     $workpoint = $request->_workpoint;
-    //     $query = ProductVA::with(['category.familia.seccion','prices']);
-    //     if(isset($request->autocomplete) && $request->autocomplete){ //Valida si se utilizara la función de autocompletado ?
-    //         $codes = explode('ID-', $request->autocomplete); // Si el codigo tiene ID- al inicio la busqueda sera por el id que se le asigno en el catalog maestro (tabla products)
-    //         if(count($codes)>1){
-    //             $query = $query->where('id', $codes[1]);
-    //         }elseif(isset($request->strict) && $request->strict){ //La coincidencia de la busqueda sera exacta
-    //             if(strlen($request->autocomplete)>1){
-    //                 $query = $query->whereHas('variants', function(Builder $query) use ($request){
-    //                     $query->where('barcode', $request->autocomplete);
-    //                 })
-    //                 ->orWhere(function($query) use($request){
-    //                     $query
-    //                     ->orWhere('name', $request->autocomplete)
-    //                     ->orWhere('barcode', $request->autocomplete)
-    //                     ->orWhere('code', $request->autocomplete);
-    //                 });
-    //             }
-    //         }
-    //         else{ //La busqueda se realizara por similitud
-    //             if(strlen($request->autocomplete)>1){
-    //                 $query = $query->whereHas('variants', function(Builder $query) use ($request){
-    //                     $query->where('barcode', 'like', '%'.$request->autocomplete.'%');
-    //                 })
-    //                 ->orWhere(function($query) use($request){
-    //                     $query->orWhere('name', $request->autocomplete)
-    //                     ->orWhere('barcode', $request->autocomplete)
-    //                     ->orWhere('code', $request->autocomplete)
-    //                     ->orWhere('name', 'like','%'.$request->autocomplete.'%')
-    //                     ->orWhere('code', 'like','%'.$request->autocomplete.'%');
-    //                 });
-    //             }
-    //         }
-    //     }
-    //     $query = $query->where("_status", "!=", 4);
-    //     if(isset($request->products) && $request->products){ //Se puede buscar mas de un codigo a la vez mendiente el parametro products
-    //         $query = $query->whereHas('variants', function(Builder $query) use ($request){
-    //             $query->whereIn('barcode', $request->products);
-    //         })
-    //         ->orWhereIn('name', $request->products)
-    //         ->orWhereIn('code', $request->product);
-    //     }
-
-    //     if(isset($request->_category)){ //Se puede realizar una busqueda con el filtro de sección, familia, categoría mediente el ID de lo que estamos buscando
-    //         $_categories = $this->getCategoriesChildren($request->_category); // Se obtiene los hijos de esa categoría
-    //         $query = $query->whereIn('_category', $_categories); // Se añade el filtro de la categoría para realizar la busqueda
-    //     }
-
-    //     if(isset($request->_status)){ // Se puede realizar una busqueda con el filtro de status del producto mediante el ID del status que estamos buscando
-    //         $query = $query->where('_status', $request->_status); // Se añade el filtro de la categoría para realizar la busqueda
-    //     }
-
-    //     if(isset($request->_location)){ //Se puede realizar una busqueda con filtro de ubicación del producto mediante el ID de la ubicación (sección, pasillo, tarima, etc) que estamos buscando
-    //         $_locations = $this->getSectionsChildren($request->_location); //Se obtienen todos los hijos de la sección de la busqueda para realizar la busqueda completa
-    //         $query = $query->whereHas('locations', function( Builder $query) use($_locations){
-    //             $query->whereIn('_location', $_locations); // Se añade el filtro de la sección para realizar la busqueda
-    //         });
-    //     }
-
-    //     if(isset($request->_celler) && $request->_celler){ // Se puede realizar una busqueda con filtro de almacen
-    //         $locations = \App\CellerSection::where([['_celler', $request->_celler],['deep', 0]])->get(); // Se obtiene todas las ubicaciones dentro del almacen
-    //         $ids = $locations->map(function($location){
-    //             return $this->getSectionsChildren($location->id);
-    //         });
-    //         $_locations = array_merge(...$ids); // Se genera un arreglo con solo los ids de las ubicaciones
-    //         $query = $query->whereHas('locations', function( Builder $query) use($_locations){
-    //             $query->whereIn('_location', $_locations);
-    //         });
-    //     }
-
-    //     if(isset($request->check_sales)){
-    //         //OBTENER FUNCIÓN DE CHECAR STOCKS
-    //     }
-
-    //     $query = $query->with(['units', 'status', 'variants']); // por default se obtienen las unidades y el status general
-    //     if(isset($request->_workpoint_status) && $request->_workpoint_status){ // Se obtiene el stock de la tienda se se aplica el filtro
-
-    //         if($request->_workpoint_status == "all"){
-    //             $query = $query->with(['stocks']);
-    //         }else{
-    //             $workpoints = $request->_workpoint_status;
-    //             $workpoints[] = 1; // Siempre se agrega el status de la sucursal
-    //             $query = $query->with(['stocks' => function($query) use($workpoints){ //Se obtienen los stocks de todas las sucursales que se pasa el arreglo
-    //                 $query->whereIn('_workpoint', $workpoints)->distinct();
-    //             }]);
-    //         }
-    //     }else{
-    //         $query = $query->with(['stocks' => function($query) use($workpoint){ //Se obtiene el stock de la sucursal
-    //             $query->where('_workpoint', $workpoint)->distinct();
-    //         }]);
-    //     }
-
-    //     if(isset($request->with_locations) && $request->with_locations){ //Se puede agregar todas las ubicaciones de la sucursal
-    //         $query = $query->with(['locations' => function($query) use ($workpoint) {
-    //             $query->whereHas('celler', function($query) use ($workpoint) {
-    //                 $query->where([['_workpoint', $workpoint],['_type',2]]);
-    //             });
-    //         }]);
-    //     }
-
-    //     if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
-    //         if($request->with_stock){
-    //             $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
-    //                 $query->where('_workpoint', $workpoint)->where('stock', '>', 0); //Con stock
-    //             });
-    //         }else{
-    //             $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
-    //                 $query->where('_workpoint', $workpoint)->where('stock', '<=', 0); //Sin stock
-    //             });
-    //         }
-    //     }
-
-    //     if(isset($request->with_prices) && $request->with_prices){ //Se puede agregar los precios de lista del producto
-    //         $query = $query->with(['prices' => function($query){
-    //             $query->whereIn('_type', [1, 2, 3, 4])->orderBy('id'); //Solo se envian los precios de Menudeo, Mayoreo, Docena o Media caja y caja
-    //         }]);
-    //     }
-    //     if(isset($request->with_prices_Invoice) && $request->with_prices_Invoice){
-    //         $query = $query->with(['prices' => function($q) { $q->where('id',7); } ]);
-    //     }
-    //     if(isset($request->limit) && $request->limit){ //Se puede agregar un limite de los resultados mostrados
-    //         $query = $query->limit($request->limit);
-    //     }
-    //     if(isset($request->paginate) && $request->paginate){
-    //         $products = $query->orderBy('_status', 'asc')->paginate($request->paginate);
-    //     }else{
-    //         $products = $query->orderBy('_status', 'asc')->get();
-    //     }
-    //     return response()->json($products);
-    // }
-
     public function autoComplete(Request $request){
         $workpoint = $request->_workpoint;
-        $query = ProductVA::with(['category.familia.seccion', 'prices']);
-
+        $query = ProductVA::with(['units', 'status', 'variants','category.familia.seccion','prices' => fn($q) => $q->whereIn('_type', [1, 2, 3, 4])->orderBy('id')])->where('_status', '!=', 4);
         $autocomplete = $request->autocomplete;
-
         // --- AUTOCOMPLETE SEARCH ---
         if ($autocomplete && strlen($autocomplete) > 1) {
-            $codes = explode('ID-', $autocomplete);
-            if (count($codes) > 1) {
-                $query->where('id', $codes[1]);
-            } elseif ($request->strict) {
+            if ($request->strict) {
                 $query->where(function ($q) use ($autocomplete) {
                     $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
                     ->orWhere('name', $autocomplete)
@@ -634,121 +515,303 @@ class ProductsController extends Controller
                 });
             }
         }
-
-        // --- PRODUCT STATUS FILTER ---
-        $query->where('_status', '!=', 4);
-
-        // --- SEARCH MULTIPLE PRODUCTS ---
-        if (!empty($request->products)) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('variants', fn($q) => $q->whereIn('barcode', $request->products))
-                ->orWhereIn('name', $request->products)
-                ->orWhereIn('code', $request->products);
-            });
+        if ($request->limit) {
+            $query->limit($request->limit);
         }
-
-        // --- CATEGORY FILTER ---
-        if ($request->_category) {
-            $_categories = $this->getCategoriesChildren($request->_category);
-            $query->whereIn('_category', $_categories);
-        }
-
-        // --- STATUS FILTER ---
-        if ($request->_status !== null) {
-            $query->where('_status', $request->_status);
-        }
-
-        // --- LOCATION FILTER ---
-        if ($request->_location) {
-            $_locations = $this->getSectionsChildren($request->_location);
-            $query->whereHas('locations', fn($q) => $q->whereIn('_location', $_locations));
-        }
-
-        // --- CELLER FILTER ---
-        if ($request->_celler) {
-            $locations = \App\CellerSection::where('_celler', $request->_celler)->where('deep', 0)->get();
-            $_locations = $locations->flatMap(fn($l) => $this->getSectionsChildren($l->id))->all();
-            $query->whereHas('locations', fn($q) => $q->whereIn('_location', $_locations));
-        }
-
-        // --- STOCK BY WORKPOINT ---
-        if ($request->_workpoint_status) {
-            if ($request->_workpoint_status === 'all') {
-                $query->with('stocks');
-            } else {
-                $workpoints = is_array($request->_workpoint_status) ? $request->_workpoint_status : [$request->_workpoint_status];
-                $workpoints[] = 1;
-                $query->with(['stocks' => fn($q) => $q->whereIn('_workpoint', $workpoints)->distinct()]);
-            }
-        } else {
-            $query->with(['stocks' => fn($q) => $q->where('_workpoint', $workpoint)->distinct()]);
-        }
-
-        // --- LOCATIONS BY WORKPOINT ---
-        if ($request->with_locations) {
-            $query->with(['locations' => function ($q) use ($workpoint) {
-                $q->whereHas('celler', fn($q) => $q->where('_workpoint', $workpoint)->where('_type', 2));
-            }]);
-        }
-
-        // --- STOCK FILTER ---
-        if ($request->check_stock) {
-            $query->whereHas('stocks', function ($q) use ($workpoint, $request) {
-                $stockOperator = $request->with_stock ? '>' : '<=';
-                $q->where('_workpoint', $workpoint)->where('stock', $stockOperator, 0);
-            });
-        }
-
-        // --- PRICES FILTER ---
-        if ($request->with_prices) {
-            $query->with(['prices' => fn($q) => $q->whereIn('_type', [1, 2, 3, 4])->orderBy('id')]);
-        }
-
-        if ($request->with_prices_Invoice) {
-            $query->with(['prices' => fn($q) => $q->where('id', 7)]);
-        }
-
-        // --- EXTRA RELATIONS ---
-        $query->with(['units', 'status', 'variants']);
-
-        // --- LIMIT OR PAGINATE ---
-        if ($request->paginate) {
-            $products = $query->orderBy('_status', 'asc')->paginate($request->paginate);
-        } else {
-            if ($request->limit) {
-                $query->limit($request->limit);
-            }
-            $products = $query->orderBy('_status', 'asc')->get();
-        }
+        $products = $query->orderBy('_status', 'asc')->get();
 
         return response()->json($products);
     }
 
-    // public function searchExact(Request $request){
-    //     $term = strtoupper(trim($request->autocomplete));
-    //     $workpoint = $request->_workpoint;
+    public function genshortCode(){
+        do {
+            // Genera un número aleatorio de 5 dígitos (no comienza con 0)
+            $shortcode = mt_rand(10000, 99999);
 
-    //     $query = ProductVA::query()
-    //         ->with([
-    //             'category.familia.seccion',
-    //             'prices',
-    //             'status',
-    //             'units',
-    //             'variants',
-    //             'stocks' => fn($q) => $q->where('_workpoint', $workpoint),
-    //         ])
-    //         ->where(function ($q) use ($term) {
-    //             $q->where('code', $term)
-    //             ->orWhere('name', $term)
-    //             ->orWhere('barcode', $term)
-    //             ->orWhereHas('variants', fn($q) => $q->where('barcode', $term));
-    //         })
-    //         ->where('_status', '!=', 4)
-    //         ->limit(1);
+            // Verifica si ya existe en code, name o barcode de alguna variante
+            $exists = ProductVA::where('code', $shortcode)
+                ->orWhere('name', $shortcode)
+                ->orWhereHas('variants', function ($q) use ($shortcode) {
+                    $q->where('barcode', $shortcode);
+                })
+                ->exists();
 
-    //     return response()->json($query->get());
-    // }
+        } while ($exists);
+
+        return (string)$shortcode;
+    }
+
+    public function genBarcode(Request $request){
+        $y = date('Y');
+        $caty = $request->id;
+        $categoria = ProductCategoriesVA::with('familia.seccion')->find($caty);
+        do {
+            $randomDigits = '';
+            for ($i = 0; $i < 3; $i++) {
+                $randomDigits .= mt_rand(0, 9);
+            }
+            $barcode = $y . $categoria->familia['seccion']['num'] .$categoria->familia['num'] . $categoria->num . $randomDigits;
+
+            $exists = ProductVA::where('barcode', $barcode)
+                ->orWhere('code', $barcode)
+                ->orwhere('name',$barcode)
+                ->orWhereHas('variants', function ($q) use ($barcode) {
+                    $q->where('barcode', $barcode);
+                })
+                ->exists();
+        } while ($exists);
+        return response()->json($barcode);
+    }
+
+    public function searchBarcode($barcode){
+        $exists = ProductVA::where('barcode', $barcode)
+            ->orWhere('code', $barcode)
+            ->orwhere('name',$barcode)
+            ->orWhereHas('variants', function ($q) use ($barcode) {
+                $q->where('barcode', $barcode);
+            })
+            ->exists();
+        return response()->json($exists,200);
+
+    }
+    public function searchCode($id){
+        $exists = ProductVA::where('code', $id)
+        ->orWhere('name', $id)
+        ->orWhereHas('variants', function ($q) use ($id) {
+            $q->where('barcode', $id);
+        })
+        ->exists();
+        $res = [
+            "exist"=>$exists,
+            "cco"=>$this->genshortCode()
+        ];
+        return response()->json($res,200);
+    }
+
+    public function checkCodesBatch(Request $request){
+        $codes = $request->input('codes', []);
+        $barcodes = $request->input('barcodes', []);
+
+        // Inicializamos los resultados
+        $codeResults = [];
+        $barcodeResults = [];
+
+        // Procesar los códigos
+        foreach ($codes as $code) {
+            $exists = ProductVA::where('code', $code)
+                ->orWhere('name', $code)
+                ->orWhereHas('variants', function ($q) use ($code) {
+                    $q->where('barcode', $code);
+                })
+                ->exists();
+            $codeResults[$code] = [
+                'exist' => $exists,
+                'cco' => $this->genshortCode()
+            ];
+        }
+
+        // Procesar los códigos de barra
+        foreach ($barcodes as $barcode) {
+            $exists = ProductVA::where('barcode', $barcode)
+                ->orWhere('code', $barcode)
+                ->orWhere('name', $barcode)
+                ->orWhereHas('variants', function ($q) use ($barcode) {
+                    $q->where('barcode', $barcode);
+                })
+                ->exists();
+            $barcodeResults[$barcode] = $exists;
+        }
+
+        return response()->json([
+            'codes' => $codeResults,
+            'barcodes' => $barcodeResults
+        ]);
+    }
+
+    public function highProducts(Request $request){
+        $response=[
+            "mysql"=>[
+                "insert"=>[
+                    "goal"=>[],
+                    "fails"=>[]
+                ]
+            ],
+            "sucursales"=>[
+                "insert"=>[
+                    "goal"=>[],
+                    "fails"=>[]
+                ]
+            ]
+        ];
+        $insertFactusol = ['productos'=>[]];
+        $header = $request->head;
+        $data = $request->data;
+        $type = 1;//alta de productos
+
+        $control = new ControlFigures;
+        $control->name = $header['nameDoc'];
+        $control->created_at = $header['date'];
+        $control->_type = $type;
+        $control->_user = $header['autor']['id'];
+        $control->details = json_encode($data);
+        $control->save();
+        $res=  $control->fresh();
+        if($res){
+            foreach($data as $product){
+                $insertProduct = [
+                    'code'=>$product['code'],
+                    'name'=>trim($product['short_code']),
+                    'description'=>trim($product['description']),
+                    'label'=>trim(substr($product["description"],0,30)),
+                    'reference'=>$product['reference'],
+                    'pieces'=>$product['pxc'],
+                    '_category'=>$product['categoria']['id'],
+                    '_status'=>1,
+                    '_unit'=>$product['umc']['id'],
+                    '_provider'=>$product['provider']['id'],
+                    'updated_at'=>now(),
+                    'created_at'=>now(),
+                    'cost'=>$product['cost'],
+                    'barcode'=>$product['cb'],
+                    'refillable'=>1,
+                    '_maker'=>$product['makers']['id'],
+                    'dimensions'=>json_encode(["length"=>'',"height"=>'',"width"=>'']),
+                    'large'=>$product['mnp']['large']
+                ];
+                $insert = ProductVA::insert($insertProduct);
+                if($insert){
+                    $insertFactusol['productos'][] = $product;
+                    $response['mysql']['insert']['goal'][]=$insertProduct['code'];
+                }else{
+                    $response['mysql']['insert']['fail'][]=$insertProduct['code'];
+                }
+            }
+            $stores = WorkpointVA::where([['active',1],['id','!=',2]])->get();
+            // $stores = WorkpointVA::where('id',1)->get();
+            foreach($stores as $store){
+                $createStore = Http::post($store->dominio.'/storetools/public/api/Products/highProducts',$insertFactusol);
+                if($createStore->status() == 200){
+                    $response['sucursales']['insert']['goal'][] = [$store->alias=>$createStore->json()];
+                }else{
+                    $response['sucursales']['insert']['fails'][] = [$store->alias=>['Con Error']];
+                }
+            }
+            return response()->json($response,200);
+        }else{
+            return response()->json('No se lograron guardar los datos',500);
+        }
+    }
+
+    public function lookupProducts(Request $request){
+        $codes = $request->input('codes');
+        $products = ProductVA::whereIn('code', $codes)
+        ->with(['category.familia.seccion'])
+        ->get();
+        return response()->json([
+            'products' => $products
+        ]);
+    }
+
+    public function highPrices(Request $request){
+        $response=[
+            "mysql"=>[
+                "update"=>[
+                    "goal"=>[],
+                    "fails"=>[]
+                ]
+            ],
+            "sucursales"=>[
+                "update"=>[
+                    "goal"=>[],
+                    "fails"=>[]
+                ]
+            ]
+        ];
+        $insertFactusol = ['prices'=>[]];
+        $header = $request->head;
+        $data = $request->data;
+        $type = 2;//cambio de precios
+        $control = new ControlFigures;
+        $control->name = $header['nameDoc'];
+        $control->created_at = $header['date'];
+        $control->_type = $type;
+        $control->_user = $header['autor']['id'];
+        $control->details = json_encode($data);
+        $control->save();
+        $res =  $control->fresh();
+        if($res){
+            foreach($data as $price){
+                $product = ProductVA::with('prices')->find($price['_product']);
+                if($product){
+                    $resProduct = historyPricesVA::create([
+                        "_product"=>$price['_product'],
+                        "created_at"=>now(),
+                        "details"=>json_encode(["cost"=>$product->cost, "prices"=>$product->prices]),
+                    ]);
+                    if($resProduct){
+                        $product->cost = $price['costo'];
+                        $product->save();
+                        $updateProduct = $product->fresh();
+                        if($updateProduct){
+                            $pivotData = [];
+                            foreach ($price['prices'] as $type => $valor) {
+                                    $pivotData[$type] = ['price' => $valor];
+                            }
+                            $pdtPrices = $product->prices()->sync($pivotData);
+                            if($pdtPrices){
+                                $insertFactusol['prices'][] = $price;
+                            }
+                        }
+                    }
+                }
+            }
+            $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,18])->get();
+            // $stores = WorkpointVA::where('id',1)->get();
+            foreach($stores as $store){
+                // return $store;
+                $createStore = Http::post($store->dominio.'/storetools/public/api/Products/highPrices',$insertFactusol);
+                // return $createStore;
+                if($createStore->status() == 200){
+                    $response['sucursales']['update']['goal'][] = [$store->alias=>$createStore->json()];
+                }else{
+                    $response['sucursales']['update']['fails'][] = [$store->alias=>['Con Error']];
+                }
+            }
+
+            $dionisio = [
+                [
+                    "dominio"=>'ipwasabd-ntgkpkdcrv.dynamic-m.com:1620',
+                    "alias"=>"GR2",
+                ],
+                [
+                    "dominio"=>'novedadesdio-tkkhkmjbrv.dynamic-m.com:1619',
+                    "alias"=>"GR1",
+
+                ]
+            ];
+            foreach($dionisio as $st){
+                $createStoreDio = Http::post($st['dominio'].'/storetools/public/api/Products/highPrices',$insertFactusol);
+                // $createStoreDio = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/highPrices',$insertFactusol);
+                if($createStoreDio->status() == 200){
+                    $response['sucursales']['update']['goal'][] = [$st['alias']=>$createStoreDio->json()];
+                }else{
+                    $response['sucursales']['update']['fails'][] = [$st['alias']=>['Con Error']];
+                }
+            }
 
 
-
+            $foraneo = WorkpointVA::find(18);
+            $createStoreFor = Http::post($foraneo->dominio.'/storetools/public/api/Products/regispricefor',$insertFactusol);
+            // $createStoreFor = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/regispricefor',$insertFactusol);
+            // return $createStoreFor;
+            if($createStoreFor->status() == 200){
+                $response['sucursales']['update']['goal'][] = [$foraneo->alias=>$createStoreFor->json()];
+            }else{
+                $response['sucursales']['update']['fails'][] = [$foraneo->alias=>['Con Error']];
+            }
+            return response()->json($response);
+        }else{
+            return response()->json('No se lograron guardar los datos',500);
+        }
+    }
 }

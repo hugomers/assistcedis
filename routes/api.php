@@ -22,6 +22,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoicesController;
 use App\Http\Controllers\InvoicesReceived;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\WithdrawalsController;
 
 
 /*
@@ -109,7 +110,13 @@ Route::prefix('/assist')->group(function(){
 });
 
 Route::prefix('/Products')->group(function(){
+    Route::get('/index',[ProductsController::class, 'index']);
     Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
+    Route::get('/searchCode/{id}',[ProductsController::class, 'searchCode']);
+    Route::get('/searchBarcode/{id}',[ProductsController::class, 'searchBarcode']);
+
+    // Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
+
     Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
     Route::post('/transfers',[ProductsController::class, 'transferStores']);
     Route::post('/trapasDev',[ProductsController::class, 'trapasDev']);
@@ -120,9 +127,11 @@ Route::prefix('/Products')->group(function(){
     Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
     Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
     Route::post('/search-exact',[ProductsController::class,'searchExact']);
-
-
-
+    Route::post('/genBarcode',[ProductsController::class, 'genBarcode']);
+    Route::post('/checkCodesBatch',[ProductsController::class, 'checkCodesBatch']);
+    Route::post('/highProducts',[ProductsController::class, 'highProducts']);
+    Route::post('/highPrices',[ProductsController::class, 'highPrices']);
+    Route::post('/lookupProducts',[ProductsController::class, 'lookupProducts']);
 });
 
 Route::prefix('/admincli')->group(function(){
@@ -321,5 +330,9 @@ Route::prefix('/invoicesReceived')->group(function(){
     Route::get('/',[InvoicesReceived::class, 'getInvoices']);
     Route::get('/replyInvoices',[InvoicesReceived::class, 'replyInvoices']);
     Route::get('/updateInvoices',[InvoicesReceived::class, 'updateInvoices']);
+});
+
+Route::prefix('/withdrawalStore')->group(function(){
+    Route::get('/{sid}',[WithdrawalsController::class, 'getWithdrawalsStore']);
 });
 
