@@ -689,11 +689,17 @@ class ProductsController extends Controller
             $stores = WorkpointVA::where([['active',1],['id','!=',2]])->get();
             // $stores = WorkpointVA::where('id',1)->get();
             foreach($stores as $store){
-                $createStore = Http::post($store->dominio.'/storetools/public/api/Products/highProducts',$insertFactusol);
+                try {
+                $createStore = Http::timeout(50)->post($store->dominio.'/storetools/public/api/Products/highProducts',$insertFactusol);
                 if($createStore->status() == 200){
                     $response['sucursales']['insert']['goal'][] = [$store->alias=>$createStore->json()];
                 }else{
                     $response['sucursales']['insert']['fails'][] = [$store->alias=>['Con Error']];
+                }
+            } catch (\Throwable $e) {
+                    $response['sucursales']['insert']['fails'][] = [
+                        $store->alias => ['Sin conexión', 'error' => $e->getMessage()]
+                    ];
                 }
             }
             return response()->json($response,200);
