@@ -768,13 +768,19 @@ class ProductsController extends Controller
             $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,18])->get();
             // $stores = WorkpointVA::where('id',1)->get();
             foreach($stores as $store){
-                // return $store;
-                $createStore = Http::post($store->dominio.'/storetools/public/api/Products/highPrices',$insertFactusol);
-                // return $createStore;
-                if($createStore->status() == 200){
-                    $response['sucursales']['update']['goal'][] = [$store->alias=>$createStore->json()];
-                }else{
-                    $response['sucursales']['update']['fails'][] = [$store->alias=>['Con Error']];
+                try {
+                    // return $store;
+                    $createStore = Http::timeout(50)->post($store->dominio.'/storetools/public/api/Products/highPrices',$insertFactusol);
+                    // return $createStore;
+                    if($createStore->status() == 200){
+                        $response['sucursales']['update']['goal'][] = [$store->alias=>$createStore->json()];
+                    }else{
+                        $response['sucursales']['update']['fails'][] = [$store->alias=>['Con Error']];
+                    }
+                } catch (\Throwable $e) {
+                    $response['sucursales']['update']['fails'][] = [
+                        $store->alias => ['Sin conexión', 'error' => $e->getMessage()]
+                    ];
                 }
             }
 
@@ -790,24 +796,36 @@ class ProductsController extends Controller
                 ]
             ];
             foreach($dionisio as $st){
-                $createStoreDio = Http::post($st['dominio'].'/storetools/public/api/Products/highPrices',$insertFactusol);
+                 try {
+                $createStoreDio = Http::timeout(50)->post($st['dominio'].'/storetools/public/api/Products/highPrices',$insertFactusol);
                 // $createStoreDio = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/highPrices',$insertFactusol);
-                if($createStoreDio->status() == 200){
-                    $response['sucursales']['update']['goal'][] = [$st['alias']=>$createStoreDio->json()];
-                }else{
-                    $response['sucursales']['update']['fails'][] = [$st['alias']=>['Con Error']];
+                    if($createStoreDio->status() == 200){
+                        $response['sucursales']['update']['goal'][] = [$st['alias']=>$createStoreDio->json()];
+                    }else{
+                        $response['sucursales']['update']['fails'][] = [$st['alias']=>['Con Error']];
+                    }
+                } catch (\Throwable $e) {
+                    $response['sucursales']['update']['fails'][] = [
+                        $st['alias'] => ['Sin conexión', 'error' => $e->getMessage()]
+                    ];
                 }
             }
 
 
             $foraneo = WorkpointVA::find(18);
-            $createStoreFor = Http::post($foraneo->dominio.'/storetools/public/api/Products/regispricefor',$insertFactusol);
-            // $createStoreFor = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/regispricefor',$insertFactusol);
-            // return $createStoreFor;
-            if($createStoreFor->status() == 200){
-                $response['sucursales']['update']['goal'][] = [$foraneo->alias=>$createStoreFor->json()];
-            }else{
-                $response['sucursales']['update']['fails'][] = [$foraneo->alias=>['Con Error']];
+            try {
+                $createStoreFor = Http::timeout(50)->post($foraneo->dominio.'/storetools/public/api/Products/regispricefor',$insertFactusol);
+                // $createStoreFor = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/regispricefor',$insertFactusol);
+                // return $createStoreFor;
+                if($createStoreFor->status() == 200){
+                    $response['sucursales']['update']['goal'][] = [$foraneo->alias=>$createStoreFor->json()];
+                }else{
+                    $response['sucursales']['update']['fails'][] = [$foraneo->alias=>['Con Error']];
+                }
+            } catch (\Throwable $e) {
+                $response['sucursales']['update']['fails'][] = [
+                $foraneo->alias => ['Sin conexión', 'error' => $e->getMessage()]
+                ];
             }
             return response()->json($response);
         }else{
