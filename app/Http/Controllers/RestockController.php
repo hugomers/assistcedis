@@ -364,6 +364,14 @@ class RestockController extends Controller
                 ['_product', $product['id']],
                 ['_workpoint', $workpoint]
             ])->decrement('in_transit', $canti);
+            // ProductStockVA::where([
+            //     ['_product', $product['id']],
+            //     ['_workpoint', $workpoint]
+            // ])->increment('gen', $canti);
+            ProductStockVA::where([
+                ['_product', $product['id']],
+                ['_workpoint', $workpoint]
+            ])->increment('stock', $canti);
         }
     }
 
