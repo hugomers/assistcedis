@@ -87,4 +87,8 @@ class ProductVA extends Model
             ->sortBy('year')
             ->values();
     }
+
+    public function providers(){
+        return $this->belongsTo('App\Models\ProvidersVA', '_provider');
+    }
 }

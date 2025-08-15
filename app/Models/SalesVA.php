@@ -18,6 +18,10 @@ class SalesVA extends Model
         ->withPivot('amount', 'price', 'total');
     }
 
+    public function cashRegister(){
+        return $this->belongsTo('App\Models\CashRegisterVA','_cash');
+    }
+
     public function scopeSumAmountByYear($query)
 {
     return $query->selectRaw('YEAR(sales.created_at) as year, SUM(PS.amount) as total_amount')
@@ -27,3 +31,9 @@ class SalesVA extends Model
 }
 
 }
+
+
+    // public function sales(){
+    //     return $this->belongsToMany('App\Models\SalesVA', 'product_sold', '_product', '_sale')
+    //                 ->withPivot('amount','price','total');
+    // }

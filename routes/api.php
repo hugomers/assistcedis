@@ -22,6 +22,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoicesController;
 use App\Http\Controllers\InvoicesReceived;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\WithdrawalsController;
 
 
@@ -92,6 +93,13 @@ Route::prefix('/staff')->group(function(){
     Route::get('',[StaffController::class, 'Index']);
     Route::get('staffReply',[StaffController::class, 'staffReply']);
 });
+
+Route::prefix('/reports')->group(function(){
+    Route::get('',[ReportsController::class, 'Index']);
+    Route::post('obtReport',[ReportsController::class, 'obtReport']);
+});
+
+
 Route::prefix('/users')->group(function(){
     Route::get('getResources/{uid}',[UserController::class, 'getResources']);
     Route::post('createUser',[UserController::class, 'createUser']);
