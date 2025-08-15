@@ -203,6 +203,8 @@ Route::prefix('/restock')->group(function(){
     Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
     Route::post('/getData',[RestockController::class, 'getData']);
     Route::post('/refresTransit',[RestockController::class, 'refresTransit']);
+    Route::post('/deletePartition',[InvoicesController::class, 'deletePartition']);
+
 });
 
 Route::prefix('/sales')->group(function(){

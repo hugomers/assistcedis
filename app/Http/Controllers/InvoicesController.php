@@ -989,4 +989,23 @@ class InvoicesController extends Controller
             'body' => $message,
         ]);
     }
+
+    public function deletePartition(Request $request){
+        DB::beginTransaction();
+        try {
+            $partition = partitionRequisition::findOrFail($request->id);
+            $partition->products()->update(['_partition' => null]);
+            // $partition->log()->detach();
+            $partition->delete();
+            DB::commit();
+            return response()->json(['message' => 'Partición eliminada correctamente'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+            'message' => 'Error al eliminar la partición',
+            'error' => $e->getMessage()
+            ], 500);
+        }
+
+    }
 }

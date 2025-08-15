@@ -227,50 +227,116 @@ class RestockController extends Controller
         $partitions = [];
         // return $order;
 
+        // foreach ($ubicaciones as $ubicacion) {
+        //     $rootId = $ubicacion['id'];
+        //     $partitionCount = (int) $ubicacion['partition'];
+        //     $productosFiltrados = $order->products->filter(function ($producto) use ($rootId, $productosAsignados) {
+        //         if ($productosAsignados->contains($producto->id)) {
+        //             return false;
+        //         }
+        //         foreach ($producto->locations as $loc) {
+        //             $rootNode = $loc->getRootNode();
+        //             if ($rootNode && $rootNode->id == $rootId) {
+        //                 return true; // Solo si alguna raíz coincide
+        //             }
+        //         }
+        //         return false;
+        //     });
+        //     $productosAsignados = $productosAsignados->merge($productosFiltrados->pluck('id'));
+        //     $productosArray = $productosFiltrados->values();
+        //     $totalProductos = $productosArray->count();
+        //     $chunkSize = $partitionCount > 0 ? (int) ceil($totalProductos / $partitionCount) : $totalProductos;
+        //     for ($i = 1; $i <= $partitionCount; $i++) {
+        //             $npartition = new partitionRequisition([
+        //                 '_requisition' => $order->id,
+        //                 '_status' => $status,
+        //             ]);
+        //             $npartition->save();
+        //         if ($totalProductos > 0) {
+        //             $productosParaEstaPartition = $productosArray->slice(($i - 1) * $chunkSize, $chunkSize);
+        //             foreach ($productosParaEstaPartition as $producto) {
+        //                 $order->products()->updateExistingPivot($producto->id, [
+        //                     '_partition' => $npartition->id,
+        //                 ]);
+        //             }
+        //         }
+        //         $reqio = $npartition->load(['status','log','products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at'),'requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
+        //         if($toWorkpointId == 2){
+        //             $ip = env('PRINTERTEX');
+        //         }else{
+        //             $ip = env('PRINTER_P3');
+        //         }
+        //         $cellerPrinter = new PrinterController();
+        //         $cellerPrinter->PartitionTicket($ip, $reqio);
+        //         $partitions[] = $reqio;
+        //     }
+        // }
+
         foreach ($ubicaciones as $ubicacion) {
-            $rootId = $ubicacion['id'];
-            $partitionCount = (int) $ubicacion['partition'];
-            $productosFiltrados = $order->products->filter(function ($producto) use ($rootId, $productosAsignados) {
-                if ($productosAsignados->contains($producto->id)) {
-                    return false;
-                }
-                foreach ($producto->locations as $loc) {
-                    $rootNode = $loc->getRootNode();
-                    if ($rootNode && $rootNode->id == $rootId) {
-                        return true; // Solo si alguna raíz coincide
-                    }
-                }
-                return false;
-            });
-            $productosAsignados = $productosAsignados->merge($productosFiltrados->pluck('id'));
-            $productosArray = $productosFiltrados->values();
-            $totalProductos = $productosArray->count();
-            $chunkSize = $partitionCount > 0 ? (int) ceil($totalProductos / $partitionCount) : $totalProductos;
-            for ($i = 1; $i <= $partitionCount; $i++) {
-                    $npartition = new partitionRequisition([
-                        '_requisition' => $order->id,
-                        '_status' => $status,
-                    ]);
-                    $npartition->save();
-                if ($totalProductos > 0) {
-                    $productosParaEstaPartition = $productosArray->slice(($i - 1) * $chunkSize, $chunkSize);
-                    foreach ($productosParaEstaPartition as $producto) {
-                        $order->products()->updateExistingPivot($producto->id, [
-                            '_partition' => $npartition->id,
-                        ]);
-                    }
-                }
-                $reqio = $npartition->load(['status','log','products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at'),'requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-                if($toWorkpointId == 2){
-                    $ip = env('PRINTERTEX');
-                }else{
-                    $ip = env('PRINTER_P3');
-                }
-                $cellerPrinter = new PrinterController();
-                $cellerPrinter->PartitionTicket($ip, $reqio);
-                $partitions[] = $reqio;
+    $rootId = $ubicacion['id'] ?? null;
+    $partitionCount = (int) $ubicacion['partition'];
+
+
+    $productosFiltrados = $order->products->filter(function ($producto) use ($rootId, $productosAsignados) {
+        if ($productosAsignados->contains($producto->id)) {
+            return false;
+        }
+
+        if (is_null($rootId)) {
+            return true;
+        }
+
+        foreach ($producto->locations as $loc) {
+            $rootNode = $loc->getRootNode();
+            if ($rootNode && $rootNode->id == $rootId) {
+                return true;
             }
         }
+
+        return false;
+    });
+
+    $productosAsignados = $productosAsignados->merge($productosFiltrados->pluck('id'));
+    $productosArray = $productosFiltrados->values();
+    $totalProductos = $productosArray->count();
+    $chunkSize = $partitionCount > 0 ? (int) ceil($totalProductos / $partitionCount) : $totalProductos;
+
+    for ($i = 1; $i <= $partitionCount; $i++) {
+        $npartition = new partitionRequisition([
+            '_requisition' => $order->id,
+            '_status' => $status,
+        ]);
+        $npartition->save();
+
+        if ($totalProductos > 0) {
+            $productosParaEstaPartition = $productosArray->slice(($i - 1) * $chunkSize, $chunkSize);
+            foreach ($productosParaEstaPartition as $producto) {
+                $order->products()->updateExistingPivot($producto->id, [
+                    '_partition' => $npartition->id,
+                ]);
+            }
+        }
+
+        $reqio = $npartition->load([
+            'status',
+            'log',
+            'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))->whereNull('deleted_at'),
+            'requisition.type',
+            'requisition.status',
+            'requisition.to',
+            'requisition.from',
+            'requisition.created_by',
+            'requisition.log'
+        ]);
+
+        $ip = $toWorkpointId == 2 ? env('PRINTERTEX') : env('PRINTER_P3');
+
+        $cellerPrinter = new PrinterController();
+        $cellerPrinter->PartitionTicket($ip, $reqio);
+        $partitions[] = $reqio;
+    }
+}
+
         return response()->json($partitions,200);
     }
 
