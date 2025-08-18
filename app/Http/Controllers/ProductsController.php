@@ -672,11 +672,11 @@ class ProductsController extends Controller
                     'updated_at'=>now(),
                     'created_at'=>now(),
                     'cost'=>$product['cost'],
-                    'barcode'=>$product['cb'],
+                    'barcode'=>isset($product['cb']) ? trim($product['cb']) : null,
                     'refillable'=>1,
                     '_maker'=>$product['makers']['id'],
                     'dimensions'=>json_encode(["length"=>'',"height"=>'',"width"=>'']),
-                    'large'=>$product['mnp']['large']
+                    'large'=>isset($product['mnp']) ? $product['mnp']['large'] : null
                 ];
                 $insert = ProductVA::insert($insertProduct);
                 if($insert){
