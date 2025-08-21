@@ -107,6 +107,8 @@ class CashController extends Controller
                     'status',
                     'cashier' => fn($q) =>  $q->with('user.staff','print')->max('open_date'),
                 ]);
+                $openCashFS = http::post($cashier['store']['ip_address'].'/storetools/public/api/sales/openCash',$cashier);
+                // return $openCashFS;
                 return response()->json($response);
             }else{
                 return response()->json('No se logro insertar el log',500);
@@ -129,7 +131,7 @@ class CashController extends Controller
         $query = CashRegister::with([
             'store',
             'status',
-            'cashier' => fn($q) =>  $q->with('user.staff','print')->whereDate('open_date', now()->format('Y-m-d')),
+            'cashier' => fn($q) =>  $q->with('user.staff','print','cash.tpv','cash.store')->whereDate('open_date', now()->format('Y-m-d')),
         ])->where([['_status',1],['id',$cash],['_store',$sid]]);
 
         if($user->_rol == 3){
@@ -448,7 +450,6 @@ class CashController extends Controller
             $withdr = $newWith->load(['provider','cashier.cash.tpv']);
             $cellerPrinter = new PrinterController();
             $printed = $cellerPrinter->printret($withdr);
-            // return response()->json(["printed"=>$printed,"retirada"=>$res],200);
         }
     }
 
@@ -491,69 +492,53 @@ class CashController extends Controller
         $uid = $request->uid;
 
         $cashier = CashCashier::find($caja['cashier']['id']);
-        if($cashier){
-            $cashier->cash_close = $declarec;
-            $cashier->details = json_encode($bullet);
-            $cashier->close_date = now();
-            $res = $cashier->save();
+        if($cashier){;
+            $closeCash = http::post($caja['store']['ip_address'].'/storetools/public/api/sales/closeCash',$request->all());
+            if($closeCash->status() == 200){
+                $cashier->cash_close = $declarec;
+                $cashier->details = json_encode($bullet);
+                $cashier->close_date = now();
+                $res = $cashier->save();
+                $original = $closeCash->json();
 
-            if($res){
-                $totalesPorTipo = SalePayment::whereHas('sale', function ($q) use ($caja) {
-                    $q->where('_cashier', $caja['cashier']['id']);
-                })
-                ->select('_payment', DB::raw('SUM(import) as total'))
-                ->groupBy('_payment')
-                ->with('payment')
-                ->get();
-
-                $totalEfe = $totalesPorTipo->firstWhere('_payment', 2)?->total ?? 0;
-                $withdrawals = Withdrawal::where('_cashier',$caja['cashier']['id'])->sum('import');
-                $ingress = Ingress::where('_cashier',$caja['cashier']['id'])->sum('import');
-
-                // $cashier  = CashCashier::find($caja['cashier']['id']);
-                $start = $cashier->cash_start;
-                $efectivo = (floatval($totalEfe)  +   floatval($start) + floatval($ingress) ) - floatval($withdrawals);
-                $descuadre = $declarec - $efectivo;
                 $insDetails = [
-                    "retiradas"=>$withdrawals,
-                    "ingresos"=>$ingress,
-                    "fpa"=>$totalesPorTipo,
+                    "retiradas"=>$original['corte']['RETIRADAS'],
+                    "ingresos"=>$original['corte']['INGRESOS'],
+                    "fpa"=>$original['totales'],
                     "declarado"=>[
-                        "modedas"=>$bullet['Monedas'],
+                        "monedas"=>$bullet['Monedas'],
                         "billetes"=>$bullet['Billetes']
                     ],
                     "totalDeclarado"=>$declarec,
-                    "descuadre"=>$descuadre,
-                    "efectivoencaja"=>$efectivo,
+                    "descuadre"=>number_format((floatval($original['corte']['EFEATE']) - $original['totalEfe'] ),2),
+                    "efectivoencaja"=>$original['totalEfe'],
                 ];
-                $nwLog = new CashLog;
-                $nwLog->_type = 2;
-                $nwLog->_user = $uid;
-                $nwLog->_cash = $caja['id'];
-                $nwLog->details = json_encode($insDetails);
-                $nwLog->save();
-                $rlo = $nwLog;
-                if($rlo){
-                    $updState = CashRegister::where('id',$cashier['_cash'])->first();
-                    $updState->_status = 2;
-                    $updState->save();
-                    $response = $updState->load([
-                        'store',
-                        'status',
-                        'cashier' => fn($q) => $q
-                            ->with('user.staff', 'print', 'withdrawal','sale','ingress','addvances')
-                            ->where('id', $caja['cashier']['id']),
-                    ]);
-                    // return $insdetails;
-                    $cellerPrinter = new PrinterController();
-                    $printed = $cellerPrinter->printCut($insDetails,$response);
-                    $printed = $cellerPrinter->printCut($insDetails,$response);
-                    return response()->json($response);
+                    $nwLog = new CashLog;
+                    $nwLog->_type = 2;
+                    $nwLog->_user = $uid;
+                    $nwLog->_cash = $caja['id'];
+                    $nwLog->details = json_encode($insDetails);
+                    $nwLog->save();
+                    $rlo = $nwLog;
+                    if($rlo){
+                        $updState = CashRegister::where('id',$cashier['_cash'])->first();
+                        $updState->_status = 2;
+                        $updState->save();
+                        $response = $updState->load([
+                            'store',
+                            'status',
+                            'cashier' => fn($q) => $q
+                                ->with('user.staff', 'print', 'withdrawal','sale','ingress','addvances')
+                                ->where('id', $caja['cashier']['id']),
+                        ]);
+                        return response()->json($response);
+                    }else{
+                        return response()->json('No se logro insertar el log',500);
+                    }
                 }else{
-                    return response()->json('No se logro insertar el log',500);
+                    return response()->json(["message"=>'No se logro hacer el corte',"status"=>false]);
                 }
             }
-        }
     }
 
     public function addWitrawal(Request $request){
