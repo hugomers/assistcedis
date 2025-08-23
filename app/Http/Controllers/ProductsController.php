@@ -495,11 +495,18 @@ class ProductsController extends Controller
 
     public function autoComplete(Request $request){
         $workpoint = $request->_workpoint;
-        $query = ProductVA::with(['units', 'status', 'variants','category.familia.seccion','prices' => fn($q) => $q->whereIn('_type', [1, 2, 3, 4])->orderBy('id')])->where('_status', '!=', 4);
+        $query = ProductVA::with([
+            // 'units',
+            // 'status',
+            // 'variants',
+            'category.familia.seccion',
+            'prices'
+            ])->where('_status', '!=', 4)
+            ->orderBy('_status', 'asc');
         $autocomplete = $request->autocomplete;
-        // --- AUTOCOMPLETE SEARCH ---
+        $search = $request->strict;
         if ($autocomplete && strlen($autocomplete) > 1) {
-            if ($request->strict) {
+            if ($search) {
                 $query->where(function ($q) use ($autocomplete) {
                     $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
                     ->orWhere('name', $autocomplete)
@@ -518,8 +525,8 @@ class ProductsController extends Controller
         if ($request->limit) {
             $query->limit($request->limit);
         }
-        $products = $query->orderBy('_status', 'asc')->get();
-
+        $products = $search ? $query->first() : $query->get();
+        // $products = $query->orderBy('_status', 'asc')->get();
         return response()->json($products);
     }
 
