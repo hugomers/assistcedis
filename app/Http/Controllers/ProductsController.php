@@ -683,7 +683,7 @@ class ProductsController extends Controller
                     'refillable'=>1,
                     '_maker'=>$product['makers']['id'],
                     'dimensions'=>json_encode(["length"=>'',"height"=>'',"width"=>'']),
-                    'large'=>isset($product['mnp']) ? $product['mnp']['large'] : null
+                    'large'=>isset($product['mnp']) ? $product['mnp']['large'] : ''
                 ];
                 $insert = ProductVA::insert($insertProduct);
                 if($insert){
