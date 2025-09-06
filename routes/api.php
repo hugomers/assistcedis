@@ -140,6 +140,8 @@ Route::prefix('/Products')->group(function(){
     Route::post('/highProducts',[ProductsController::class, 'highProducts']);
     Route::post('/highPrices',[ProductsController::class, 'highPrices']);
     Route::post('/lookupProducts',[ProductsController::class, 'lookupProducts']);
+    Route::post('/checkLabels',[ProductsController::class, 'checkLabels']);
+
 });
 
 Route::prefix('/admincli')->group(function(){

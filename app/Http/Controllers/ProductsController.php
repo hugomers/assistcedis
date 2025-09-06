@@ -845,4 +845,51 @@ class ProductsController extends Controller
             return response()->json('No se lograron guardar los datos',500);
         }
     }
+
+    public function checkLabels(Request $request){
+        $wrk  = $request->workpoint;
+        $qrs = $request->products; // Array de QR como strings
+        $results = [];
+        foreach ($qrs as $qr) {
+            if (!$qr) {
+                $results[] = [
+                    'code' => $qr,
+                    'status' => false,
+                    'message' => 'QR inválido'
+                ];
+                continue;
+            }
+            $product = ProductVA::with([
+                'historicPrices' => fn($q)=>$q->latest('created_at')->limit(1),
+                'stocks' => fn($q) => $q->where('id',5),
+                'locations' => fn($q) =>  $q->whereHas('celler', fn($q2) => $q2->where([['_workpoint', 5],['_type',2]])),
+                'prices' => fn($q) => $q->whereIn('_type', [1,2,3,4])->orderBy('_type'),
+            ])
+            ->find($qr['modelo']);
+            if (!$product) {
+                $results[] = [
+                    'code' => $qr['modelo'],
+                    'status' => false
+                ];
+                continue;
+            }
+            $latestHistory = $product->historicPrices()->orderBy('id', 'desc')->first();
+            if ($latestHistory) {
+                $status = ($latestHistory->id == $qr['idChange']) ? true : false;
+                $results[] = [
+                    'code' => $product,
+                    'status' => $status,
+                    'actualizado' => $latestHistory
+                ];
+            } else {
+                $results[] = [
+                    'code' => $product,
+                    'status' => false,
+                    'actualizado' => null
+                ];
+            }
+        }
+        return response()->json($results);
+    }
+
 }

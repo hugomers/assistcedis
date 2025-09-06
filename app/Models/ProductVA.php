@@ -91,4 +91,8 @@ class ProductVA extends Model
     public function providers(){
         return $this->belongsTo('App\Models\ProvidersVA', '_provider');
     }
+
+    public function historicPrices(){
+        return $this->hasMany('App\Models\HistoryPriceVA', '_product', 'id');
+    }
 }
