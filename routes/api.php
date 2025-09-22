@@ -23,6 +23,7 @@ use App\Http\Controllers\InvoicesController;
 use App\Http\Controllers\InvoicesReceived;
 use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\WithdrawalsController;
 
 
@@ -96,6 +97,7 @@ Route::prefix('/staff')->group(function(){
 
 Route::prefix('/reports')->group(function(){
     Route::get('',[ReportsController::class, 'Index']);
+    Route::post('reportWarehouses',[ReportsController::class, 'reportWarehouses']);
     Route::post('obtReport',[ReportsController::class, 'obtReport']);
 });
 
@@ -157,6 +159,12 @@ Route::prefix('/admincli')->group(function(){
     Route::patch('/Delete',[ResourcesController::class, 'Delete']);
 
     // Route::get('/getStaff',[ResourcesController::class, 'getStaff']);
+});
+
+Route::prefix('/Client')->group(function(){
+    Route::get('/',[ClientController::class, 'Index']);
+    Route::post('/getSalesC',[ClientController::class, 'getSalesC']);
+
 });
 
 Route::prefix('/salidas')->group(function(){

@@ -104,6 +104,7 @@ class InvoicesReceived extends Controller
         // return $data;
         $noEncontrados = [];
         $response = HTTP::post($cedis->ip_address.'/storetools/public/api/invoiceReceived/replyInvoices', $data);
+        return $response;
         $facturas = $response->json();
         foreach ($facturas as $item) {
             $exists = InvocidReceivedVA::where('serie', $item['serie'])

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class ProductVA extends Model
 {
@@ -19,6 +20,13 @@ class ProductVA extends Model
         return $this->belongsToMany('App\Models\WorkpointVA', 'product_stock', '_product', '_workpoint')
                     ->withPivot('min', 'max', 'stock', 'gen', 'exh', 'des', 'fdt', 'V23', 'LRY', 'in_transit', '_status');
     }
+
+    public function salesPerWorkpoints(){
+        return $this->belongsToMany('App\Models\WorkpointVA', 'cash_register', '_cash', '_workpoint')
+                    ->withPivot('');
+    }
+
+
     public function prices(){
         return $this->belongsToMany('App\Models\PriceListVA', 'product_prices', '_product', '_type')
                     ->withPivot(['price']);
@@ -91,8 +99,47 @@ class ProductVA extends Model
     public function providers(){
         return $this->belongsTo('App\Models\ProvidersVA', '_provider');
     }
+    public function makers(){
+        return $this->belongsTo('App\Models\MakersVA', '_maker');
+    }
 
     public function historicPrices(){
         return $this->hasMany('App\Models\HistoryPriceVA', '_product', 'id');
+    }
+
+    public function salesByWorkpointArray() {
+        $filteredSales = $this->sales->filter(function ($sale) {
+            if (!$sale->cash_register || !$sale->cash_register->workpoint) return false;
+                $isCurrentYear =   Carbon::parse($sale->created_at)->year === Carbon::now()->year;
+                $isWorkpointActive = $sale->cash_register->workpoint->active === 1;
+                return $isCurrentYear && $isWorkpointActive;
+        });
+
+        return $filteredSales;
+        // ->filter(fn($sale) => $sale->cash_register)
+        // ->groupBy(fn($sale) => $sale->cash_register->workpoint->id)
+        // ->map(function ($sales, $workpointId) {
+        //     $workpoint = $sales->first()->cash_register->workpoint;
+        //     $totalAmount = $sales->sum(fn($sale) => $sale->pivot->amount);
+        //     $totalPrice = $sales->sum(fn($sale) => $sale->pivot->total);
+
+        //     return [
+        //         'id' => $workpoint->id,
+        //         'name' => $workpoint->name,
+        //         'alias' => $workpoint->alias,
+        //         'dominio' => $workpoint->dominio,
+        //         '_type' => $workpoint->_type,
+        //         '_client' => $workpoint->_client,
+        //         'active' => $workpoint->active,
+        //         '_port' => $workpoint->_port,
+        //         'pivot' => [
+        //             '_product' => $this->id,
+        //             '_workpoint' => $workpoint->id,
+        //             'sales_amount' => $totalAmount,
+        //             'sales_total' => $totalPrice,
+        //         ]
+        //     ];
+        // })
+        // ->values();
     }
 }

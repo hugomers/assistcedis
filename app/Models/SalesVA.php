@@ -22,13 +22,13 @@ class SalesVA extends Model
         return $this->belongsTo('App\Models\CashRegisterVA','_cash');
     }
 
-    public function scopeSumAmountByYear($query)
-{
-    return $query->selectRaw('YEAR(sales.created_at) as year, SUM(PS.amount) as total_amount')
-        ->join('product_sold as PS', 'sales.id', '=', 'PS._sale')
-        ->groupBy(DB::raw('YEAR(sales.created_at), PS._product'));
-        // ->orderBy('year');
-}
+
+    public function scopeSumAmountByYear($query){
+        return $query->selectRaw('YEAR(sales.created_at) as year, SUM(PS.amount) as total_amount')
+            ->join('product_sold as PS', 'sales.id', '=', 'PS._sale')
+            ->groupBy(DB::raw('YEAR(sales.created_at), PS._product'));
+            // ->orderBy('year');
+    }
 
 }
 

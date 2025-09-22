@@ -15,6 +15,10 @@ class ClientVA extends Model
      * Relationships *
      *****************/
     public function sales(){
-        return $this->hasMany('App\SalesVA', "_client");
+        return $this->hasMany('App\Models\SalesVA', "_client");
+    }
+
+    public function credits(){
+        return $this->hasMany('App\Models\CreditInvoice', "_client");
     }
 }
