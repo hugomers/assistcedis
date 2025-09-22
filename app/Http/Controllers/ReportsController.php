@@ -162,6 +162,7 @@ class ReportsController extends Controller
     public function reportWarehouses(Request $request){
         $filters = $request->all();
         return response()->stream(function () use ($filters) {
+            ob_start();
             echo '['; // inicio del array JSON
             $first = true;
             ProductVA::with([
