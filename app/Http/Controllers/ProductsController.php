@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\ProductVA;
 use App\Models\ProvidersVA;
+use App\Models\ProductStockVA;
 use App\Models\MakersVA;
 use App\Models\ProductCategoriesVA;
 use App\Models\ProductUnitVA;
@@ -892,4 +893,61 @@ class ProductsController extends Controller
         return response()->json($results);
     }
 
+    public function setMin(Request $request){
+        // return $request->product;
+        $updated = ProductStockVA::where('_product', $request->product)
+            ->where('_workpoint', $request->_workpoint)
+            ->update(['min' => $request->min]);
+
+        if ($updated) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Mínimo actualizado correctamente'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró el registro para actualizar'
+            ]);
+        }
+    }
+
+    public function setMax(Request $request){
+        $updated = ProductStockVA::where('_product', $request->product)
+            ->where('_workpoint', $request->_workpoint)
+            ->update(['max' => $request->max]);
+
+        if ($updated) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Maximo actualizado correctamente'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró el registro para actualizar'
+            ]);
+        }
+    }
+
+    public function setMassisveMinMax(Request $request){
+        $actualizados = [
+            "goals"=>0,
+            "fails"=>0
+        ];
+        $products = $request->products;
+        $workpoint = $request->workpoint;
+        foreach($products as $product){
+            $updated = ProductStockVA::where('_product', $product['id'])
+                ->where('_workpoint', $workpoint)
+                ->update(['max' => $product['max'], 'min' => $product['min'] ]);
+            if ($updated) {
+                $actualizados['goals']++;
+            } else {
+                $actualizados['fails']++;
+            }
+        }
+        return response()->json($actualizados,200);
+
+    }
 }

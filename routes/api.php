@@ -143,6 +143,9 @@ Route::prefix('/Products')->group(function(){
     Route::post('/highPrices',[ProductsController::class, 'highPrices']);
     Route::post('/lookupProducts',[ProductsController::class, 'lookupProducts']);
     Route::post('/checkLabels',[ProductsController::class, 'checkLabels']);
+    Route::post('/setMin',[ProductsController::class, 'setMin']);
+    Route::post('/setMax',[ProductsController::class, 'setMax']);
+    Route::post('/setMassisveMinMax',[ProductsController::class, 'setMassisveMinMax']);
 
 });
 

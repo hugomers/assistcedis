@@ -95,70 +95,6 @@ class ReportsController extends Controller
         return response()->json($products,200);
     }
 
-
-    // public function reportWarehouses(Request $request){
-    //     $filters = $request->all();
-    //     $products = ProductVA::with([
-    //         'providers',
-    //         'makers',
-    //         'category.familia.seccion',
-    //         'prices',
-    //         'stocks' => fn($q) => $q->where('active',1),
-    //         'sales' => fn($q) => fn($q) => $q->whereYear('created_at', now()->year)->orWhereYear('created_at', now()->year - 1),
-    //         'purchases'=> fn($q) => $q->whereYear('created_at',now()->year)
-    //     ])
-    //     ->when(count($filters['categories']) > 0, fn($q) =>
-    //         $q->whereHas('category', fn($q2) =>
-    //         $q2->whereIn('id', $filters['categories'])))
-    //     ->when(count($filters['familys'])> 0, fn($q) =>
-    //         $q->whereHas('category.familia', fn($q2) =>
-    //         $q2->whereIn('id', $filters['familys'])))
-    //     ->when(count($filters['sections'])> 0, fn($q) =>
-    //         $q->whereHas('category.familia.seccion', fn($q2) =>
-    //         $q2->whereIn('id', $filters['sections'])))
-    //     ->where('_status','!=',4)
-    //     ->get();
-
-    //   return $products;
-    // }
-
-
-    // public function reportWarehouses(Request $request){
-
-    //     $data = $request->all();
-    //     $report = [];
-    //     $products = ProductVA::with([
-    //         'providers',
-    //         'makers',
-    //         'category.familia.seccion',
-    //         'prices',
-    //         'stocks' => fn($q) => $q->where('active',1),
-    //         'sales' => fn($q) => $q->whereYear('created_at', now()->year),
-    //         'purchases'=> fn($q) => $q->whereYear('created_at',now()->year)
-    //     ])
-    //     // ->when(count($filters['categories']) > 0, fn($q) =>
-    //     //     $q->whereHas('category', fn($q2) =>
-    //     //     $q2->whereIn('id', $filters['categories'])))
-    //     // ->when(count($filters['familys'])> 0, fn($q) =>
-    //     //     $q->whereHas('category.familia', fn($q2) =>
-    //     //     $q2->whereIn('id', $filters['familys'])))
-    //     // ->when(count($filters['sections'])> 0, fn($q) =>
-    //     //     $q->whereHas('category.familia.seccion', fn($q2) =>
-    //     //     $q2->whereIn('id', $filters['sections'])))
-    //     ->where('_status','!=',4)
-    //     ->chunk(50, function($products) use (&$report) {
-    //     foreach ($products as $product) {
-    //         $report[] = $product;
-    //     }
-    //     });
-    //     $res = [
-    //         "categories"=> ProductCategoriesVA::whereNotNull('alias')->get(),
-    //         "report"=>$report
-    //     ];
-
-    //     return response()->json($res);
-    // }
-
     public function reportWarehouses(Request $request){
         $filters = $request->all();
         return response()->stream(function () use ($filters) {
@@ -193,11 +129,10 @@ class ReportsController extends Controller
             ->chunk(500, function($products) use (&$first) {
                 foreach ($products as $product) {
                     if (!$first) {
-                        echo ','; // separador entre objetos JSON
+                        echo ',';
                     }
                     echo json_encode($product);
                     $first = false;
-                    // Esto envía el buffer al navegador para no acumular memoria
                     ob_flush();
                     flush();
                 }
