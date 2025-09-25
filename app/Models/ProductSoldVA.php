@@ -5,15 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ProductStockVA extends Model
+class ProductSoldVA extends Model
 {
     protected $connection = 'vizapi';
-    protected $table = 'product_stock';
+    protected $table = 'product_sold';
     // protected $fillable = ['_product', 'amount', 'price', 'total'];
     public $timestamps = false;
 
-    public function workpoint(){
-      return $this->hasOne('App\Models\WorkpointVA', 'id', '_workpoint');
+    public function sales(){
+      return $this->hasOne('App\Models\SalesVA', 'id', '_sale');
     }
-
 }

@@ -97,24 +97,10 @@ class ReportsController extends Controller
 
     public function reportWarehouses(Request $request){
         $filters = $request->all();
-        return response()->stream(function () use ($filters) {
-            ob_start();
-            echo '['; // inicio del array JSON
-            $first = true;
-            ProductVA::with([
+        $products = ProductVA::with([
                 'providers',
                 'makers',
                 'category.familia.seccion',
-                'prices',
-                'stocks' => fn($q) => $q->where('active',1),
-                // 'sales' => fn($q) => $q->whereYear('created_at','>=',now()->year - 1),
-                'sales' => fn($q) => $q->with([
-                    'cashRegister' => fn($q2) => $q2->with([
-                        'workpoint' => fn($q3) => $q3->where('active',1)
-                        ])
-                    ])
-                ->whereYear('created_at','>=',now()->year - 1),
-                'purchases'=> fn($q) => $q->whereYear('created_at',now()->year)
             ])
             ->when(count($filters['categories']) > 0, fn($q) =>
                 $q->whereHas('category', fn($q2) =>
@@ -125,23 +111,11 @@ class ReportsController extends Controller
             ->when(count($filters['sections'])> 0, fn($q) =>
                 $q->whereHas('category.familia.seccion', fn($q2) =>
                 $q2->whereIn('id', $filters['sections'])))
-            ->where('_status','!=',4)
-            ->chunk(500, function($products) use (&$first) {
-                foreach ($products as $product) {
-                    if (!$first) {
-                        echo ',';
-                    }
-                    echo json_encode($product);
-                    $first = false;
-                    ob_flush();
-                    flush();
-                }
-            });
-
-            echo ']'; // cierre del array JSON
-        }, 200, [
-            'Content-Type' => 'application/json',
-            'Cache-Control' => 'no-cache'
-        ]);
+            ->withSum(['stocksSum as SumStock'],'stock')
+            ->withSum(['salesYearSum as SalesYear'],'amount')
+            ->withSum(['salesSubYearSum as SalesSubYear'],'amount')
+            ->withSum(['purchasesSum as PurchaseYear'],'amount')
+            ->where('_status','!=',4)->get();
+            return response()->json($products);
     }
 }

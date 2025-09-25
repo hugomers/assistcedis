@@ -12,6 +12,8 @@ class ProductReceivedVA extends Model
     protected $fillable = ['_product', 'amount', 'price', 'total'];
     public $timestamps = false;
 
-
+    public function purchase(){
+      return $this->hasOne('App\Models\InvocidReceivedVA', 'id', '_order');
+    }
 
 }

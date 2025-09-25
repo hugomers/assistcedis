@@ -114,32 +114,32 @@ class ProductVA extends Model
                 $isWorkpointActive = $sale->cash_register->workpoint->active === 1;
                 return $isCurrentYear && $isWorkpointActive;
         });
-
         return $filteredSales;
-        // ->filter(fn($sale) => $sale->cash_register)
-        // ->groupBy(fn($sale) => $sale->cash_register->workpoint->id)
-        // ->map(function ($sales, $workpointId) {
-        //     $workpoint = $sales->first()->cash_register->workpoint;
-        //     $totalAmount = $sales->sum(fn($sale) => $sale->pivot->amount);
-        //     $totalPrice = $sales->sum(fn($sale) => $sale->pivot->total);
+    }
 
-        //     return [
-        //         'id' => $workpoint->id,
-        //         'name' => $workpoint->name,
-        //         'alias' => $workpoint->alias,
-        //         'dominio' => $workpoint->dominio,
-        //         '_type' => $workpoint->_type,
-        //         '_client' => $workpoint->_client,
-        //         'active' => $workpoint->active,
-        //         '_port' => $workpoint->_port,
-        //         'pivot' => [
-        //             '_product' => $this->id,
-        //             '_workpoint' => $workpoint->id,
-        //             'sales_amount' => $totalAmount,
-        //             'sales_total' => $totalPrice,
-        //         ]
-        //     ];
-        // })
-        // ->values();
+    //SUMAS
+    public function stocksSum(){
+        return $this->hasMany('App\Models\ProductStockVA', '_product', 'id')
+                        ->whereHas('workpoint', function ($q) {
+                    $q->where('active', 1); // solo workpoints activos
+                });
+    }
+    public function salesYearSum(){
+        return $this->hasMany('App\Models\ProductSoldVA', '_product', 'id')
+                        ->whereHas('sales', function ($q) {
+                    $q->whereYear('created_at', now()->year); // solo workpoints activos
+                });
+    }
+    public function salesSubYearSum(){
+        return $this->hasMany('App\Models\ProductSoldVA', '_product', 'id')
+                        ->whereHas('sales', function ($q) {
+                    $q->whereYear('created_at', now()->year - 1); // solo workpoints activos
+                });
+    }
+    public function purchasesSum(){
+        return $this->hasMany('App\Models\ProductReceivedVA', '_product', 'id')
+                        ->whereHas('purchase', function ($q) {
+                            $q->whereYear('created_at', now()->year); // solo workpoints activos
+                });
     }
 }
