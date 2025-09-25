@@ -41,4 +41,18 @@ class CellerSectionVA extends Model
         }
         return $this->rootCache;
     }
+
+    public function children(){
+        return $this->hasMany(CellerSectionVA::class, 'root', 'id');
+    }
+
+    public function getAllDescendantIds(){
+        $ids = [$this->id];
+
+        foreach ($this->children as $child) {
+            $ids = array_merge($ids, $child->getAllDescendantIds());
+        }
+
+        return $ids;
+    }
 }

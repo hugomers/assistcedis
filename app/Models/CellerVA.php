@@ -9,4 +9,12 @@ class CellerVA extends Model
 {
     protected $connection = 'vizapi';
     protected $table = 'celler';
+
+    public function sections(){
+        return $this->hasMany('App\Models\CellerSectionVA','_celler','id');
+    }
+
+
+
+
 }

@@ -24,6 +24,7 @@ use App\Http\Controllers\InvoicesReceived;
 use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\locationController;
 use App\Http\Controllers\WithdrawalsController;
 
 
@@ -357,5 +358,11 @@ Route::prefix('/invoicesReceived')->group(function(){
 
 Route::prefix('/withdrawalStore')->group(function(){
     Route::get('/{sid}',[WithdrawalsController::class, 'getWithdrawalsStore']);
+});
+
+Route::prefix('/locations')->group(function(){
+    Route::get('/{sid}',[locationController::class, 'index']);
+    Route::post('/obtProductSections',[locationController::class, 'obtProductSections']);
+    Route::post('/obtSections',[locationController::class, 'obtSections']);
 });
 
