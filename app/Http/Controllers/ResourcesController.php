@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Solicitudes;
 use App\Models\Stores;
 use App\Models\transfer;
+use App\Models\Staff;
 use App\Models\ReplyClient;
 use App\Models\Flight;
 use Illuminate\Support\Facades\Http;
@@ -180,14 +181,10 @@ class ResourcesController extends Controller
     }
 
     public function Index(){
-        $workpoints = DB::table('stores')->get();
-        $agent = DB::table('staff')->get();
-
+        $agent = Staff::where('acitve',1)->get();
         $res = [
-            "branches"=>$workpoints,
             "agents"=>$agent
         ];
-
         if($res){
             return response()->json($res,200);
         }else{
@@ -197,10 +194,8 @@ class ResourcesController extends Controller
 
     public function Create(Request $request){
         $todo = $request->all();
-
         $ins = [
             "nom_cli"=>$todo['name'],
-            // "address"=>json_encode($todo['address']),
             "celphone"=>$todo['phone'],
             "email"=>$todo['email'],
             "tickets"=>$todo['ticket'],
@@ -216,8 +211,6 @@ class ResourcesController extends Controller
             "estado"=>$todo['address']['state'],
             "cp"=>$todo['address']['cp']
         ];
-
-        // return response()->json($ins,200);
         $insert = DB::table('forms')->insertGetId($ins);
         if($insert){
             $data = ["mssg"=>"El formulario fue enviado correctamente","ID"=>$insert];
