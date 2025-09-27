@@ -950,4 +950,9 @@ class ProductsController extends Controller
         return response()->json($actualizados,200);
 
     }
+
+    public function getWorkpoinProduct($sid){
+        $workpoint = WorkpointVA::with(['productSeason.stocks', 'productSeason.category.familia.seccion'])->find($sid);
+        return response()->json($workpoint,200);;
+    }
 }

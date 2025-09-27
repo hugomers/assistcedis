@@ -125,6 +125,8 @@ Route::prefix('/Products')->group(function(){
     Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
     Route::get('/searchCode/{id}',[ProductsController::class, 'searchCode']);
     Route::get('/searchBarcode/{id}',[ProductsController::class, 'searchBarcode']);
+    Route::get('/getWorkpoinProduct/{sid}',[ProductsController::class, 'getWorkpoinProduct']);
+
 
     // Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
 

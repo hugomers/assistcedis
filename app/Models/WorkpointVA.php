@@ -14,4 +14,8 @@ class WorkpointVA extends Model
     public function printers(){
         return $this->hasMany('App\Models\PrinterVA', '_workpoint');
     }
+
+    public function productSeason(){
+        return $this->belongsToMany('App\Models\ProductVA', 'product_store', '_workpoint', '_product');
+    }
 }
