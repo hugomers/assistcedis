@@ -158,6 +158,7 @@ Route::prefix('/admincli')->group(function(){
     Route::get('/getclient',[ResourcesController::class, 'getclient']);
     Route::get('/syncClient',[ResourcesController::class, 'syncClient']);
     Route::post('/addClient',[ResourcesController::class, 'createClient']);
+    Route::post('/updateImageClient',[ResourcesController::class, 'updateImageClient']);
     Route::patch('/ignoredClient',[ResourcesController::class, 'IgnoredClient']);
     Route::patch('/Restore',[ResourcesController::class, 'Restore']);
     Route::patch('/Delete',[ResourcesController::class, 'Delete']);

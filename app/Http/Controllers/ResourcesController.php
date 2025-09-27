@@ -8,12 +8,16 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Solicitudes;
 use App\Models\Stores;
 use App\Models\transfer;
 use App\Models\Staff;
 use App\Models\ReplyClient;
 use App\Models\Flight;
+use App\Models\ClientVA;
+
+
 use Illuminate\Support\Facades\Http;
 use GuzzleHttp\Exception\RequestException;
 
@@ -182,8 +186,10 @@ class ResourcesController extends Controller
 
     public function Index(){
         $agent = Staff::where('acitve',1)->get();
+        $client = ClientVA::where('id','>=',36)->get();
         $res = [
-            "agents"=>$agent
+            "agents"=>$agent,
+            "clients"=>$client,
         ];
         if($res){
             return response()->json($res,200);
@@ -193,31 +199,39 @@ class ResourcesController extends Controller
     }
 
     public function Create(Request $request){
-        $todo = $request->all();
+        $address = json_decode($request->address,true);
         $ins = [
-            "nom_cli"=>$todo['name'],
-            "celphone"=>$todo['phone'],
-            "email"=>$todo['email'],
-            "tickets"=>$todo['ticket'],
-            "_store"=>$todo['branch']['id'],
-            "price"=>$todo['priceList']['id'],
-            "notes"=>$todo['notes'],
+            "nom_cli"=>$request->name,
+            "celphone"=>$request->phone,
+            "email"=>$request->email,
+            "tickets"=>$request->ticket,
+            "_store"=>$request->branch,
+            "price"=>$request->priceList,
+            "notes"=>$request->notes,
             "_status"=>0,
-            "street"=>$todo['address']['street'],
-            "num_int"=>$todo['address']['numint'],
-            "num_ext"=>$todo['address']['numext'],
-            "col"=>$todo['address']['colinia'],
-            "mun"=>$todo['address']['mun'],
-            "estado"=>$todo['address']['state'],
-            "cp"=>$todo['address']['cp']
+            "street"=>$address['street'],
+            "num_int"=>$address['numint'],
+            "num_ext"=>$address['numext'],
+            "col"=>$address['colinia'],
+            "mun"=>$address['mun'],
+            "estado"=>$address['state'],
+            "cp"=>$address['cp']
         ];
-        $insert = DB::table('forms')->insertGetId($ins);
-        if($insert){
-            $data = ["mssg"=>"El formulario fue enviado correctamente","ID"=>$insert];
-            return response()->json($data,200);
-        }else{
-            $data = ["mssg"=>"No se pudo enviar el formulario"];
-            return response()->json($data,404);
+        $form = new Solicitudes($ins);
+        $form->save();
+        $res = $form->fresh()->toArray();
+        if($res){
+            if ($request->hasFile('picture')) {
+                $avatar = $request->file('picture');
+                $fileName = uniqid().'.'.$avatar->getClientOriginalExtension();
+                $folderPath = 'vhelpers/client/'.$fileName;
+                $route = Storage::put($folderPath, file_get_contents($avatar));
+                $form->picture = $fileName;
+                $form->save();
+                    return response()->json(["mssg"=>"Solicitud Creada"], 200);
+            }
+        } else {
+            return response()->json(["mssg"=>"No se pudo enviar el formulario"], 500);
         }
     }
 
@@ -267,6 +281,7 @@ class ResourcesController extends Controller
                         "cp" => intval($client['cp'] ?? 0),
                         "municipio" => mb_convert_encoding((string)($client['mun'] ?? ''), "UTF-8", "Windows-1252")
                     ]),
+                    'picture'=>$client['picture'],
                     '_price_list' => intval($client['price'] ?? 0),
                     "created_at" => now()
                 ];
@@ -275,6 +290,24 @@ class ResourcesController extends Controller
             }
         }else{return response()->json("no existe el id",404);
         }
+    }
+
+    public function updateImageClient(Request $request){
+        $client = ClientVA::find($request->id);
+        if($client){
+            if ($request->hasFile('picture')) {
+                $avatar = $request->file('picture');
+                $fileName = uniqid().'.'.$avatar->getClientOriginalExtension();
+                $folderPath = 'vhelpers/client/'.$fileName;
+                $route = Storage::put($folderPath, file_get_contents($avatar));
+                $client->picture = $fileName;
+                $client->save();
+                return response()->json(["mssg"=>"Imagen Guardada","image"=>$fileName], 200);
+            }
+        }else{
+            return response()->json(["mssg"=>"No se encuentra el cliente"],404);
+        }
+
     }
 
     public function IgnoredClient(Request $request){
