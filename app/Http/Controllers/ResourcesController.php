@@ -211,7 +211,7 @@ class ResourcesController extends Controller
             "_status"=>0,
             "street"=>$address['street'],
             "num_int"=>$address['numint'],
-            "num_ext"=>$address['numext']?? null,
+            "num_ext"=>$address['numext']?? 'N/A',
             "col"=>$address['colinia'],
             "mun"=>$address['mun'],
             "estado"=>$address['state'],
