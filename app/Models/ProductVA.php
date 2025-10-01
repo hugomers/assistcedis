@@ -11,6 +11,24 @@ class ProductVA extends Model
 {
     protected $connection = 'vizapi';
     protected $table = 'products';
+    protected $fillable = [
+        'code',
+        'name' ,
+        'description',
+        'label',
+        'reference',
+        'pieces',
+        '_category',
+        '_status',
+        '_unit',
+        '_provider',
+        'cost',
+        'barcode',
+        'refillable',
+        '_maker',
+        'dimensions',
+        'large',
+    ];
 
     public function invoices(){
         return $this->belongsToMany('App\Models\Invoice', 'product_required', '_product', '_requisition')
