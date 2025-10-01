@@ -606,12 +606,21 @@ class ProductsController extends Controller
 
         // Procesar los códigos
         foreach ($codes as $code) {
-            $exists = ProductVA::where('code', $code)
-                ->orWhere('name', $code)
-                ->orWhereHas('variants', function ($q) use ($code) {
+            // $exists = ProductVA::where('code', $code)
+            //     ->orWhere('name', $code)
+            //     ->orWhereHas('variants', function ($q) use ($code) {
+            //         $q->where('barcode', $code);
+            //     })
+            //     ->exists();
+            $exists = ProductVA::where(function ($query) use ($code) {
+                    $query->where('code', $code)
+                        ->orWhere('name', $code)
+                        ->orWhereHas('variants', function ($q) use ($code) {
                     $q->where('barcode', $code);
-                })
-                ->exists();
+                });
+            })
+            ->where('_status', '!=', 4)
+            ->exists();
             $codeResults[$code] = [
                 'exist' => $exists,
                 'cco' => $this->genshortCode()
@@ -666,32 +675,34 @@ class ProductsController extends Controller
         $res=  $control->fresh();
         if($res){
             foreach($data as $product){
-                $insertProduct = [
-                    'code'=>$product['code'],
-                    'name'=>trim($product['short_code']),
-                    'description'=>trim($product['description']),
-                    'label'=>trim(substr($product["description"],0,30)),
-                    'reference'=>$product['reference'],
-                    'pieces'=>$product['pxc'],
-                    '_category'=>$product['categoria']['id'],
-                    '_status'=>1,
-                    '_unit'=>$product['umc']['id'],
-                    '_provider'=>$product['provider']['id'],
-                    'updated_at'=>now(),
-                    'created_at'=>now(),
-                    'cost'=>$product['cost'],
-                    'barcode'=>isset($product['cb']) ? trim($product['cb']) : null,
-                    'refillable'=>1,
-                    '_maker'=>$product['makers']['id'],
-                    'dimensions'=>json_encode(["length"=>'',"height"=>'',"width"=>'']),
-                    'large'=>isset($product['mnp']) ? $product['mnp']['large'] : ''
+                $dataProduct = [
+                    'name'        => trim($product['short_code']),
+                    'description' => trim($product['description']),
+                    'label'       => trim(substr($product["description"],0,30)),
+                    'reference'   => $product['reference'],
+                    'pieces'      => $product['pxc'],
+                    '_category'   => $product['categoria']['id'],
+                    '_status'     => 1,
+                    '_unit'       => $product['umc']['id'],
+                    '_provider'   => $product['provider']['id'],
+                    'cost'        => $product['cost'],
+                    'barcode'     => isset($product['cb']) ? trim($product['cb']) : null,
+                    'refillable'  => 1,
+                    '_maker'      => $product['makers']['id'],
+                    'dimensions'  => json_encode(["length"=>'',"height"=>'',"width"=>'']),
+                    'large'       => isset($product['mnp']['large']) ? $product['mnp']['large'] : ''
                 ];
-                $insert = ProductVA::insert($insertProduct);
-                if($insert){
+
+                $success = ProductVA::updateOrCreate(
+                    ['code' => $product['code']],
+                    $dataProduct
+                );
+
+                if($success){
                     $insertFactusol['productos'][] = $product;
-                    $response['mysql']['insert']['goal'][]=$insertProduct['code'];
+                    $response['mysql']['insert']['goal'][] = $product['code'];
                 }else{
-                    $response['mysql']['insert']['fail'][]=$insertProduct['code'];
+                    $response['mysql']['insert']['fail'][] = $product['code'];
                 }
             }
             $stores = WorkpointVA::where([['active',1],['id','!=',2]])->get();
