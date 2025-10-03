@@ -17,6 +17,7 @@ class CellerSectionVA extends Model
                     'path' ,
                     'root',
                     'deep',
+                    'details',
                     '_celler'];
 
     public function celler(){
@@ -31,9 +32,7 @@ class CellerSectionVA extends Model
         if ($this->rootCache) {
             return $this->rootCache;
         }
-
         $parent = $this->relationLoaded('parent') ? $this->parent : $this->parent()->first();
-
         if (!$parent) {
             $this->rootCache = $this;
         } else {

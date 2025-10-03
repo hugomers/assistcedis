@@ -365,7 +365,17 @@ Route::prefix('/withdrawalStore')->group(function(){
 
 Route::prefix('/locations')->group(function(){
     Route::get('/{sid}',[locationController::class, 'index']);
+    Route::get('/getInit/{sid}',[locationController::class, 'getInit']);
     Route::post('/obtProductSections',[locationController::class, 'obtProductSections']);
+    Route::post('/obtProduct',[locationController::class, 'obtProduct']);
+    Route::post('/obtProductCategories',[locationController::class, 'obtProductCategories']);
     Route::post('/obtSections',[locationController::class, 'obtSections']);
+    Route::post('/insertSection',[locationController::class, 'insertSection']);
+    Route::post('/addLocations',[locationController::class, 'addLocations']);
+    Route::post('/deleteSection',[locationController::class, 'deleteSection']);
+    Route::post('/deleteSectionProducts',[locationController::class, 'deleteSectionProducts']);
+    Route::post('/deleteCategoriesLocations',[locationController::class, 'deleteCategoriesLocations']);
+    Route::post('/addMassiveLocation',[locationController::class, 'addMassiveLocation']);
+    Route::post('/deleteMassiveLocation',[locationController::class, 'deleteMassiveLocation']);
 });
 
