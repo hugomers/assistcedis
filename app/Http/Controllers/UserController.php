@@ -60,7 +60,7 @@ class UserController extends Controller
         $user = User::with(['staff','store','rol',])->where('nick',$nick)->first();
 
         if(($nick&&$pass)&&$user&&Hash::check($pass,$user->password)){ // comparacion de contraseña y carga de datos para la cuenta
-                $datafortoken = ["uid"=>$user->id, "complete_name"=>$user->staff['complete_name'] ];
+                $datafortoken = ["uid"=>$user->id, "complete_name"=>$user->staff['complete_name'], "rol" => $user->rol['alias']];
                 $token = $this->genToken($datafortoken);
                 return response()->json([
                     "id"=>$user->staff['id'],
