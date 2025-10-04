@@ -22,7 +22,7 @@ class Authenticate
             if (Carbon::parse($payload['exp'])->isPast()) {
                 return response('Token expired.', 401);
             }
-            $request->merge(['authUser' => $payload]);
+            // $request->merge(['authUser' => $payload]);
 
 
         } catch (\Exception $e) {
