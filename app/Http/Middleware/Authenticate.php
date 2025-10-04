@@ -22,13 +22,13 @@ class Authenticate
             if (Carbon::parse($payload['exp'])->isPast()) {
                 return response('Token expired.', 401);
             }
-            // $request->merge(['authUser' => $payload]);
+            $request->merge(['authUser' => $payload]);
 
 
         } catch (\Exception $e) {
             return response('Invalid token.', 401);
         }
-        $user = $request->authUser;
+        $user = $payload;
         $listUser = User::find($user['uid']);
         $segmentaciones = StoreSegment::all();
         $ips = null;
