@@ -1013,20 +1013,19 @@ class ProductsController extends Controller
 
     public function scanSearch(Request $request){
         $autocomplete = $request->search;
+
         $query = ProductVA::with([
             'variants',
             'category.familia.seccion',
-        ])->find($autocomplete);
-        // $query->where(function ($q) use ($autocomplete) {
-        //     $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
-        //     ->orWhere('name',  $autocomplete)
-        //     ->orWhere('code',  $autocomplete)
-        //     ->orWhere('barcode', $autocomplete);
-        // });
-        if(!in_array($request->rol, [1,2,3,8])){//poner de vendedores y almacenistas
-            $query = $query->where("_status", "!=", 4);
+        ])
+        ->where('id', $autocomplete);
+
+        if (!in_array($request->rol, [1,2,3,8])) { // vendedores y almacenistas
+            $query->where('_status', '!=', 4);
         }
-        $products = $query->first();
-        return response()->json($products);
+
+        $product = $query->first();
+
+        return response()->json($product);
     }
 }
