@@ -966,4 +966,67 @@ class ProductsController extends Controller
         $workpoint = WorkpointVA::with(['productSeason' => fn($q) => $q->with(['stocks' => fn($q) => $q->whereIn('id',[1,2,$sid])]), 'productSeason.category.familia.seccion'])->find($sid);
         return response()->json($workpoint,200);;
     }
+
+    public function autoCompleteProduct(Request $request){
+        $autocomplete = $request->search;
+        $query = ProductVA::with([
+            'variants',
+            'category.familia.seccion',
+        ]);
+        $query->where(function ($q) use ($autocomplete) {
+            $q->whereHas('variants', fn($q) => $q->where('barcode', 'like', "%{$autocomplete}%"))
+            ->orWhere('name', 'like', "%{$autocomplete}%")
+            ->orWhere('code', 'like', "%{$autocomplete}%")
+            ->orWhere('barcode', $autocomplete);
+        });
+        if(!in_array($request->rol, [1,2,3,8])){//poner de vendedores y almacenistas
+            $query = $query->where("_status", "!=", 4);
+        }
+        if ($request->limit) {
+            $query->limit($request->limit);
+        }
+        $products = $query->orderBy('_status', 'asc')->get();
+        return response()->json($products);
+    }
+
+    public function exactSearch(Request $request){
+        $autocomplete = $request->search;
+        $query = ProductVA::with([
+            'variants',
+            'category.familia.seccion',
+        ]);
+        $query->where(function ($q) use ($autocomplete) {
+            $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
+            ->orWhere('name',  $autocomplete)
+            ->orWhere('code',  $autocomplete)
+            ->orWhere('barcode', $autocomplete);
+        });
+        if(!in_array($request->rol, [1,2,3,8])){//poner de vendedores y almacenistas
+            $query = $query->where("_status", "!=", 4);
+        }
+        if ($request->limit) {
+            $query->limit($request->limit);
+        }
+        $products = $query->first();
+        return response()->json($products);
+    }
+
+    public function scanSearch(Request $request){
+        $autocomplete = $request->search;
+        $query = ProductVA::with([
+            'variants',
+            'category.familia.seccion',
+        ])->find($autocomplete);
+        // $query->where(function ($q) use ($autocomplete) {
+        //     $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
+        //     ->orWhere('name',  $autocomplete)
+        //     ->orWhere('code',  $autocomplete)
+        //     ->orWhere('barcode', $autocomplete);
+        // });
+        if(!in_array($request->rol, [1,2,3,8])){//poner de vendedores y almacenistas
+            $query = $query->where("_status", "!=", 4);
+        }
+        $products = $query->first();
+        return response()->json($products);
+    }
 }

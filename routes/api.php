@@ -131,6 +131,10 @@ Route::middleware('auth')->group(function(){
         Route::post('/replacecode',[ProductsController::class, 'replacecode']);
         Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
         Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
+        Route::post('/autoCompleteProduct',[ProductsController::class,'autoCompleteProduct']);
+        Route::post('/exactSearch',[ProductsController::class,'exactSearch']);
+        Route::post('/scanSearch',[ProductsController::class,'scanSearch']);
+
         Route::post('/search-exact',[ProductsController::class,'searchExact']);
         Route::post('/genBarcode',[ProductsController::class, 'genBarcode']);
         Route::post('/checkCodesBatch',[ProductsController::class, 'checkCodesBatch']);
