@@ -52,7 +52,7 @@
                 <th rowspan="2">VENTA</th>
                 <th rowspan="2">TICKETS</th>
                 <th rowspan="1" colspan="2">Anterior</th>
-                <th colspan="5">DESGLOSE</th>
+                <th colspan="6">DESGLOSE</th>
 
             </tr>
             <tr class="sub-header">
@@ -62,8 +62,8 @@
                 <th>TARJETAS</th>
                 <th>TRANSFEREN</th>
                 <th>CREDITO</th>
+                <th>ANTICIPO</th>
                 <th>VALE</th>
-
             </tr>
         </thead>
         <tbody>
@@ -75,6 +75,7 @@
                 $total_transferencia = 0;
                 $total_credito = 0;
                 $total_vale = 0;
+                $total_ant = 0;
                 $total_anterior = 0;
                 $tickets_anterior = 0;
             @endphp
@@ -85,6 +86,8 @@
                     $transferencia = 0;
                     $credito = 0;
                     $vale = 0;
+                    $ant = 0;
+
                     foreach ($item['desglose'] as $pago) {
                         switch ($pago['FORMAPAGO']) {
                             case 'EFE': $efectivo += $pago['TOTAL']; break;
@@ -97,7 +100,8 @@
                             case 'TSC':
                                 $tarjetas += $pago['TOTAL']; break;
                             case 'C30': $credito += $pago['TOTAL']; break;
-                            case '[V]': $vale += $pago['TOTAL']; break;
+                            case 'VAL': $vale += $pago['TOTAL']; break;
+                            case 'ANT': $ant += $pago['TOTAL']; break;
                         }
                     }
                     $total_venta += $item['total'];
@@ -109,6 +113,7 @@
                     $total_transferencia += $transferencia;
                     $total_credito += $credito;
                     $total_vale += $vale;
+                     $total_ant += $ant;
                 @endphp
 
                 <tr class="{{ $item['status'] ? '' : 'tr-error' }} ;">
@@ -123,7 +128,9 @@
                     <td>${{ number_format($tarjetas, 2) }}</td>
                     <td>${{ number_format($transferencia, 2) }}</td>
                     <td>${{ number_format($credito, 2) }}</td>
+                    <td>${{ number_format($ant, 2) }}</td>
                     <td>${{ number_format($vale, 2) }}</td>
+
                 </tr>
             @endforeach
         </tbody>
@@ -141,7 +148,9 @@
                 <td>${{ number_format($total_tarjetas, 2) }}</td>
                 <td>${{ number_format($total_transferencia, 2) }}</td>
                 <td>${{ number_format($total_credito, 2) }}</td>
+                <td>${{ number_format($total_ant, 2) }}</td>
                 <td>${{ number_format($total_vale, 2) }}</td>
+
             </tr>
         </tfoot>
 
