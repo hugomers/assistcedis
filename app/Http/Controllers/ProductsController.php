@@ -705,7 +705,7 @@ class ProductsController extends Controller
                     $response['mysql']['insert']['fail'][] = $product['code'];
                 }
             }
-            $stores = WorkpointVA::where([['active',1],['id','!=',2]])->get();
+            $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,16,24])->get();
             // $stores = WorkpointVA::where('id',1)->get();
             foreach($stores as $store){
                 try {
@@ -790,7 +790,7 @@ class ProductsController extends Controller
                     }
                 }
             }
-            $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,18])->get();
+            $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,18,16,24])->get();
             // $stores = WorkpointVA::where('id',1)->get();
             foreach($stores as $store){
                 try {

@@ -323,7 +323,7 @@ class InvoicesController extends Controller
                 $to
             ];
 
-            $query = Invoice::with(['type', 'status', 'to', 'from', 'created_by', 'log', 'partition.status', 'partition.log','products.variants'])
+            $query = Invoice::with(['status', 'to', 'from', 'created_by', 'log', 'partition.status', 'partition.log'])
                 ->withCount(["products"])
                 ->whereBetween(DB::raw('DATE(created_at)'),[$from,$to])->where(function ($q2) use ($request) {
                         $q2->where('_workpoint_to', $request->storeTo)
@@ -331,7 +331,7 @@ class InvoicesController extends Controller
                 })->get();
             // $partitions =partitionRequisition::with(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])->whereHas('requisition',function ($q) use($dates,$request)  {$q->whereBetween(DB::raw('DATE(created_at)'),$dates)->where('_workpoint_to',$request->storeTo); })->get();
 
-            $partitions =partitionRequisition::with(['status','log','products','products.prices','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])
+            $partitions =partitionRequisition::with(['status','log','requisition.to','requisition.from','requisition.created_by','requisition.log'])
                 ->whereHas('requisition',function ($q) use($dates,$request)  {
                     $q->whereBetween(DB::raw('DATE(created_at)'),$dates)
                     ->where(function ($q2) use ($request) {
