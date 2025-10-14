@@ -25,7 +25,7 @@ class SalesController extends Controller
     public function generate(){
         $sales = [];
         // $stores = Stores::whereIn('id',[1])->get();
-        $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
+        $stores = Stores::whereNotIn('id',[1,2,5,14,15,21])->get();
 
         foreach ($stores as $store) {
             // echo($store->name);
