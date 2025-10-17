@@ -15,7 +15,7 @@ use App\Models\WorkpointVA;
 use App\Models\User;
 use App\Models\ProductVA;
 use App\Models\ProductCategoriesVA;
-
+use App\Models\ProductStockVA;
 use Carbon\CarbonImmutable;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -93,8 +93,6 @@ class InvoicesController extends Controller
         try {
             $oid = $request->id;
             $moveTo = $request->_status + 1;
-            // $moveTo = 5;
-
             $requisition = Invoice::with(["to", "from", "log", "status", "created_by","partition.status","partition.log","type"])->find($oid);
             $cstate = $requisition->_status;
             $now = CarbonImmutable::now();
@@ -108,7 +106,9 @@ class InvoicesController extends Controller
                 $partition->save();
                 $partition->load('requisition.from','requisition.to','status','products.prices','log');
                 $partition->verified = $partition->getOutVerifiedStaff();
-
+                $products = $partition->products;
+                $from = $partition->requisition['from']['id'];
+                $transit  = $this->modifyTransit($products,$from);
                 $idlog = partitionLog::max('id') + 1;
                 $inslo = [
                     'id'=>$idlog,
@@ -135,6 +135,25 @@ class InvoicesController extends Controller
             }else{ return response()->json("El status $cstate no puede cambiar a $moveTo",400); }
         } catch (\Error $e) { return response()->json($e,500); }
     }
+
+    public function modifyTransit($products, $workpoint){
+        $counts = $products->filter(function ($val) {
+            return !empty($val['pivot']['checkout']);
+        });
+        foreach ($counts as $product) {
+            $mul = match ($product['pivot']['_supply_by']) {
+                2 => 12,
+                3 => $product['pivot']['ipack'] ?? 1,
+                default => 1,
+            };
+            $canti = $product['pivot']['toDelivered'] * $mul;
+            ProductStockVA::where([
+                ['_product', $product['id']],
+                ['_workpoint', $workpoint]
+            ])->increment('in_transit', $canti);
+        }
+    }
+
 
     public function getInvoice($inv){
         $invoice = Invoice::find($inv);
