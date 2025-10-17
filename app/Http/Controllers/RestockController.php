@@ -376,7 +376,9 @@ class RestockController extends Controller
         $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
         $products = $freshPartition->products;
         $from = $freshPartition->requisition['from']['id'];
+        if($warehouse == 'GEN'){
         $transit  = $this->modifyTransit($products,$from);
+        }
         $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
