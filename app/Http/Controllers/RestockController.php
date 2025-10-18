@@ -329,6 +329,23 @@ class RestockController extends Controller
             'requisition.log'
         ]);
 
+        $ip = null;
+        switch ($toWorkpointId) {
+            case 1:
+                $ip = env('PRINTER_P3');
+                break;
+            case 2:
+                $ip = env('PRINTERTEX');
+                break;
+            case 16:
+                $ip = env('PRINTERBRASIL');
+                break;
+
+            default:
+                $ip = env('PRINTER_P3');
+                break;
+        }
+
         $ip = $toWorkpointId == 2 ? env('PRINTERTEX') : env('PRINTER_P3');
 
         $cellerPrinter = new PrinterController();
@@ -817,30 +834,30 @@ class RestockController extends Controller
         // return 'holi';
         $agrupaciones = [
             [
-                'nuevo_path' => 'P1',
-                'nuevo_nombre' => 'PISO 1',
-                'ids' => [4555, 10627, 305,1115], // IDs de CUARTO, ESCALERAS, MONTACARGAS que deben quedar debajo de PISO 1
+                'nuevo_path' => 'BR',
+                'nuevo_nombre' => 'CDSBRASIL',
+                'ids' => [2500472,2500473,2500474,2500475,2500476,2500477,2500478,2500479,2500480,2500481,2500482,2500483,2500484,2500485,2500486], // IDs de CUARTO, ESCALERAS, MONTACARGAS que deben quedar debajo de PISO 1
             ],
-            [
-                'nuevo_path' => 'P2',
-                'nuevo_nombre' => 'PISO 2',
-                'ids' => [339, 457, 538, 573, 913, 10878, 15588, 2478723,246],
-            ],
-            [
-                'nuevo_path' => 'P3',
-                'nuevo_nombre' => 'PISO 3',
-                'ids' => [588, 666, 792, 926, 958, 10689, 15608],
-            ],
-            [
-                'nuevo_path' => 'P4',
-                'nuevo_nombre' => 'PISO 4',
-                'ids' => [990, 1046, 1069, 10952, 13813, 19321, 21800, 21801,1092],
-            ],
-            [
-                'nuevo_path' => 'PB',
-                'nuevo_nombre' => 'PLANTA BAJA',
-                'ids' => [1, 224], // Aquí pones los IDs reales
-            ],
+            // [
+            //     'nuevo_path' => 'P2',
+            //     'nuevo_nombre' => 'PISO 2',
+            //     'ids' => [339, 457, 538, 573, 913, 10878, 15588, 2478723,246],
+            // ],
+            // [
+            //     'nuevo_path' => 'P3',
+            //     'nuevo_nombre' => 'PISO 3',
+            //     'ids' => [588, 666, 792, 926, 958, 10689, 15608],
+            // ],
+            // [
+            //     'nuevo_path' => 'P4',
+            //     'nuevo_nombre' => 'PISO 4',
+            //     'ids' => [990, 1046, 1069, 10952, 13813, 19321, 21800, 21801,1092],
+            // ],
+            // [
+            //     'nuevo_path' => 'PB',
+            //     'nuevo_nombre' => 'PLANTA BAJA',
+            //     'ids' => [1, 224], // Aquí pones los IDs reales
+            // ],
         ];
 
         DB::transaction(function () use ($agrupaciones) {
