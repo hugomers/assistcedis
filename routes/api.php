@@ -224,6 +224,7 @@ Route::middleware('auth')->group(function(){
         Route::get('/getSale',[SalesController::class, 'Index']);
         Route::get('/getStores',[SalesController::class, 'getStores']);
         Route::get('/generate',[SalesController::class, 'generate']);
+        Route::get('/GetReportVhelp/{month}',[SalesController::class, 'GetReportVhelp']);
         Route::post('/getSale',[SalesController::class, 'getSale']);
     });
 

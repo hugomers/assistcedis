@@ -22,6 +22,50 @@ class SalesController extends Controller
         return response()->json($stores);
     }
 
+    public function GetReportVhelp($month){
+        $stores = Stores::whereNotIn('id',[1,2,5,14,15,21])->get();
+        // return response()->json($stores);
+
+        foreach ($stores as $store) {
+            // echo($store->name);
+            try {
+                // $response = Http::timeout(5)->get("http://192.168.10.160:1619/storetools/public/api/reports/getSales");
+                // return $response;
+                $response = Http::timeout(10)->get("http://{$store->ip_address}/access/public/reports/getSalesPerMonth/{$month}");
+                if ($response->ok()) {
+
+                    $data = $response->json();
+                    $store->sales = $data;
+                } else {
+                    $store->sales = [
+                        'sucursal' => strtoupper($store->name),
+                        'anterior' => [
+                            "total"=>0,
+                            "tickets"=>0
+                        ],
+                        'total' => 0,
+                        'tickets' => 0,
+                        'desglose' => [],
+                        'status' => false
+                    ];
+                }
+            } catch (\Exception $e) {
+                $store->sales = [
+                    'sucursal' => strtoupper($store->name),
+                    'anterior' => [
+                        "total"=>0,
+                        "tickets"=>0
+                    ],
+                    'total' => 0,
+                    'tickets' => 0,
+                    'desglose' => [],
+                    'status' => false
+                ];
+            }
+        }
+        return response()->json($stores,200);
+    }
+
     public function generate(){
         $sales = [];
         // $stores = Stores::whereIn('id',[1])->get();
