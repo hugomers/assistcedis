@@ -154,7 +154,6 @@ class InvoicesController extends Controller
         }
     }
 
-
     public function getInvoice($inv){
         $invoice = Invoice::find($inv);
         if($invoice){
