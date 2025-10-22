@@ -788,31 +788,142 @@ class RestockController extends Controller
         return response()->json($stores,200);
     }
 
+    // public function getData(Request $request){
+    //     $cedis = $request->cedis;
+    //     $sucursal= $request->sucursal;
+    //     $fechas = $request->fechas;
+    //     $clente = $sucursal['_client'];
+    //     // $invoicesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
+    //     $invoicesResponse = Http::timeout(500)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
+
+    //     if($invoicesResponse->status() == 200){
+    //         $unicos = array_values(array_unique(array_map(function($val){return "'".'P-'.$val['PARTICION']."'";},$invoicesResponse->json())));
+    //         $salidas =  implode(',',$unicos);
+    //         // return $salidas;
+    //         // $entriesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
+    //         $entriesResponse = Http::timeout(500)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
+    //         $res = [
+    //             "unicos"=>$salidas,
+    //             "salidas"=>json_decode($invoicesResponse),
+    //             "entradas"=>json_decode($entriesResponse),
+    //         ];
+    //         return $res;
+    //     }
+    // }
+
     public function getData(Request $request){
         $cedis = $request->cedis;
-        $sucursal= $request->sucursal;
+        $sucursal = $request->sucursal;
         $fechas = $request->fechas;
-        $clente = $sucursal['_client'];
-        // $invoicesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
-        $invoicesResponse = Http::timeout(500)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
-
+        $salidas = [];
+        $entradas = [];
+        $cliente = $sucursal['_client'] ?? null; // Por si acaso no viene definido
+        if (isset($fechas['from']) && isset($fechas['to'])) {
+            $desde = $fechas['from'];
+            $hasta = $fechas['to'];
+        } else {
+            $desde = $fechas;
+            $hasta = $fechas;
+        }
+        $partitions = partitionRequisition::with(['status'])->whereHas('requisition', function ($q) use ($sucursal, $desde, $hasta) {
+            $q->where('_workpoint_from', $sucursal['id_viz'])
+                ->whereBetween(DB::raw('DATE(created_at)'), [$desde, $hasta]);
+        })
+        ->where('_status','>=',6)
+        ->get();
+        $invoice =   $partitions->pluck('invoice')->filter()->values()->toArray();
+        $invoiceReceived = $partitions->pluck('invoice_received')->filter()->values()->toArray();
+        // $invoicesResponse = Http::timeout(100000)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getInvoices',  ['invoices'=> $invoice] );
+        $invoicesResponse = Http::timeout(100000)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['invoices'=> $invoice] );
         if($invoicesResponse->status() == 200){
-            $unicos = array_values(array_unique(array_map(function($val){return "'".'P-'.$val['PARTICION']."'";},$invoicesResponse->json())));
-            $salidas =  implode(',',$unicos);
-            // return $salidas;
-            // $entriesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
-            $entriesResponse = Http::timeout(500)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
-            $res = [
-                "unicos"=>$salidas,
-                "salidas"=>json_decode($invoicesResponse),
-                "entradas"=>json_decode($entriesResponse),
-            ];
-            return $res;
+            $salidas = collect(json_decode($invoicesResponse->body(), true));
         }
 
 
+        // $entriesResponse = Http::timeout(100000)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getEntries',["invoices"=>$invoiceReceived]);
+        $entriesResponse = Http::timeout(100000)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$invoiceReceived]);
+        if($entriesResponse->status() == 200){
+             $entradas = collect(json_decode($entriesResponse->body(), true));
+        }
+        $merged = $partitions->map(function ($part) use ($salidas, $entradas) {
+            $salida = $salidas->firstWhere('FACTURA', $part->invoice);
+            $entrada = $entradas->firstWhere('FACTURA', $part->invoice_received);
+            $data = $part->toArray();
+            $data['salida'] = $salida;
+            $data['entrada'] = $entrada;
 
+            $comparaciones = [];
 
+            $salidaProducts = collect($salida['products'] ?? []);
+            $entradaProducts = collect($entrada['products'] ?? []);
+            foreach ($salidaProducts as $prodSalida) {
+                $prodEntrada = $entradaProducts->firstWhere('ARTICULOS', $prodSalida['ARTICULOS']);
+
+                $comparaciones[] = [
+                    'SALIDA_FACTURA' => $salida['FACTURA'] ?? null,
+                    'SALIDA_FECHA' => $salida['FECHAYHORA'] ?? null,
+                    'REFERENCIA' => $salida['REFERENCIA'] ?? null,
+                    'CLIENTE' => $salida['NOMBRECLIENTE'] ?? null,
+                    'CODIGO' => $prodSalida['ARTICULOS'],
+                    'DESCRIPCION' => $prodSalida['DESCRIPCION'],
+                    'CANTIDAD' => $prodSalida['CANTIDAD'],
+                    // 'PRECIO' => $prodSalida['PRECIO'],
+                    // 'TOTAL' => $prodSalida['TOTAL'],
+
+                    // Comparaciones
+                    'codigoIGUAL' => $prodEntrada ? $prodEntrada['ARTICULOS'] === $prodSalida['ARTICULOS'] : false,
+                    'CANTIDADIGUAL' => $prodEntrada ? $prodEntrada['CANTIDAD'] === $prodSalida['CANTIDAD'] : false,
+                    'PRECIOIGUAL' => $prodEntrada ? $prodEntrada['PRECIO'] === $prodSalida['PRECIO'] : false,
+                    'TOTALIGUAL' => $prodEntrada ? $prodEntrada['TOTAL'] === $prodSalida['TOTAL'] : false,
+
+                    // Datos de entrada (si existen)
+                    'ENTRADA_FACTURA' => $entrada['FACTURA'] ?? null,
+                    'ENTRADA_SALIDA' => $entrada['SALIDA'] ?? null,
+                    'ENTRADA_FECHA' => $entrada['FECHA'] ?? null,
+                    'ENTRADA_CODIGO' => $prodEntrada['ARTICULOS'] ?? null,
+                    'ENTRADA_DESCRIPCION' => $prodEntrada['DESCRIPCION'] ?? null,
+                    'ENTRADA_CANTIDAD' => $prodEntrada['CANTIDAD'] ?? null,
+                    // 'ENTRADA_PRECIO' => $prodEntrada['PRECIO'] ?? null,
+                    // 'ENTRADA_TOTAL' => $prodEntrada['TOTAL'] ?? null,
+                ];
+            }
+
+            foreach ($entradaProducts as $prodEntrada) {
+                $prodSalida = $salidaProducts->firstWhere('ARTICULOS', $prodEntrada['ARTICULOS']);
+                if (!$prodSalida) {
+                    $comparaciones[] = [
+                        'SALIDA_FACTURA' => $salida['FACTURA'] ?? null,
+                        'SALIDA_FECHA' => $salida['FECHAYHORA'] ?? null,
+                        'REFERENCIA' => $salida['REFERENCIA'] ?? null,
+                        'CLIENTE' => $salida['NOMBRECLIENTE'] ?? null,
+                        'CODIGO' => null,
+                        'DESCRIPCION' => null,
+                        'CANTIDAD' => null,
+                        // 'PRECIO' => null,
+                        // 'TOTAL' => null,
+
+                        // Todas las comparaciones en falso
+                        'codigoIGUAL' => false,
+                        'CANTIDADIGUAL' => false,
+                        'PRECIOIGUAL' => false,
+                        'TOTALIGUAL' => false,
+
+                        // Datos de entrada
+                        'ENTRADA_FACTURA' => $entrada['FACTURA'] ?? null,
+                        'ENTRADA_SALIDA' => $entrada['SALIDA'] ?? null,
+                        'ENTRADA_FECHA' => $entrada['FECHA'] ?? null,
+                        'ENTRADA_CODIGO' => $prodEntrada['ARTICULOS'],
+                        'ENTRADA_DESCRIPCION' => $prodEntrada['DESCRIPCION'],
+                        'ENTRADA_CANTIDAD' => $prodEntrada['CANTIDAD'],
+                        // 'ENTRADA_PRECIO' => $prodEntrada['PRECIO'],
+                        // 'ENTRADA_TOTAL' => $prodEntrada['TOTAL'],
+                    ];
+                }
+            }
+            $data['comparaciones'] = $comparaciones;
+            return $data;
+        });
+        return $merged;
     }
 
     public function envMssg($message,$to){
