@@ -846,8 +846,8 @@ class RestockController extends Controller
              $entradas = collect(json_decode($entriesResponse->body(), true));
         }
         $merged = $partitions->map(function ($part) use ($salidas, $entradas) {
-            $salida = $salidas->firstWhere('FACTURA', $part->invoice);
-            $entrada = $entradas->firstWhere('FACTURA', $part->invoice_received);
+            $salida = collect($salidas)->firstWhere('FACTURA', $part->invoice);
+            $entrada = collect($entradas)->firstWhere('FACTURA', $part->invoice_received);
             $data = $part->toArray();
             $data['salida'] = $salida;
             $data['entrada'] = $entrada;
