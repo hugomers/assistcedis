@@ -1031,4 +1031,28 @@ class ProductsController extends Controller
 
         return response()->json($product);
     }
+
+    public function getReportProvider(Request $request){
+        $products = collect($request->codes);
+        $codes = $products->pluck('codigo')->filter()->toArray();
+        $foundProducts = ProductVA::with([
+                'status',
+                'providers',
+                'makers',
+                'category.familia.seccion',
+                'stocks' => fn($q) => $q->whereIn('id',[1,2]),
+            ])
+            ->withSum(['stocksSum as SumStock'], 'stock')
+            ->withSum(['salesYearSum as SalesYear'], 'amount')
+            ->withSum(['salesSubYearSum as SalesSubYear'], 'amount')
+            ->withSum(['purchasesSum as PurchaseYear'], 'amount')
+            ->whereIn('code', $codes)
+            ->get();
+        $foundProducts->transform(function ($item) use ($products) {
+            $match = $products->firstWhere('codigo', $item->code);
+            $item->invProvider = $match['cantidad'] ?? 0;
+            return $item;
+        });
+        return response()->json($foundProducts);
+    }
 }

@@ -134,6 +134,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/autoCompleteProduct',[ProductsController::class,'autoCompleteProduct']);
         Route::post('/exactSearch',[ProductsController::class,'exactSearch']);
         Route::post('/scanSearch',[ProductsController::class,'scanSearch']);
+        Route::post('/getReportProvider',[ProductsController::class,'getReportProvider']);
 
         Route::post('/search-exact',[ProductsController::class,'searchExact']);
         Route::post('/genBarcode',[ProductsController::class, 'genBarcode']);
