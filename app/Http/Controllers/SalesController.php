@@ -18,12 +18,12 @@ use Carbon\Carbon;
 class SalesController extends Controller
 {
     public function Index(){
-        $stores = Stores::whereNotIn('id',[1,2,5,14,15,21])->get();
+        $stores = Stores::whereNotIn('id',[1,2,5,6,14,15,21])->get();
         return response()->json($stores);
     }
 
     public function GetReportVhelp($month){
-        $stores = Stores::whereNotIn('id',[1,2,5,14,15,21])->get();
+        $stores = Stores::whereNotIn('id',[1,2,5,6,14,15,21])->get();
         // return response()->json($stores);
 
         foreach ($stores as $store) {
@@ -69,7 +69,7 @@ class SalesController extends Controller
     public function generate(){
         $sales = [];
         // $stores = Stores::whereIn('id',[1])->get();
-        $stores = Stores::whereNotIn('id',[1,2,5,14,15,21])->get();
+        $stores = Stores::whereNotIn('id',[1,2,5,6,14,15,21])->get();
 
         foreach ($stores as $store) {
             // echo($store->name);
@@ -169,7 +169,7 @@ class SalesController extends Controller
         // $response = Http::post("http://192.168.10.160:1619/storetools/public/api/reports/getSalesPerMonth",$data);
         // return $response;
         // $response = Http::timeout(5)->post("http://{$store->ip_address}/storetools/public/api/reports/getSalesPerMonth",$data);
-        $stores = Stores::whereNotIn('id',[1,2,5,14,15])->get();
+        $stores = Stores::whereNotIn('id',[1,2,6,5,14,15])->get();
         // $stores = Stores::whereIn('id',[3,4])->get();
 
         foreach($stores as $store){
