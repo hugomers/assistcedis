@@ -31,7 +31,10 @@ use App\Http\Controllers\WithdrawalsController;
 
 Route::prefix('/users')->group(function(){
     Route::post('trySignin',[UserController::class, 'trySignin']);
+
 });
+Route::post('restock/partitions/{id}/lock', [RestockController::class, 'lockPartition']);
+Route::post('restock/partitions/{id}/unlock', [RestockController::class, 'unlockPartition']);
 
 
 Route::middleware('auth')->group(function(){
@@ -218,6 +221,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/getData',[RestockController::class, 'getData']);
         Route::post('/refresTransit',[RestockController::class, 'refresTransit']);
         Route::post('/deletePartition',[InvoicesController::class, 'deletePartition']);
+        // Route::post('/partitions/{id}/lock', [RestockController::class, 'lockPartition']);
+        // Route::post('/partitions/{id}/unlock', [RestockController::class, 'unlockPartition']);
 
     });
 
@@ -348,6 +353,13 @@ Route::middleware('auth')->group(function(){
         Route::post('/setreceived',[InvoicesController::class,'setreceived']);
         Route::post('/correction',[InvoicesController::class,'correction']);
         Route::post('/sendMessageDiff',[InvoicesController::class,'sendMessageDiff']);
+        Route::post('/newRequisition',[InvoicesController::class,'newRequisition']);
+        Route::post('/getRequired',[InvoicesController::class,'getRequired']);
+        Route::post('/addProductRequired',[InvoicesController::class,'addProductRequired']);
+        Route::post('/deleteProductRequired',[InvoicesController::class,'deleteProductRequired']);
+        Route::post('/editProductRequired',[InvoicesController::class,'editProductRequired']);
+        Route::post('/addMassiveProducts',[InvoicesController::class,'addMassiveProducts']);
+
     });
 
     Route::prefix('/invoicesReceived')->group(function(){

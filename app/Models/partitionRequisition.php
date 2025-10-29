@@ -16,7 +16,8 @@ class partitionRequisition extends Model
         "_suplier_id",
         "_suplier",
         "_status",
-        "_out_verified"
+        "_out_verified",
+        "_warehouse",
     ];
 
 

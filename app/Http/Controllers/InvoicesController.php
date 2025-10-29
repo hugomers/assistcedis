@@ -14,6 +14,8 @@ use App\Models\Warehouses;
 use App\Models\WorkpointVA;
 use App\Models\User;
 use App\Models\ProductVA;
+use App\Models\ProductUnitVA;
+use App\Models\OrderVA;
 use App\Models\ProductCategoriesVA;
 use App\Models\ProductStockVA;
 use Carbon\CarbonImmutable;
@@ -396,7 +398,8 @@ class InvoicesController extends Controller
                 "resume"=>$resume,
                 "printers"=>$printers,
                 "staff"=>$users,
-                "partitions"=>$partitions
+                "partitions"=>$partitions,
+                'cedis'=>WorkpointVA::where([['_type',1],['active',1]])->get()
             ]);
         // } catch (\Error $e) { return response()->json($e,500); }
     }
@@ -1026,4 +1029,238 @@ class InvoicesController extends Controller
         }
 
     }
+
+    public function newRequisition(Request $request){
+        switch ($request->types['val']['id']) {
+            case '3'://venta
+                $data = $this->getVentaFromStore($request->folio, $request->workpointFrom, $request->suply_by['val']['id']);
+                $request->notes = $request->notes ? $request->notes." ".$data['notes'] : $data['notes'];
+                break;
+            case '4'://preventa
+                $data = $this->getPedidoFromStore($request->folio, $request->suply_by['val']['id']);
+                $request->notes = $request->notes ? $request->notes." ".$data['notes'] : $data['notes'];
+            break;
+        }
+        // return $data;
+        if(isset($data['msg'])){
+            return response()->json([
+                "success" => false,
+                "msg" => $data['msg']
+            ]);
+        }
+        $createdBy = $request->created_by;
+        $num_ticket = Invoice::where('_workpoint_to', $request->suply_by['val']['id'])
+                                    ->whereDate('created_at',now())
+                                    ->count()+1;
+        $num_ticket_store = Invoice::where('_workpoint_from', $request->workpointFrom)
+                                        ->whereDate('created_at', now())
+                                        ->count()+1;
+        $requisition = new Invoice;
+        $requisition->notes = $request->notes;
+        $requisition->num_ticket = $num_ticket;
+        $requisition->num_ticket_store = $num_ticket_store;
+        $requisition->_created_by = $createdBy;
+        $requisition->_workpoint_from = $request->workpointFrom;
+        $requisition->_workpoint_to = $request->suply_by['val']['id'];
+        $requisition->_type = $request->types['val']['id'];
+        $requisition->printed = 0;
+        $requisition->_warehouse = $request->warehouse['val']['id'];
+        $requisition->time_life = "00:15:00";
+        $requisition->_status = 1;
+        $requisition->save();
+        $res = $requisition->fresh();
+        $log = $this->logInt($res->id,$res->_status);
+        if($log){
+            if(isset($data['products'])){ $requisition->products()->attach($data['products']); }
+            $simon = $requisition->load(['type', 'status', 'to', 'from', 'created_by', 'log']);
+            $response = [
+                "requisition"=>$simon
+            ];
+            return response()->json($response);
+        }else{
+            return response()->json('no se inserto la factura',500);
+        }
+    }
+
+    public function getPedidoFromStore($folio, $to){
+        $order = OrderVA::find($folio);
+        if($order){
+            $toSupply = [];
+            $products = $order->products()->with(["stocks" => function($query) use($to){
+                $query->where("_workpoint", $to);
+            }, 'prices' => function($query){
+                $query->where('_type', 7);
+            }])->get();
+            foreach($products as $product){
+                    $required = (float) $product['pivot']['units'];
+                    if($product->_unit == 3){
+                        $pieces =  (float) $product->pieces == 0 ? 1 : $product->pieces;
+                        $toSupply[$product->id] = [
+                            'units' =>$required ,
+                            "cost" => $product->cost,
+                            'amount' => round((floatval($required) / max(floatval($pieces), 1))) < 1 ? 1 : round((floatval($required) / max(floatval($pieces), 1))),
+                            "_supply_by" => 3,
+                            'comments' => '',
+                            "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                    }else{
+                        $toSupply[$product->id] = [
+                            'units' => $required,
+                            "cost" => $product->cost,
+                            'amount' => $required,
+                            "_supply_by" => 1 ,
+                            'comments' => '',
+                            "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                    }
+            }
+            return ["notes" => " Pedido preventa #".$folio.", ".$order->name, "products" => $toSupply];
+        }
+        return ["msg" => "No se encontro el pedido"];
+    }
+
+    public function getVentaFromStore($folio, $workpoint_id, $to){
+        $workpoint = WorkpointVA::find($workpoint_id);
+        $venta =  Http::post("http://{$workpoint->dominio}/storetools/public/api/sales/getTicket",["folio"=>$folio]);
+        // $venta =  Http::post("http://192.168.10.160:1619/storetools/public/api/sales/getTicket",["folio"=>$folio]);
+        if($venta){
+            if(isset($venta['msg'])){
+                return ["msg" => $venta['msg']];
+            }
+            $toSupply = [];
+            foreach($venta['products'] as $row){
+                $product = ProductVA::with(['stocks' => function($query) use ($to){
+                    $query->where('_workpoint', $to);
+                }])->where('code', $row['code'])->first();
+                if($product){
+                    $required = $row['req'];
+                    if($product->_unit == 3){
+                        $pieces = $product->pieces == 0 ? 1 : $product->pieces;
+                        $toSupply[$product->id] = ['units' => $required, "cost" => $product->cost, 'amount' => round($required/$pieces, 2),  "_supply_by" => 3, 'comments' => '', "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                    }else{
+                        $toSupply[$product->id] = ['units' => $required, "cost" => $product->cost, 'amount' => $required,  "_supply_by" => 1 , 'comments' => '', "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                    }
+                }
+            }
+            return ["notes" => "Pedido venta tienda #".$folio, "products" => $toSupply];
+        }
+        return ["msg" => "No se tenido conexión con la tienda"];
+    }
+
+    public function getRequired(Request $request){
+        $store = $request->workpoint;
+        $folio = $request->folio;
+        $order = Invoice::with([
+            'type',
+            'status',
+            'to',
+            'from',
+            'created_by',
+            'log',
+            'products.units',
+        ])->where([['id',$folio],['_workpoint_from',$store]])->first();
+
+        $units = ProductUnitVA::all();
+        if($order){
+            $order->load([
+            'type',
+            'status',
+            'to',
+            'from',
+            'created_by',
+            'log',
+            'products.units',
+            'products.stocks' => fn($q) => $q->where('id', $order->_workpoint_to)]);
+            $res = [
+                "units"=>$units,
+                "order"=>$order
+            ];
+            return response()->json($res,200);
+        }else{
+            return response()->json(["mssg"=>'No se encuentra el pedido'],404);
+        }
+
+    }
+
+    public function addProductRequired(Request $request){
+        $productData = [
+            $request->_product => [
+                'amount' => $request->amount,//ok
+                '_supply_by' => $request->_supply_by,//ok
+                'units' => $request->units,//ok
+                'cost' => $request->cost,//ok
+                'total' => $request->total,//ok
+                'comments' => isset($request->comments) ? $request->comments : '',//ok
+                'stock' => $request->stock,//ok
+                'ipack' => $request->ipack,//ok
+            ]
+        ];
+        $invoice =  Invoice::find($request->_requisition);
+        $invoice->products()->syncWithoutDetaching($productData);
+        $productAdded = $invoice->products()->with(['units','stocks'=> fn($q) => $q->where('id',$invoice->_workpoint_to)])->where("id", $request->_product)->first();
+        return response()->json($productAdded);
+    }
+
+
+    public function editProductRequired(Request $request){
+        $invoice = Invoice::findOrFail($request->_requisition);
+        $pivotData = [
+            'amount' => $request->amount,
+            '_supply_by' => $request->_supply_by,
+            'units' => $request->units,
+            'cost' => $request->cost,
+            'total' => $request->total,
+            'comments' => $request->comments ?? '',
+            'stock' => $request->stock,
+            'toDelivered' => $request->toDelivered,
+            'ipack' => $request->ipack,
+            'checkout' => $request->checkout,
+            '_suplier_id' => $request->_suplier_id,
+            '_partition' => $request->_partition,
+        ];
+        $invoice->products()->updateExistingPivot($request->_product, $pivotData);
+        $productUpdated = $invoice->products()->with(['units','stocks'=> fn($q) => $q->where('id',$invoice->_workpoint_to)])->where("id", $request->_product)->first();
+        return response()->json($productUpdated);
+    }
+
+    public function deleteProductRequired(Request $request){
+        $requisition = Invoice::find($request->_requisition);
+        $requisition->products()->detach([$request->_product]);
+        return response()->json(["success" => true]);
+    }
+
+    public function addMassiveProducts(Request $request){
+        $added = [];
+        $notFound = [];
+        $requisition = Invoice::find($request->_requisition);
+        $products = isset($request->codes) ? $request->codes : [];
+        $toSupply = [];
+        foreach($products as $row){
+            $product = ProductVA::with(['stocks' => function($query) use ($requisition){
+                $query->where('id', $requisition->_workpoint_to);
+            }])->where([['code', $row['codigo'],['_status','!=',4]]])->first();
+            if($product){
+                $required = $row['cantidad'];
+                if($product->_unit == 3){
+                    $pieces = $product->pieces == 0 ? 1 : $product->pieces;
+
+                    $toSupply[$product->id] = ['units' => $required * $pieces, "cost" => $product->cost, 'amount' => $required,  "_supply_by" => 3, 'comments' => '', "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                }else{
+                    $toSupply[$product->id] = ['units' => $required, "cost" => $product->cost, 'amount' => $required,  "_supply_by" => 1 , 'comments' => '', "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                }
+            }else{
+                $notFound[] = $row['codigo'];
+            }
+        }
+        if(count($toSupply) > 0){ $requisition->products()->attach($toSupply); }
+        $simon = $requisition->load([
+            'products.units',
+            'products.stocks' => fn($q) => $q->where('id', $requisition->_workpoint_to)
+        ]);
+        $res = [
+            "products"=>$simon->products,
+            "notFound"=>$notFound
+        ];
+        return response()->json($res,200);
+    }
+
+
 }
