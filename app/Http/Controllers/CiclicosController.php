@@ -12,10 +12,7 @@ use App\Models\ProductCategoriesVA;
 use App\Models\CellerVA;
 use App\Models\Invoice;
 use App\Models\CellerSectionVA;
-
-
-
-use App\Http\Resources\Inventory as InventoryResource;
+use App\Http\Resources\inventory as InventoryResource;
 
 class CiclicosController extends Controller
 {
