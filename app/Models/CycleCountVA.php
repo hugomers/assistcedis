@@ -21,7 +21,7 @@ class CycleCountVA extends Model
     }
 
     public function workpoint(){
-        return $this->belongsTo('App\Models\WorkPointVA', '_workpoint');
+        return $this->belongsTo('App\Models\WorkpointVA', '_workpoint');
     }
 
     public function status(){
