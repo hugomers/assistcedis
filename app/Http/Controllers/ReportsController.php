@@ -225,7 +225,7 @@ class ReportsController extends Controller
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
         },
         'locations' => function($query) use ($workpoint){
-            $query->whereHas('celler', function($query) use ($workpoint){
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint){
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -236,7 +236,7 @@ class ReportsController extends Controller
             $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);})
         ->whereHas('locations', function($query) use ($workpoint){
-            $query->whereHas('celler', function($query) use ($workpoint){
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint){
                 $query->where('_workpoint', $workpoint);
             });},'>',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
@@ -256,7 +256,7 @@ class ReportsController extends Controller
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
         },
         'locations' => function($query) use ($workpoint) {
-            $query->whereHas('celler', function($query) use ($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -268,7 +268,7 @@ class ReportsController extends Controller
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
         })
         ->whereHas('locations', function($query) use ($workpoint) {
-            $query->whereHas('celler', function($query) use ($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });},'<=',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
@@ -286,7 +286,7 @@ class ReportsController extends Controller
                 $query->where([["gen", "<=", 0],["exh", "<=", 0], ["_workpoint", $workpoint]]);
             },
             'locations' => function($query) use ($workpoint) {
-                $query->whereHas('celler', function($query) use ($workpoint) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
                     $query->where('_workpoint', $workpoint);
                 });
             },
@@ -312,7 +312,7 @@ class ReportsController extends Controller
             $query->where([["stock", "<=", "0"], ["_workpoint", $workpoint]]);
         },
         'locations' => function($query)use($workpoint){
-            $query->whereHas('celler', function($query) use($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -321,7 +321,7 @@ class ReportsController extends Controller
             $query->where([["stock", "<=", 0], ["stock", "<=", 0], ["_workpoint", $workpoint]]);
         })
         ->whereHas('locations', function($query) use($workpoint) {
-            $query->whereHas('celler', function($query) use($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use($workpoint) {
                 $query->where('_workpoint', $workpoint);});},'>',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
@@ -340,7 +340,7 @@ class ReportsController extends Controller
         },
         'category.familia.seccion',
         'locations' => function($query)use($workpoint){
-            $query->whereHas('celler', function($query) use($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -364,7 +364,7 @@ class ReportsController extends Controller
             $query->where([["gen", ">", "0"], ["exh", "<=", 0], ["_workpoint", $workpoint]]);
         },
         'locations' => function($query) use ($workpoint) {
-            $query->whereHas('celler', function($query) use ($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -386,7 +386,7 @@ class ReportsController extends Controller
     public function generalVsCedis($workpoint,$seccion){
         $products = ProductVA::with([
             'locations' => function($query) use ($workpoint) {
-                $query->whereHas('celler', function($query) use ($workpoint) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
                     $query->where('_workpoint', $workpoint);
                 });
             },
@@ -421,7 +421,7 @@ class ReportsController extends Controller
             $query->where([["stock", ">", 0], ["min", ">", 0], ["max", ">", 0], ["_workpoint", $workpoint]]);
         },
         'locations' => function($query)use($workpoint){
-            $query->whereHas('celler', function($query) use($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -447,7 +447,7 @@ class ReportsController extends Controller
             $query->where([["_workpoint", $workpoint], ['gen', '<', 0]])->orWhere([["_workpoint", $workpoint], ['exh', '<', 0]]);
         },
         'locations' => function($query) use ($workpoint) {
-            $query->whereHas('celler', function($query) use ($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
                 $query->where('_workpoint', $workpoint);
             });
         },
@@ -472,7 +472,7 @@ class ReportsController extends Controller
             'providers',
             'status',
             'locations' => function($query)use($workpoint){
-                $query->whereHas('celler', function($query) use($workpoint) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use($workpoint) {
                     $query->where('_workpoint', $workpoint);
                 });
             },
