@@ -26,6 +26,10 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\locationController;
 use App\Http\Controllers\WithdrawalsController;
+use App\Http\Controllers\CiclicosController;
+use App\Http\Controllers\OrdersController;
+
+
 
 
 
@@ -93,6 +97,8 @@ Route::middleware('auth')->group(function(){
 
     Route::prefix('/reports')->group(function(){
         Route::get('',[ReportsController::class, 'Index']);
+        Route::get('/vpi',[ReportsController::class, 'indexvpi']);
+        Route::post('/getReport',[ReportsController::class, 'getReport']);
         Route::post('reportWarehouses',[ReportsController::class, 'reportWarehouses']);
         Route::post('obtReport',[ReportsController::class, 'obtReport']);
     });
@@ -221,8 +227,13 @@ Route::middleware('auth')->group(function(){
         Route::post('/getData',[RestockController::class, 'getData']);
         Route::post('/refresTransit',[RestockController::class, 'refresTransit']);
         Route::post('/deletePartition',[InvoicesController::class, 'deletePartition']);
+        Route::post('/create',[RestockController::class, 'create']);
+        Route::post('/nextStep',[RestockController::class, 'nextStep']);
         // Route::post('/partitions/{id}/lock', [RestockController::class, 'lockPartition']);
         // Route::post('/partitions/{id}/unlock', [RestockController::class, 'unlockPartition']);
+
+    });
+        Route::prefix('/restock')->group(function(){
 
     });
 
@@ -237,6 +248,12 @@ Route::middleware('auth')->group(function(){
 
     Route::prefix('/prints')->group(function(){
         Route::post('/PrintAttention',[PrinterController::class, 'PrintAttention']);
+    });
+
+
+    Route::prefix('/ciclicos')->group(function(){
+        Route::get('/',[CiclicosController::class, 'index']);
+        Route::get('/{folio}',[CiclicosController::class, 'find']);
     });
 
     Route::prefix('/requisition')->group(function(){
@@ -387,4 +404,45 @@ Route::middleware('auth')->group(function(){
         Route::post('/addMassiveLocation',[locationController::class, 'addMassiveLocation']);
         Route::post('/deleteMassiveLocation',[locationController::class, 'deleteMassiveLocation']);
     });
+
+    Route::prefix('/compare')->group(function(){
+        Route::get('/',[CiclicosController::class, 'secciones']);
+        Route::get('/getProducts',[CiclicosController::class, 'getProductsReport']);
+        Route::post('/getChangePrices/{wid}',[CiclicosController::class, 'getChangePrices']);
+        Route::post('/getProducts/{sid}',[CiclicosController::class, 'getProductsCompare']);
+    });
+
+    Route::prefix('/product')->group(function(){
+        Route::post('/',[CiclicosController::class, 'getProducts']);
+        Route::post('/getMassive',[CiclicosController::class, 'getMassiveProducts']);
+    });;
+
+    Route::prefix('/resources')->group(function(){
+        Route::get('/getCedis',[RestockController::class, 'getCedis']);
+        Route::post('/getSeccion/{sid}',[RestockController::class, 'getSeccion']);
+        Route::post('/create',[RestockController::class, 'createAutomate']);
+        Route::post('/getAssortmentInsumos',[RestockController::class, 'getAssortmentInsumos']);
+        Route::post('/preview',[RestockController::class, 'impPreview']);
+        Route::post('/reportProductsCategories',[RestockController::class, 'reportProductsCategories']);
+        Route::post('/getProductReportLocations',[RestockController::class, 'getProductReportLocations']);
+        Route::post('//getProductReport/{sid}',[RestockController::class, 'getProductReport']);
+    });
+
+    Route::prefix('/preorders')->group(function(){
+        Route::get('/getRules', [OrdersController::class,'getRules']);
+        Route::get('/getOrder/{ord}', [OrdersController::class,'getOrder']);
+        Route::get('/getOrderVerify/{ord}', [OrdersController::class,'getOrderVerify']);
+        Route::get('/getOrderAdd/{ord}', [OrdersController::class,'getOrderAdd']);
+        Route::post('/editProduct', [OrdersController::class,'editProduct']);
+        Route::post('/addProduct', [OrdersController::class,'addProduct']);
+        Route::post('/deleteProduct',[ OrdersController::class,'deleteProduct']);
+        Route::post('/updateProductPrices', [OrdersController::class,'updateProductPrices']);
+        Route::post('/getClient', [OrdersController::class,'getClient']);
+        Route::post('/changeClientOrder', [OrdersController::class,'changeClientOrder']);
+        Route::post('/nextState', [OrdersController::class,'nextState']);
+        Route::post('/nextStateFinish', [OrdersController::class,'nextStateFinish']);
+        Route::post('/getOrderCash', [OrdersController::class,'getOrderCash']);
+    });
+
+
 });
