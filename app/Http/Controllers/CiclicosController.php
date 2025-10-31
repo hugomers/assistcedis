@@ -21,7 +21,7 @@ class CiclicosController extends Controller
 {
     public function index(Request $request){
         // sleep(3);
-        try {
+        // try {
             $view = $request->query("v");
             $store = $request->query("store");
             $now = CarbonImmutable::now();
@@ -41,7 +41,7 @@ class CiclicosController extends Controller
                 "params"=>[ $from, $to, $view, $store ],
                 "req"=>$request->all()
             ]);
-        }  catch (\Error $e) { return response()->json($e,500); }
+        // }  catch (\Error $e) { return response()->json($e,500); }
     }
 
     public function find(Request $request){
