@@ -1316,6 +1316,7 @@ class RestockController extends Controller
                 $celler->sections = \App\Models\CellerSectionVA::where([
                     ['_celler', '=',$celler->id],
                     ['deep', '=', 0],
+                    ['deleted_at','!=',null]
                 ])->get();
                 return $celler;
             });
