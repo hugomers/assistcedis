@@ -1430,7 +1430,7 @@ class RestockController extends Controller
 
 
     public function getAssortmentInsumos(Request $request){
-        $products = Product::with([
+        $products = ProductVA::with([
             'category.familia.seccion'
             ])
             ->whereHas('category.familia.seccion', function($query)  { // Aplicamos el filtro en la relación seccion
