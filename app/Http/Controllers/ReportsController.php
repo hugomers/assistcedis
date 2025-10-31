@@ -133,37 +133,55 @@ class ReportsController extends Controller
     }
 
     public function getReport(Request $request){
-        // return $request->all();
-        $workpoint = $request->workpoint;
-        $secciones = $request->secciones;
-        $catalogo = $this->catalogo($workpoint,$secciones);
-        $conStock = $this->conStock($workpoint,$secciones);
-        $conStockUbicados = $this->conStockUbicados($workpoint,$secciones);
-        $conStockSinUbicar = $this->conStockSinUbicar($workpoint,$secciones);
-        $sinStock = $this->sinStock($workpoint,$secciones);
-        $sinStockUbicados = $this->sinStockUbicados($workpoint,$secciones);
-        $sinMaximos = $this->sinMaximos($workpoint,$secciones);
-        $generalVsExhibicion = $this->generalVsExhibicion($workpoint,$secciones);
-        $generalVsCedis = $this->generalVsCedis($workpoint,$secciones);
-        $conMaximos = $this->conMaximos($workpoint,$secciones);
-        $negativos = $this->negativos($workpoint,$secciones);
-        $cedisStock = $this->cedisStock($workpoint,$secciones);
+        // return response()->json(['ok' => 'entra']);
+        try {
+            $workpoint = $request->workpoint;
+            $secciones = $request->secciones;
+            $catalogo = $this->catalogo($workpoint,$secciones);
+            // return response()->json(['ok' => 'catalogo']);
+            $conStock = $this->conStock($workpoint,$secciones);
+            // return response()->json(['ok' => 'conStock']);
+            $conStockUbicados = $this->conStockUbicados($workpoint,$secciones);
+            // return response()->json(['ok' => 'conStockUbicados']);
+            $conStockSinUbicar = $this->conStockSinUbicar($workpoint,$secciones);
+            // return response()->json(['ok' => 'conStockSinUbicar']);
+            $sinStock = $this->sinStock($workpoint,$secciones);
+            // return response()->json(['ok' => 'sinStock']);
+            $sinStockUbicados = $this->sinStockUbicados($workpoint,$secciones);
+            // return response()->json(['ok' => 'sinStockUbicados']);
+            $sinMaximos = $this->sinMaximos($workpoint,$secciones);
+            // return response()->json(['ok' => 'sinMaximos']);
+            $generalVsExhibicion = $this->generalVsExhibicion($workpoint,$secciones);
+            // return response()->json(['ok' => 'generalVsExhibicion']);
+            $generalVsCedis = $this->generalVsCedis($workpoint,$secciones);
+            // return response()->json(['ok' => 'generalVsCedis']);
+            $conMaximos = $this->conMaximos($workpoint,$secciones);
+            // return response()->json(['ok' => 'conMaximos']);
+            $negativos = $this->negativos($workpoint,$secciones);
+            // return response()->json(['ok' => 'negativos']);
+            $cedisStock = $this->cedisStock($workpoint,$secciones);
+            // return response()->json(['ok' => 'cedisStock']);
 
-        $res = [
-            "catalogo"=>$catalogo,//ok
-            "conStock"=>$conStock,//ok
-            "conStockUbicados"=>$conStockUbicados,//ok
-            "conStockSinUbicar"=>$conStockSinUbicar,
-            "sinStock"=>$sinStock,
-            "sinStockUbicados"=>$sinStockUbicados,
-            "sinMaximos"=>$sinMaximos,
-            "generalVsExhibicion"=>$generalVsExhibicion,
-            "generalVsCedis"=>$generalVsCedis,
-            "conMaximos"=>$conMaximos,
-            "negativos"=>$negativos,
-            "cedisStock"=>$cedisStock,
-        ];
+            $res = [
+                "catalogo"=>$catalogo,//ok
+                "conStock"=>$conStock,//ok
+                "conStockUbicados"=>$conStockUbicados,//ok
+                "conStockSinUbicar"=>$conStockSinUbicar,
+                "sinStock"=>$sinStock,
+                "sinStockUbicados"=>$sinStockUbicados,
+                "sinMaximos"=>$sinMaximos,
+                "generalVsExhibicion"=>$generalVsExhibicion,
+                "generalVsCedis"=>$generalVsCedis,
+                "conMaximos"=>$conMaximos,
+                "negativos"=>$negativos,
+                "cedisStock"=>$cedisStock,
+            ];
         return response()->json($res);
+
+
+        } catch (\Exception $e) {
+            dd($e);
+        }
     }
 
     public function catalogo($workpoint,$seccion){
@@ -184,7 +202,7 @@ class ReportsController extends Controller
          ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
-         ->get();
+         ->get()->toArray();;
         return $productos;
     }
 
@@ -212,7 +230,7 @@ class ReportsController extends Controller
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
-        ->where('_status', '!=', 4)->get();
+        ->where('_status', '!=', 4)->get()->toArray();;
         return $productos;
     }
 
@@ -242,7 +260,7 @@ class ReportsController extends Controller
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
-        ->where('_status', '!=', 4)->get();
+        ->where('_status', '!=', 4)->get()->toArray();;
 
         return $productos;
     }
@@ -274,7 +292,7 @@ class ReportsController extends Controller
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
-        ->where('_status', '!=', 4)->get();
+        ->where('_status', '!=', 4)->get()->toArray();;
         return $productos;
     }
 
@@ -298,7 +316,7 @@ class ReportsController extends Controller
             ->whereHas('category.familia.seccion', function($query) use ($seccion) {
                 $query->whereIn('id',$seccion);
                 })
-            ->where('_status', '!=', 4)->get();
+            ->where('_status', '!=', 4)->get()->toArray();;
 
 
         return $productos;
@@ -327,7 +345,7 @@ class ReportsController extends Controller
             $query->whereIn('id',$seccion);
             })
         ->where('_status', '!=', 4)
-        ->get();
+        ->get()->toArray();;
         return $productos;
     }
 
@@ -352,7 +370,7 @@ class ReportsController extends Controller
             $query->whereIn('id',$seccion);
         })
         ->where('_status', '!=', 4)
-        ->get();
+        ->get()->toArray();;
         return $productos;
     }
 
@@ -378,7 +396,7 @@ class ReportsController extends Controller
             $query->whereIn('id',$seccion);
         })
         ->where('_status', '!=', 4)
-        ->get();
+        ->get()->toArray();;
 
         return $productos;
     }
@@ -410,7 +428,7 @@ class ReportsController extends Controller
                       ->where('stock', '=', 0); // Filtra solo aquellos con stock positivo
             })
             ->where('_status','!=',4)->get();
-        return $products;
+        return $products->toArray();;
     }
 
     public function conMaximos($workpoint,$seccion){
@@ -434,7 +452,7 @@ class ReportsController extends Controller
             $query->whereIn('id',$seccion);
         })
         ->where('_status', '!=', 4)
-        ->get();
+        ->get()->toArray();;
         return $productos;
     }
 
@@ -461,7 +479,7 @@ class ReportsController extends Controller
             $query->whereIn('id',$seccion);
         })
         ->where('_status', '!=', 4)
-        ->get();
+        ->get()->toArray();;
         return $productos;
     }
 
@@ -486,7 +504,7 @@ class ReportsController extends Controller
                 $query->whereIn('_workpoint', [1, 2])
                       ->where('stock', '>', 0); // Filtra solo aquellos con stock positivo
             })
-            ->where('_status','!=',4)->get();
+            ->where('_status','!=',4)->get()->toArray();;
         return $products;
     }
 
