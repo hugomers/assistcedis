@@ -222,4 +222,9 @@ class CashierController extends Controller
             return "No se pudo imprimir";
         }
     }
+
+    public function getDependients($sid){
+        $opens = Staff::where([['_store',$sid],['acitve',1]])->get();
+        return response()->json($opens);
+    }
 }
