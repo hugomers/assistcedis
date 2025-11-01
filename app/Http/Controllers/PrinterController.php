@@ -1091,6 +1091,8 @@ class PrinterController extends Controller
     }
 
     public function PrintAttention(Request $request){
+        // return 'holi';
+        $amount = $request->amount;
         $ip = $request->print;
         $staff = $request->staff;
         try{
@@ -1098,28 +1100,31 @@ class PrinterController extends Controller
             $printer = new Printer($connector);
         }catch(\Exception $e){ return null;}
         if(!$printer){ return false; }
-        $printer->setJustification(Printer::JUSTIFY_LEFT);
-        $printer->setEmphasis(false);
-        $printer->setTextSize(1,1);
-        $printer->text("------------------------------------------------\n");
-        $printer->setJustification(Printer::JUSTIFY_LEFT);
-        $printer->setTextSize(1,2);
-        $printer->text("\n AGENTE:".$staff['complete_name']."\n");
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setTextSize(3,2);
-        $printer->text("\n ID:".$staff['id_tpv']."\n");
-        $printer->setJustification(Printer::JUSTIFY_LEFT);
-        $printer->setTextSize(1,1);
-        $printer->text("------------------------------------------------\n\n");
-        $printer->setTextSize(1,1);
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setBarcodeHeight(155);
-        $printer->setBarcodeWidth(255);
-        $printer->barcode($staff['id_tpv']);
-        $printer->feed(1);
-        $printer->text("GRUPO VIZCARRA\n");
-        $printer->feed(1);
-        $printer->cut();
+
+        for ($i = 0; $i < $amount; $i++) {
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->setEmphasis(false);
+            $printer->setTextSize(1,1);
+            $printer->text("------------------------------------------------\n");
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->setTextSize(1,2);
+            $printer->text("\n AGENTE:".$staff['complete_name']."\n");
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->setTextSize(3,2);
+            $printer->text("\n ID:".$staff['id_tpv']."\n");
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->setTextSize(1,1);
+            $printer->text("------------------------------------------------\n\n");
+            $printer->setTextSize(1,1);
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->setBarcodeHeight(155);
+            $printer->setBarcodeWidth(255);
+            $printer->barcode($staff['id_tpv']);
+            $printer->feed(1);
+            $printer->text("GRUPO VIZCARRA\n");
+            $printer->feed(1);
+            $printer->cut();
+        }
         $printer->close();
         return true;
     }
