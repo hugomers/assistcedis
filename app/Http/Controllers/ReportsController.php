@@ -508,5 +508,69 @@ class ReportsController extends Controller
         return $products;
     }
 
+    // public function getProductsDown(Request $request){
+    //     $filters = $request->filters;
+    //     $store = $request->store;
+
+
+    //     $products = ProductVA::with([
+    //             'providers',
+    //             'makers',
+    //             'category.familia.seccion',
+    //             'stocks' => fn($q) => $q->where('id',[$store,1,2,16]),
+    //         ])
+    //         ->withMax(['sales as saleLast' => function ($q) use ($store) {
+    //             $q->whereHas('cashRegister', fn($q2) =>
+    //                 $q2->where('_workpoint', $store)
+    //                 );
+    //             }], 'created_at')
+    //         ->when(count($filters['categories']) > 0, fn($q) =>
+    //             $q->whereHas('category', fn($q2) =>
+    //             $q2->whereIn('id', $filters['categories'])))
+    //         ->when(count($filters['familys'])> 0, fn($q) =>
+    //             $q->whereHas('category.familia', fn($q2) =>
+    //             $q2->whereIn('id', $filters['familys'])))
+    //         ->when(count($filters['sections'])> 0, fn($q) =>
+    //             $q->whereHas('category.familia.seccion', fn($q2) =>
+    //             $q2->whereIn('id', $filters['sections'])))
+    //         ->where('_status','!=',4)->get();
+    //         return response()->json($products);
+    // }
+
+
+    public function getProductsDown(Request $request){
+        $filters = $request->filters;
+        $store = $request->store;
+
+        $workpoint = WorkpointVA::with('productSeason')->find($store);
+
+        $products = ProductVA::with([
+            'providers',
+            'makers',
+            'category.familia.seccion',
+            'stocks' => fn($q) => $q->whereIn('id', [$store, 1, 2, 16]),
+        ])
+        ->withMax(['sales as saleLast' => function ($q) use ($store) {
+            $q->whereHas('cashRegister', fn($q2) =>
+                $q2->where('_workpoint', $store)
+            );
+        }], 'created_at')
+        ->when(count($filters['categories']) > 0, fn($q) =>
+            $q->whereHas('category', fn($q2) =>
+            $q2->whereIn('id', $filters['categories'])))
+        ->when(count($filters['familys'])> 0, fn($q) =>
+            $q->whereHas('category.familia', fn($q2) =>
+            $q2->whereIn('id', $filters['familys'])))
+        ->when(count($filters['sections'])> 0, fn($q) =>
+            $q->whereHas('category.familia.seccion', fn($q2) =>
+            $q2->whereIn('id', $filters['sections'])))
+        ->when($workpoint && $workpoint->productSeason && $workpoint->productSeason->isNotEmpty(),
+            fn($q) => $q->whereIn('id', $workpoint->productSeason->pluck('id'))
+        )
+        ->where('_status', '!=', 4)->get();
+        return response()->json($products);
+    }
+
+
 
 }

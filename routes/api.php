@@ -101,6 +101,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/getReport',[ReportsController::class, 'getReport']);
         Route::post('reportWarehouses',[ReportsController::class, 'reportWarehouses']);
         Route::post('obtReport',[ReportsController::class, 'obtReport']);
+        Route::post('getProductsDown',[ReportsController::class, 'getProductsDown']);
+
     });
 
 
