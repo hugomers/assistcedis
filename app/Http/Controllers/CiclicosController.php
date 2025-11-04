@@ -290,7 +290,8 @@ class CiclicosController extends Controller
 
         if(isset($request->with_locations) && $request->with_locations){ //Se puede agregar todas las ubicaciones de la sucursal
             $query = $query->with(['locations' => function($query) use ($workpoint) {
-                $query->whereHas('celler', function($query) use ($workpoint) {
+                $query->where('deleted_at',null)
+                ->whereHas('celler', function($query) use ($workpoint) {
                     $query->where([['_workpoint', $workpoint]]);
                 });
             }]);
