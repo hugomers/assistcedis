@@ -15,7 +15,7 @@ class OrderVA extends Model
     //     return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_from');
     // }
     public function from(){
-        return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_from');
+        return $this->belongsTo('App\Models\WorkpointVA', '_workpoint_from');
     }
 
 
