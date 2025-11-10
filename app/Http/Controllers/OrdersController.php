@@ -8,7 +8,9 @@ use App\Models\SeasonsVA;
 use App\Models\AccountVA;
 use App\Models\OrderVA;
 use App\Models\OrderProcessVA;
+use App\Models\CashRegisterVA;
 use App\Models\ClientVA;
+use App\Models\PrinterVA;
 use App\Models\OrderLogVA;
 use App\Models\ProductOrderedVA;
 
@@ -113,7 +115,7 @@ class OrdersController extends Controller
         $nwProduct->_order = $product['_order'];
         $nwProduct->_supply_by = $product['_supply_by'];
         $nwProduct->_price_list = $product['_price_list'];
-        $nwProduct->comments = 'Agregado en Verificacion';
+        $nwProduct->comments = '';
         $nwProduct->total = $product['total'];
         $nwProduct->toDelivered = $product['toDelivered'];
         $nwProduct->amountDelivered = $product['amountDelivered'];
@@ -241,6 +243,299 @@ class OrdersController extends Controller
         $log->_responsable = $user;
         $log->save();
         return $log;
+    }
+
+    public function create(Request $request){
+        try{
+            $order = DB::transaction( function () use ($request){
+                $now = new \DateTime();
+                $num_ticket = OrderVA::where('_workpoint_from', $request->_workpoint)->whereDate('created_at', $now)->count()+1;
+                $client = 0;
+                $order = OrderVA::create([
+                    'num_ticket' => $num_ticket,
+                    'name' => $request->name,
+                    '_client' => $client,
+                    '_price_list' => 1,
+                    '_created_by' => $request->_created_by,
+                    '_workpoint_from' => $request->_workpoint,
+                    'time_life' => '00:30:00',
+                    '_status' => 1,
+                    '_order' => null
+                ]);
+
+                $this->log(1, $order, $request->_created_by,$request->_workpoint );
+                // return $order;
+                return $order->load([
+                'products' => function($query){
+                        $query->with(['prices' => function($query){
+                        $query->whereIn('_type', [1,2,3,4])->orderBy('_type');
+                        }
+                        ,'variants'
+                    ]);
+                },
+                'client',
+                'price_list',
+                'status',
+                'created_by',
+                'from',
+                ]);
+            });
+
+            return response()->json($order);
+        }catch(\Exception $e){ return response()->json(["msg" => "No se ha podido crear el pedido", "server_status" => 500, "error"=>$e]); }
+    }
+
+    public function log($case, OrderVA $order ,$create_by, $workpoint,  $_printer = null){
+        $events = 0;
+        switch($case){
+            case 1: //Levantando pedido
+                // $user = AccountVA::find($create_by);
+                $order->_status = 1;
+                $order->save();
+                $events++;
+                $log = $this->createLog($order->id, 1, [],'App\User',$create_by);
+                // $user->order_log()->save($log);
+            break;
+            case 2: //Asignar caja
+                $assign_cash_register = $this->getProcess($case,$workpoint);
+                $_cash = $this->getCash($order, "Secuencial", $workpoint);
+                $cashRegister = CashRegisterVA::find($_cash);
+                $order->_status = 2;
+                $order->save();
+                $events++;
+                $log = $this->createLog($order->id, 2, [],'App\CashRegister',$cashRegister->id);
+                // $cashRegister->order_log()->save($log);// The system assigned cash register
+            case 3: //Recepción
+                if(!$_printer){
+                    $printer = PrinterVA::where([['_type', 1], ['_workpoint', $workpoint]])->first();
+                }else{
+                    $printer = PrinterVA::find($_printer);
+                }
+
+                $_workpoint_to = $order->_workpoint_from;
+                $order->refresh(['created_by', 'products' => function($query) use ($_workpoint_to){
+                    $query->with(['locations' => function($query)  use ($_workpoint_to){
+                        $query->whereHas('celler', function($query) use ($_workpoint_to){
+                            $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                        });
+                    }]);
+                }, 'client', 'price_list', 'status', 'created_by', 'from', 'history']);
+                // $cash_ = $order->history->filter(function($log){
+                //     return $log->pivot->_status == 2;
+                // })->values()->all()[0];
+                $cash_ = $order->history->filter(function($log){
+                    return $log->pivot->_status == 2;
+                })->values()->first();
+                $cellerPrinter = new PrinterController();
+                $cellerPrinter->orderReceipt($printer->ip ,$order, $cash_); /* INVESTIGAR COMO SALTAR A LA SIGUIENTE SENTENCIA DESPUES DE X TIEMPO */
+                $validate = $this->getProcess(3,$workpoint); // Verificar si la validación es necesaria
+                if($validate[0]['active']){
+                    $user = AccountVA::find($create_by);
+                    // Order was passed next status by
+                    $log = $this->createLog($order->id, 3, [],'App\User',$create_by);
+                    // $user->order_log()->save($log);
+                    $order->_status = 3;
+                    $order->save();
+                    $events++;
+                    break;
+                }
+            // case 4: //Por surtir
+            //     $to_supply = $this->getProcess(4);
+            //     if($to_supply[0]['active']){
+            //         $bodegueros = AccountVA::with('user')->whereIn('_rol', [6,7])->whereNotIn('_status', [4,5])->count();
+            //         $tickets = 100000000;
+            //         $in_suppling = Order::where([
+            //             ['_workpoint_from', $workpoint],
+            //             ['_status', $case] // Status Surtiendo
+            //         ])->count(); // Para saber cuantos pedidos se estan surtiendo
+            //         if($in_suppling>($bodegueros*$tickets)){
+            //             // Poner en status 4 (el pedido esta por surtir)
+            //             $user = AccountVA::find($create_by);
+            //             // Order was passed next status by
+            //             $log = $this->createLogCatalog($order->id, 4, []);
+            //             $user->order_log()->save($log);
+            //             $order->_status = 4;
+            //             $order->save();
+            //             $events++;
+            //             break;
+            //         }
+            //     }
+            case 5: //Surtiendo
+                $_workpoint_to = $order->_workpoint_from;
+                $order->load([
+                'created_by',
+                'products' => function($query) use ($_workpoint_to){
+                    $query->with([
+                        'locations' => function($query)  use ($_workpoint_to){
+                            $query->whereHas('celler', function($query) use ($_workpoint_to){
+                                $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                            });
+                        },
+                        'stocks' => function($query) use ($_workpoint_to){
+                        $query->where('_workpoint', $_workpoint_to);
+                        }
+                    ]);
+                },
+                'client',
+                'price_list',
+                'status',
+                'created_by',
+                'from',
+                'history']);
+                $cash_ = $order->history->filter(function($log){
+                    return $log->pivot->_status == 2;
+                })->values()->all()[0];
+                $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint], ['name', 'LIKE', '%'.$cash_->pivot->responsable->num_cash.'%']])->first();
+                if(!$printer){
+                    $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint]])->first();
+                }
+                $cellerPrinter = new PrinterController();//cambia el printerport por 9100
+                $printed = $cellerPrinter->orderTicket2($printer->ip,$order, $cash_);
+                if($printed){
+                    $order->printed = $order->printed +1;
+                    $order->save();
+                }
+                // $user = AccountVA::find($create_by);
+                $log = $this->createLog($order->id, 5, [],'App\User',$create_by);
+                // $user->order_log()->save($log);
+                $order->_status = 5;
+                $order->save();
+                $events++;
+                break;
+        }
+        $order->load('history');
+          $news_logs = $order->history->filter(function($statu) use($case){
+            return $statu->id >= $case;
+        })->values()->map(function($event) use ($events){
+            return [
+                "id" => $event->id,
+                "name" => $event->name,
+                "active" => $event->active,
+                "allow" => $event->allow,
+                "details" => json_decode($event->pivot->details),
+                "created_at" => $event->pivot->created_at->format('Y-m-d H:i'),
+                "events" => $events
+            ];
+        })->toArray();
+        return collect($news_logs)->last();
+        // return $order;
+    }
+
+
+    public function getProcess($_status = "all", $workpoint){
+
+        if($_status == "all"){
+            $status = OrderProcessVA::with(['config' => function($query) use ($workpoint){
+                $query->where('_workpoint', $workpoint);
+            }])->get()->map(function($status){
+                return [
+                    "id" => $status->id,
+                    "name" => $status->name,
+                    "active" => $status->config[0]->pivot->active,
+                    "allow" => $status->allow,
+                    "details" => json_decode($status->config[0]->pivot->details)
+                ];
+            });
+        }else{
+    ;
+            $status = OrderProcessVA::with(['config' => function($query) use ($workpoint){
+                $query->where('_workpoint', $workpoint);
+            }])->where('id', $_status)->get()->map(function($status){
+                return [
+                    "id" => $status->id,
+                    "name" => $status->name,
+                    "active" => $status->config[0]->pivot->active,
+                    "allow" => $status->allow,
+                    "details" => $status->config[0]->pivot->details
+                ];
+            });
+        }
+        return $status;
+    }
+
+    public function getCash($order, $mood, $workpoint){
+        if($order->_order){
+            $order = OrderVA::with('history')->find($order->_order);
+            $cash_ = $order->history->filter(function($log){
+                return $log->pivot->_status == 2;
+            })->values()->all();
+            if(count($cash_)>0){
+                return $cash_[0]->pivot->responsable->id;
+            }
+        }
+        switch($mood){
+            case "Secuencial":
+                $date_from = new \DateTime();
+                $date_from->setTime(0,0,0);
+                $date_to = new \DateTime();
+                $date_to->setTime(23,59,59);
+                $cashRegisters = CashRegisterVA::withCount(['order_log' => function($query) use($date_from, $date_to){
+                    $query->where([['created_at', '>=', $date_from], ['created_at', '<=', $date_to]]);
+                }])->where([['_workpoint', $workpoint], ["_status", 1]])->get()->sortBy('num_cash');
+                $inCash = array_column($cashRegisters->toArray(), 'order_log_count');
+                $_cash = $cashRegisters[array_search(min($inCash), $inCash)]->id;
+                return $_cash;
+        }
+
+    }
+
+    public function orderCatalog(Request $request){
+        $order = $request->order;
+        $printer = $request->printer;
+        $products = $order['products'];
+        $array_pr = [];
+        foreach ($products as $row) {
+            $array_pr[$row['id']] = [
+                'kit' => '',
+                'amount' => $row['pivot']['amount'],
+                'amountDelivered' => $row['pivot']['amountDelivered'],
+                'price' => $row['pivot']['price'],
+                'toDelivered' => $row['pivot']['toDelivered'],
+                'total' => $row['pivot']['total'],
+                'units' => $row['pivot']['units'],
+                '_price_list' => $row['pivot']['_price_list'],
+                '_supply_by' => $row['pivot']['_supply_by'],
+            ];
+        }
+        $order = OrderVA::find($order['id']);
+        if(count($array_pr) > 0){
+            $order->products()->attach($array_pr);
+        }
+        $_workpoint_to = $order->_workpoint_from;
+
+        $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
+            $query->with(['locations' => function($query)  use ($_workpoint_to){
+                $query->whereHas('celler', function($query) use ($_workpoint_to){
+                    $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                });
+            }]);
+        }, 'client', 'price_list', 'status', 'created_by', 'from', 'history']);
+
+        $_status = $this->getNextStatus($order);
+        $_printer = isset($request->_printer) ? $request->_printer : null;
+        $_process = array_column(OrderProcessVA::all()->toArray(), 'id');
+        if(in_array($_status, $_process)){
+            $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to  ,$_printer['id']);
+            if($result){
+                return response()->json(['success' => true, 'status' => $result, "server_status" => 200]);
+            } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500]);
+        } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400]);
+
+
+    }
+
+    public function getNextStatus(OrderVA $order){
+        if($order->_status == 100 || $order->_status == 101){
+            $previous_log = $order->history->sortByDesc(function($log){
+                return $log->pivot->created_at;
+            })->filter(function($log) use($order){
+                return $log->id != $order->_status;
+            })->values()->all()[0];
+            $_status = $previous_log->id;
+        }else{
+            $_status = $order->_status + 1;
+        }
+        return $_status;
     }
 
 

@@ -16,4 +16,9 @@ class CashRegisterVA extends Model
         return $this->belongsTo('App\Models\WorkPointVA', '_workpoint');
     }
 
+    public function order_log(){
+        return $this->morphMany('App\Models\OrderLogVA', 'responsable', '_type', '_responsable', 'id');
+    }
+
+
 }

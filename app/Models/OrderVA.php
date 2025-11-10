@@ -11,18 +11,25 @@ class OrderVA extends Model
     protected $table = 'orders';
     protected $fillable = ['num_ticket', 'name', 'printed', '_created_by', '_workpoint_from', 'time_life', '_status', '_client', '_price_list', '_order'];
 
-    public function workpoint(){
+    // public function workpoint(){
+    //     return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_from');
+    // }
+    public function from(){
         return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_from');
     }
 
-    /* public function history(){
-        return $this->belongsToMany('App\Models\OrderProcess', 'order_log', '_order', '_status')
-        ->withPivot('id', 'details', 'created_at');
-    } */
+
 
     public function history(){
-        return $this->belongsToMany('App\Models\OrderProcessVA', 'order_log', '_order', '_status')->using('App\Models\OrderLog')->withPivot('_responsable', '_type', 'details', 'created_at');
+        return $this->belongsToMany('App\Models\OrderProcessVA', 'order_log', '_order', '_status')
+        ->using('App\Models\OrderLogVA')
+        ->withPivot('_responsable', '_type', 'details', 'created_at');
     }
+
+    // public function history(){
+    //     return $this->belongsToMany('App\Models\OrderProcessVA', 'order_log', '_order', '_status')
+    //         ->withPivot('_responsable', '_type', 'details', 'created_at');
+    // }
 
     public function status(){
         return $this->belongsTo('App\Models\OrderProcessVA', '_status');

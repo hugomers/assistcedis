@@ -24,7 +24,8 @@ class OrderProcessVA extends Model
         return $this->hasMany('App\OrderProcessConfig', '_process', 'id');
     } */
     public function config(){
-        return $this->belongsToMany('App\WorkPointVA', 'order_process_config', '_process', '_workpoint')
+        return $this->belongsToMany('App\Models\WorkPointVA', 'order_process_config', '_process', '_workpoint')
         ->withPivot('active', 'details');
     }
+
 }

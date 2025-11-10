@@ -28,6 +28,7 @@ use App\Http\Controllers\locationController;
 use App\Http\Controllers\WithdrawalsController;
 use App\Http\Controllers\CiclicosController;
 use App\Http\Controllers\OrdersController;
+use App\Http\Controllers\CatalogController;
 
 
 
@@ -445,6 +446,18 @@ Route::middleware('auth')->group(function(){
         Route::post('/nextState', [OrdersController::class,'nextState']);
         Route::post('/nextStateFinish', [OrdersController::class,'nextStateFinish']);
         Route::post('/getOrderCash', [OrdersController::class,'getOrderCash']);
+        Route::post('/create', [OrdersController::class,'create']);
+        Route::post('/orderCatalog', [OrdersController::class,'orderCatalog']);
+
+
+    });
+
+    Route::prefix('catalog')->group(function(){
+        Route::get('/',[CatalogController::class, 'index']);
+        Route::get('/{sid}',[CatalogController::class, 'getPrinters']);
+        Route::get('familys/{root}', [CatalogController::class, 'getFamilys']);
+        Route::post('family-products', [CatalogController::class, 'getFamilysProducts']);
+
     });
 
 
