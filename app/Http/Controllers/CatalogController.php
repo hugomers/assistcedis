@@ -14,6 +14,7 @@ use App\Models\MakersVA;
 use App\Models\ProductCategoriesVA;
 use App\Models\ProductUnitVA;
 use App\Models\Stores;
+use App\Models\User;
 use App\Models\WorkpointVA;
 use App\Models\ControlFigures;
 use App\Models\historyPricesVA;
@@ -23,8 +24,15 @@ class CatalogController extends Controller
         return response()->json(ProductCategoriesVA::where([['alias','!=',null],['deep',0]])->get(),200);
     }
 
-    public function getPrinters($sid){
-        return response()->json(PrinterVA::where([['_type',1],['_workpoint',$sid]])->get(),200);
+    public function getPrinters(Request $request){
+        $store = $request->all();
+        $printers = PrinterVA::where([['_type',1],['_workpoint',$store['id_viz']]])->get();
+        $users = User::with('staff')->where('_store',$store['id'])->get();
+        $res = [
+            "printers"=>$printers,
+            "users"=>$users
+        ];
+        return response()->json($res,200);
     }
 
     public function getFamilys($root){

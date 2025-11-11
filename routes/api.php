@@ -454,9 +454,10 @@ Route::middleware('auth')->group(function(){
 
     Route::prefix('catalog')->group(function(){
         Route::get('/',[CatalogController::class, 'index']);
-        Route::get('/{sid}',[CatalogController::class, 'getPrinters']);
         Route::get('familys/{root}', [CatalogController::class, 'getFamilys']);
+        Route::post('/',[CatalogController::class, 'getPrinters']);
         Route::post('family-products', [CatalogController::class, 'getFamilysProducts']);
+
 
     });
 
