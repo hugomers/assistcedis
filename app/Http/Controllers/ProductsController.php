@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use App\Models\ProductVA;
 use App\Models\ProvidersVA;
 use App\Models\ProductStockVA;
@@ -1054,5 +1055,72 @@ class ProductsController extends Controller
             return $item;
         });
         return response()->json($foundProducts);
+    }
+
+    public function updateImgProduct(Request $request){
+       $product = ProductVA::find($request->id);
+        if($product){
+            if ($request->hasFile('picture')) {
+                $avatar = $request->file('picture');
+                $fileName = $request->code.'.'.$avatar->getClientOriginalExtension();
+                $folderPath = 'vhelpers/Products/'.$request->id.'/'.$fileName;
+                $route = Storage::put($folderPath, file_get_contents($avatar));
+               $product->imgcover = $fileName;
+               $product->save();
+                return response()->json(["mssg"=>"Imagen Guardada","image"=>$fileName], 200);
+            }
+        }else{
+            return response()->json(["mssg"=>"No se encuentra el Articulo"],404);
+        }
+    }
+
+    public function massiveUpdateImg(Request $request){
+        $res = [
+            "actualizados"=>[],
+            "error"=>[],
+        ];
+        $codes = $request->input('codes');
+        $files = $request->file('files');
+
+        foreach ($files as $index => $file) {
+            $code = $codes[$index] ?? null;
+
+            if (!$code) {
+                $res['error'][] = ["mssg" => "Código no encontrado para archivo en índice $index"];
+                continue;
+            }
+            $product = ProductVA::where('code',$codes[$index])->first();
+            if (!$product) {
+                $res['error'][] = ["mssg" => "Producto inexistente", "Codigo" => $code];
+                continue;
+            }
+
+            if ($product->imgcover) {
+                $res['error'][] = ["mssg" => "Producto ya contiene imagen", "Codigo" => $code, "image" => $product->imgcover, "id"=>$product->id];
+                continue;
+            }
+            $fileName = $product->code . '.' . $file->getClientOriginalExtension();
+            $folderPath = "vhelpers/Products/{$product->id}/{$fileName}";
+
+                try {
+                    $route = Storage::put($folderPath, file_get_contents($file));
+                    $product->imgcover = $fileName;
+                    $product->save();
+                    $res['actualizados'][] = [
+                        "mssg" => "Imagen guardada correctamente",
+                        "Codigo" => $code,
+                        "image" => $fileName,
+                        "id"=>$product->id
+                    ];
+                } catch (\Exception $e) {
+                    $res['error'][] = [
+                        "mssg" => "Error al guardar imagen",
+                        "Codigo" => $code,
+                        "error" => $e->getMessage()
+                    ];
+                }
+            }
+
+        return response()->json($res,200);
     }
 }
