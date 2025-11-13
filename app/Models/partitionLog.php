@@ -9,4 +9,13 @@ class partitionLog extends Model
     {
     protected $connection = 'vizapi';
     protected $table = 'partition_logs';
+    protected $fillable = [
+        "_requisition",
+        "_partition",
+        "_status",
+        "details",
+        "created_at",
+        "updated_at",
+    ];
+
     }

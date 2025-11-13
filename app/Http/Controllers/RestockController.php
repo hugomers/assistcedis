@@ -168,10 +168,10 @@ class RestockController extends Controller
             $change->_status = $status;
             $change->save();
             $freshPartition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-            $idlog = partitionLog::max('id') + 1;
+            // $idlog = partitionLog::max('id') + 1;
 
             $inslo = [
-                'id'=>$idlog,
+                // 'id'=>$idlog,
                 '_requisition'=>$freshPartition->_requisition,
                 '_partition'=>$freshPartition->id,
                 '_status'=>$status,
@@ -350,10 +350,10 @@ class RestockController extends Controller
         if($warehouse == 'GEN'){
         $transit  = $this->modifyTransit($products,$from);
         }
-        $idlog = partitionLog::max('id') + 1;
+        // $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
-            'id'=>$idlog,
+            // 'id'=>$idlog,
             '_requisition'=>$freshPartition->_requisition,
             '_partition'=>$freshPartition->id,
             '_status'=>$status,
@@ -430,10 +430,10 @@ class RestockController extends Controller
         $change->_status = $status;
         $change->save();
         $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-        $idlog = partitionLog::max('id') + 1;
+        // $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
-            'id'=>$idlog,
+            // 'id'=>$idlog,
             '_requisition'=>$partition->_requisition,
             '_partition'=>$partition->id,
             '_status'=>$status,
@@ -464,10 +464,10 @@ class RestockController extends Controller
         $change->_status = $status;
         $change->save();
         $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-        $idlog = partitionLog::max('id') + 1;
+        // $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
-            'id'=>$idlog,
+            // 'id'=>$idlog,
             '_requisition'=>$partition->_requisition,
             '_partition'=>$partition->id,
             '_status'=>$status,
@@ -522,10 +522,10 @@ class RestockController extends Controller
                 // $to = '5573461022';
                 $sendMessage = $this->envMssg($message,$to);
             }
-            $idlog = partitionLog::max('id') + 1;
+            // $idlog = partitionLog::max('id') + 1;
 
             $inslo = [
-                'id'=>$idlog,
+                // 'id'=>$idlog,
                 '_requisition'=>$partition->_requisition,
                 '_partition'=>$partition->id,
                 '_status'=>$status,
@@ -592,10 +592,10 @@ class RestockController extends Controller
             $responsable =  'Vizapp';
                 break;
         }
-        $idlog = partitionLog::max('id') + 1;
+        // $idlog = partitionLog::max('id') + 1;
 
         $inslo = [
-            'id'=>$idlog,
+            // 'id'=>$idlog,
             '_requisition'=>$partition->_requisition,
             '_partition'=>$partition->id,
             '_status'=>$status,
