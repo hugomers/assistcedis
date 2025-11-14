@@ -234,6 +234,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/deletePartition',[InvoicesController::class, 'deletePartition']);
         Route::post('/create',[RestockController::class, 'create']);
         Route::post('/nextStep',[RestockController::class, 'nextStep']);
+        Route::post('/nextStepCatalog',[RestockController::class, 'nextStepCatalog']);
+
         // Route::post('/partitions/{id}/lock', [RestockController::class, 'lockPartition']);
         // Route::post('/partitions/{id}/unlock', [RestockController::class, 'unlockPartition']);
 
@@ -376,6 +378,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/correction',[InvoicesController::class,'correction']);
         Route::post('/sendMessageDiff',[InvoicesController::class,'sendMessageDiff']);
         Route::post('/newRequisition',[InvoicesController::class,'newRequisition']);
+        Route::post('/newRequisitionPreventa',[InvoicesController::class,'newRequisitionPreventa']);
         Route::post('/getRequired',[InvoicesController::class,'getRequired']);
         Route::post('/addProductRequired',[InvoicesController::class,'addProductRequired']);
         Route::post('/deleteProductRequired',[InvoicesController::class,'deleteProductRequired']);

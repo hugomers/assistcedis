@@ -33,128 +33,6 @@ class RestockController extends Controller
         $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
         return $staff;
     }
-
-    // public function saveSupply(Request $request){
-    //     $status = $request->status;
-    //     $pedido = $request->pedido;
-    //     $ubicaciones = $request->ubicaciones;
-    //     $to = $request->_workpoint_to;
-    //     $from = $request->_workpoint_from;
-    //     $partitions = [];
-
-    //     $locationsTo = '(SELECT CS.path FROM product_location AS PL
-    //     JOIN celler_section AS CS ON CS.id = PL._location
-    //     JOIN celler AS C ON C.id = CS._celler
-    //     WHERE PL._product = PR._product
-    //     AND CS.deleted_at IS NULL
-    //     AND C._workpoint = '.$to.'
-    //     ORDER BY CS.path ASC
-    //     LIMIT 1) AS locationsTo';
-
-    //     $locationsFrom = '(SELECT CS.path FROM product_location AS PL
-    //     JOIN celler_section AS CS ON CS.id = PL._location
-    //     JOIN celler AS C ON C.id = CS._celler
-    //     WHERE PL._product = PR._product
-    //     AND CS.deleted_at IS NULL
-    //     AND C._workpoint = '.$from.'
-    //     ORDER BY CS.path ASC
-    //     LIMIT 1) AS locationsFrom';
-
-    //     $prod = DB::connection('vizapi')
-    //     ->table('product_required AS PR')
-    //     ->join('products AS P','P.id','PR._product')
-    //     ->select('P.code','PR._product', 'PR._requisition', DB::raw($locationsTo),DB::raw($locationsFrom))
-    //     ->where('PR._requisition', $pedido)
-    //     ->orderBy("locationsTo",'asc')
-    //     ->orderBy("locationsFrom",'asc')
-    //     ->get();
-
-    //     $vcollect = collect($prod);
-    //     $groupby = $vcollect->groupBy(function($val) {
-    //         if(isset($val->locationsTo)){
-    //             return explode('-',$val->locationsTo)[0];
-    //         }else{ return '';}
-    //     })->sortKeys();
-    //     foreach($groupby as $piso){
-    //         $products = $piso->sortBy(function($val){
-    //             if($val){
-    //                 $location = $val->locationsTo;
-    //                 $res ='';
-    //                 $parts = explode('-',$location);
-    //                 foreach($parts as $part){
-    //                     $numbers = preg_replace('/[^0-9]/', '', $part);
-    //                     $letters = preg_replace('/[^a-zA-Z]/', '', $part);
-    //                     if(strlen($numbers)==1){
-    //                         $numbers = '0'.$numbers;
-    //                     }
-    //                     $res = $res.$letters.$numbers.'-';
-    //                 }
-    //                 return $res = $res.$letters.$numbers.'-';
-
-    //             }
-    //             return '';
-    //         });
-    //         foreach($products as $product){
-    //             $uns []= $locations = $product;
-    //          }
-    //     }
-
-
-    //     $asig = [];
-    //     $num_productos = count($uns);
-    //     $num_surtidores = count($surtidores);
-    //     $supplyper = floor($num_productos / $num_surtidores);
-
-    //     $remainder = $num_productos % $num_surtidores;
-    //     $counter = 0;
-    //     for ($i = 0; $i < $num_surtidores; $i ++){
-    //         if($remainder > 0){
-    //             $asig[] = $supplyper + 1;
-    //             $remainder--;
-    //         }else{
-    //             $asig[]= $supplyper;
-    //         }
-    //     }
-    //     foreach($asig as $key => $val){
-    //         $surtidores[$key]['products'] = array_splice($uns,0,$val);
-    //     }
-
-
-    //     foreach ($surtidores as $surtidor) {
-    //         $asigpro = $surtidor['products'];
-    //         foreach($asigpro as $product){
-    //             $upd = [
-    //                 "_suplier"=>$surtidor['staff']['complete_name'],
-    //                 "_suplier_id"=>$surtidor['staff']['id']
-    //             ];
-    //             $dbproduct = InvoiceBodies::where([['_requisition',$product->_requisition],['_product',$product->_product]])
-    //             ->update($upd);
-    //         }
-    //     }
-
-    //     foreach($surtidores as $surtidor){
-    //         $newres = new Restock;
-    //         $supply = $surtidor['staff']['id'];
-    //         $newres->_staff = $supply;
-    //         $newres->_requisition = $pedido;
-    //         $newres->_status = $status;
-    //         $newres->save();
-    //         $newres->fresh()->toArray();
-    //         $ins = [
-    //             "_requisition"=>$pedido,
-    //             "_suplier_id"=>$supply,
-    //             "_suplier"=>$surtidor['staff']['complete_name'],
-    //             "_status"=>$status
-    //         ];
-    //         $inspart = new partitionRequisition($ins);
-    //         $inspart->save();
-    //         $res = $inspart->load( ['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
-    //         $partitions[] = $res;
-    //         $setted = InvoiceBodies::where([['_requisition',$pedido],['_suplier_id',$supply]])->update(['_partition'=>$res->id]);
-    //     }
-    //     return response()->json($partitions,200);
-    // }
-
     public function saveSupply(Request $request){
         $partition = $request->partition;
         $supply = $request->surtidor;
@@ -746,28 +624,6 @@ class RestockController extends Controller
         return response()->json($stores,200);
     }
 
-    // public function getData(Request $request){
-    //     $cedis = $request->cedis;
-    //     $sucursal= $request->sucursal;
-    //     $fechas = $request->fechas;
-    //     $clente = $sucursal['_client'];
-    //     // $invoicesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
-    //     $invoicesResponse = Http::timeout(500)->post($cedis['ip_address'].'/storetools/public/api/Resources/getInvoices', ['_client'=> $clente, 'fechas'=>$fechas] );
-
-    //     if($invoicesResponse->status() == 200){
-    //         $unicos = array_values(array_unique(array_map(function($val){return "'".'P-'.$val['PARTICION']."'";},$invoicesResponse->json())));
-    //         $salidas =  implode(',',$unicos);
-    //         // return $salidas;
-    //         // $entriesResponse = Http::timeout(200)->post('192.168.10.160:1619'.'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
-    //         $entriesResponse = Http::timeout(500)->post($sucursal['ip_address'].'/storetools/public/api/Resources/getEntries',["invoices"=>$salidas]);
-    //         $res = [
-    //             "unicos"=>$salidas,
-    //             "salidas"=>json_decode($invoicesResponse),
-    //             "entradas"=>json_decode($entriesResponse),
-    //         ];
-    //         return $res;
-    //     }
-    // }
 
     public function getData(Request $request){
         $cedis = $request->cedis;
@@ -1573,4 +1429,217 @@ class RestockController extends Controller
             ->where('_status','!=',4)->get();
         return response()->json($products);
     }
+
+    // public function nextStepCatalog(Request $request){
+    //     $requisition = $request->requisition;
+    //     $printer = $request->printer;
+    //     $products = $requisition['products'];
+    //     $array_pr = [];
+    //     foreach ($products as $row) {
+    //         $array_pr[$row['id']] = [
+    //             'units' => $row['pivot']['units'],
+    //             "cost" => $row['pivot']['cost'],
+    //             'amount' => $row['pivot']['amount'],
+    //             'total'=> $row['pivot']['total'],
+    //             "_supply_by" => $row['pivot']['_supply_by'],
+    //             'comments' => '',
+    //             "stock" => $row['pivot']['stock'],
+    //         ];
+    //     }
+    //     $requisition = Invoice::find($requisition['id']);
+    //     if(count($array_pr) > 0){
+    //         $requisition->products()->attach($array_pr);
+    //     }
+    //     $_workpoint_to = $requisition->_workpoint_to;
+    //     $requisition->load(['created_by', 'products' => function($query) use ($_workpoint_to){
+    //         $query->with(['locations' => function($query)  use ($_workpoint_to){
+    //             $query->whereHas('celler', function($query) use ($_workpoint_to){
+    //                 $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+    //             });
+    //         }]);
+    //     }, 'status', 'from', 'to']);
+
+    //     if($requisition){
+    //         $created_by = $requisition->created_by;
+    //         $_status = $requisition->_status+1;
+    //         $process =  InvoiceStatus::where('id', $_status)->exists();;
+    //         if($process){
+    //             $responsable = $created_by['names'].' '.$created_by['surname_pat'];
+    //             $previous = null;
+    //             $port = 9100;
+    //             $requisition->log()->attach($_status, [ 'details'=>json_encode([ "responsable"=>$responsable ]), 'created_at' => carbon::now()->format('Y-m-d H:i:s'), 'updated_at' => carbon::now()->format('Y-m-d H:i:s') ]);
+    //             $requisition->_status=$_status; // se prepara el cambio de status del pedido (a por surtir (2))
+    //             $requisition->save(); // se guardan los cambios
+    //             $requisition->fresh(['log']); // se refresca el log del pedido
+    //             $_workpoint_to = $requisition->_workpoint_to;
+    //             $requisition->load(['log', 'products' => function($query) use ($_workpoint_to){
+    //                 $query->with(['locations' => function($query)  use ($_workpoint_to){
+    //                     $query->whereHas('celler', function($query) use ($_workpoint_to){
+    //                         $query->where('_workpoint', $_workpoint_to);
+    //                     });
+    //                 }]);
+    //             }]);
+    //             $ipprinter = env("PRINTER_ARBOL") ;
+    //             $miniprinter = new PrinterController();
+    //             $printed_provider = $miniprinter->requisitionTicketCatalog($ipprinter,$requisition);
+    //             $printed_sucursal = $miniprinter->requisitionTicketCatalog($printer['ip'],$requisition);
+
+    //             if($printed_provider){
+    //                 $requisition->printed = ($requisition->printed+1);
+    //                 $requisition->save();
+    //             }else {
+    //                 $groupvi = "120363185463796253@g.us";
+    //                 $mess = "El pedido ".$requisition->id." no se logro imprimir, favor de revisarlo";
+    //                 $this->sendWhatsapp($groupvi, $mess);
+    //             }
+
+    //         $requisition->refresh('log');
+
+    //         $log = $requisition->log->filter(function($event) use($_status){
+    //             return $event->id >= $_status;
+    //         })->values()->map(function($event){
+    //             return [
+    //                 "id" => $event->id,
+    //                 "name" => $event->name,
+    //                 "active" => $event->active,
+    //                 "allow" => $event->allow,
+    //                 "details" => json_decode($event->pivot->details),
+    //                 "created_at" => $event->pivot->created_at->format('Y-m-d H:i'),
+    //                 "updated_at" => $event->pivot->updated_at->format('Y-m-d H:i')
+    //             ];
+    //         });
+
+    //             $msg = count($log)>0 ? "" : "No se pudo cambiar el status";
+    //             $server_status = count($log)>0 ? 200 : 500;
+    //         }else{
+    //             $msg = "Status no válido";
+    //             $server_status = 400;
+    //         }
+    //     return response()->json([
+    //         "requisition"=>$requisition,
+    //     ]);
+    //     }else{
+    //         return response()->json(['mssg'=>'El pedido no se encuentra'],500);
+    //     }
+    // }
+
+    public function nextStepCatalog(Request $request){
+        $reqData    = $request->requisition;
+        $printer    = $request->printer;
+        $products   = $reqData['products'] ?? [];
+
+        $array_pr = [];
+        foreach ($products as $row) {
+            $array_pr[$row['id']] = [
+                'units'       => $row['pivot']['units'],
+                'cost'        => $row['pivot']['cost'],
+                'amount'      => $row['pivot']['amount'],
+                'total'       => $row['pivot']['total'],
+                '_supply_by'  => $row['pivot']['_supply_by'],
+                'comments'    => '',
+                'stock'       => $row['pivot']['stock'],
+            ];
+        }
+
+        $requisition = Invoice::find($reqData['id']);
+
+        if (!$requisition) {
+            return response()->json(['mssg' => 'El pedido no se encuentra'], 500);
+        }
+
+        if (count($array_pr) > 0) {
+            $requisition->products()->syncWithoutDetaching($array_pr);
+        }
+        $_workpoint_to = $requisition->_workpoint_to;
+
+        $requisition->load([
+            'created_by',
+            'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $_workpoint_to))->whereNull('deleted_at'),
+            'status', 'from', 'to'
+        ]);
+
+        $_status = $requisition->_status + 2;
+
+        $validStatus = InvoiceStatus::where('id', $_status)->exists();
+        if (!$validStatus) {
+            return response()->json([
+                "msg" => "Status no válido"
+            ], 400);
+        }
+
+        $responsable = $requisition->created_by->names . ' ' . $requisition->created_by->surname_pat;
+
+        $requisition->log()->attach($_status, [
+            'details'    => json_encode(["responsable" => $responsable]),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        $requisition->_status = $_status;
+        $requisition->save();
+
+        $requisition->load('log');
+
+        $ipProvider    = env("PRINTER_ARBOL");
+        $miniprinter   = new PrinterController();
+        // $printedProvider = $miniprinter->requisitionTicketCatalog($ipProvider, $requisition);
+        $printedSucursal = $miniprinter->requisitionTicketCatalog($printer['ip'], $requisition);
+
+
+        $npartition = new partitionRequisition([
+            '_requisition' => $requisition->id,
+            '_status' => $_status,
+            '_warehouse' => $requisition->_warehouse
+        ]);
+        $npartition->save();
+
+        foreach ($requisition->products as $prod) {
+            $requisition->products()->updateExistingPivot($prod->id, [
+                '_partition' => $npartition->id
+            ]);
+        }
+
+        $reqio = $npartition->load([
+            'status',
+            'log',
+            'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', $_workpoint_to))->whereNull('deleted_at'),
+            'requisition.type',
+            'requisition.status',
+            'requisition.to',
+            'requisition.from',
+            'requisition.created_by',
+            'requisition.log'
+        ]);
+        $printedProvider = $miniprinter->PartitionTicket($ipProvider, $reqio);
+
+        if ($printedProvider) {
+            $requisition->increment('printed');
+        } else {
+            $this->sendWhatsapp("120363185463796253@g.us",
+                "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES ARBOL)"
+            );
+        }
+        $log = $requisition->log
+            ->where('id', '>=', $_status)
+            ->map(function ($event) {
+                return [
+                    "id"         => $event->id,
+                    "name"       => $event->name,
+                    "active"     => $event->active,
+                    "allow"      => $event->allow,
+                    "details"    => json_decode($event->pivot->details),
+                    "created_at" => $event->pivot->created_at->format('Y-m-d H:i'),
+                    "updated_at" => $event->pivot->updated_at->format('Y-m-d H:i')
+                ];
+            })
+            ->values();
+        return response()->json([
+            "requisition" => $requisition,
+            "partition"=>$reqio,
+            "log" => $log
+        ], 200);
+    }
+
+
+
 }

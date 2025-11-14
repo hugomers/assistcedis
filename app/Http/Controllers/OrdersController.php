@@ -520,8 +520,6 @@ class OrdersController extends Controller
                 return response()->json(['success' => true, 'status' => $result, "server_status" => 200]);
             } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500]);
         } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400]);
-
-
     }
 
     public function getNextStatus(OrderVA $order){

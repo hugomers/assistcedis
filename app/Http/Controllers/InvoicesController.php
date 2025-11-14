@@ -1244,7 +1244,13 @@ class InvoicesController extends Controller
 
                     $toSupply[$product->id] = ['units' => $required * $pieces, "cost" => $product->cost, 'amount' => $required,  "_supply_by" => 3, 'comments' => '', "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
                 }else{
-                    $toSupply[$product->id] = ['units' => $required, "cost" => $product->cost, 'amount' => $required,  "_supply_by" => 1 , 'comments' => '', "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+                    $toSupply[$product->id] = [
+                        'units' => $required,
+                        "cost" => $product->cost,
+                        'amount' => $required,
+                        "_supply_by" => 1 ,
+                        'comments' => '',
+                        "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
                 }
             }else{
                 $notFound[] = $row['codigo'];
@@ -1262,5 +1268,39 @@ class InvoicesController extends Controller
         return response()->json($res,200);
     }
 
+    public function newRequisitionPreventa(Request $request){
+        $createdBy = $request->created_by;
+        $num_ticket = Invoice::where('_workpoint_to', $request->suply_by['id'])
+                                    ->whereDate('created_at',now())
+                                    ->count()+1;
+        $num_ticket_store = Invoice::where('_workpoint_from', $request->workpointFrom)
+                                        ->whereDate('created_at', now())
+                                        ->count()+1;
+        $requisition = new Invoice;
+        $requisition->notes = $request->notes;
+        $requisition->num_ticket = $num_ticket;
+        $requisition->num_ticket_store = $num_ticket_store;
+        $requisition->_created_by = $createdBy;
+        $requisition->_workpoint_from = $request->workpointFrom;
+        $requisition->_workpoint_to = $request->suply_by['id'];
+        $requisition->_type = $request->type['id'];
+        $requisition->printed = 0;
+        $requisition->_warehouse = $request->warehouse['id'];
+        $requisition->time_life = "00:15:00";
+        $requisition->_status = 1;
+        $requisition->save();
+        $res = $requisition->fresh();
+        $log = $this->logInt($res->id,$res->_status);
+        if($log){
+            // if(isset($data['products'])){ $requisition->products()->attach($data['products']); }
+            $simon = $requisition->load(['type', 'status', 'to', 'from', 'created_by', 'log','products']);
+            $response = [
+                "requisition"=>$simon
+            ];
+            return response()->json($response);
+        }else{
+            return response()->json('no se inserto la factura',500);
+        }
+    }
 
 }
