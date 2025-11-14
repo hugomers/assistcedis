@@ -1610,7 +1610,7 @@ class RestockController extends Controller
             'requisition.created_by',
             'requisition.log'
         ]);
-        $printedProvider = $miniprinter->PartitionTicket($ipProvider, $reqio);
+        $printedProvider = $miniprinter->PartitionTicketCatalog($ipProvider, $reqio);
 
         if ($printedProvider) {
             $requisition->increment('printed');
