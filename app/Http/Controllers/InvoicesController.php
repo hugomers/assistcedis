@@ -351,7 +351,7 @@ class InvoicesController extends Controller
                 })->get();
             // $partitions =partitionRequisition::with(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])->whereHas('requisition',function ($q) use($dates,$request)  {$q->whereBetween(DB::raw('DATE(created_at)'),$dates)->where('_workpoint_to',$request->storeTo); })->get();
 
-            $partitions =partitionRequisition::with(['status','log','requisition.to','products','requisition.from','requisition.created_by','requisition.log'])
+            $partitions =partitionRequisition::with(['status','log','requisition.to','products.prices','requisition.from','requisition.created_by','requisition.log'])
                 ->whereHas('requisition',function ($q) use($dates,$request)  {
                     $q->whereBetween(DB::raw('DATE(created_at)'),$dates)
                     ->where(function ($q2) use ($request) {
