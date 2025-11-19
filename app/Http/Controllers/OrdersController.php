@@ -437,7 +437,7 @@ class OrdersController extends Controller
                 ];
             });
         }else{
-    ;
+
             $status = OrderProcessVA::with(['config' => function($query) use ($workpoint){
                 $query->where('_workpoint', $workpoint);
             }])->where('id', $_status)->get()->map(function($status){
@@ -534,6 +534,15 @@ class OrdersController extends Controller
             $_status = $order->_status + 1;
         }
         return $_status;
+    }
+
+    public function getOrders($sid){
+        $orders = OrderVA::withCount('products')
+                    ->with(['status', 'created_by', 'from','history'])
+                    ->where('_workpoint_from',$sid)
+                    ->whereDate('created_at', now()->format('Y-m-d'))
+                    ->get();
+        return response()->json($orders,200);
     }
 
 

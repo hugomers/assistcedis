@@ -441,6 +441,7 @@ Route::middleware('auth')->group(function(){
         Route::get('/getOrder/{ord}', [OrdersController::class,'getOrder']);
         Route::get('/getOrderVerify/{ord}', [OrdersController::class,'getOrderVerify']);
         Route::get('/getOrderAdd/{ord}', [OrdersController::class,'getOrderAdd']);
+        Route::get('/getOrders/{sid}', [OrdersController::class,'getOrders']);
         Route::post('/editProduct', [OrdersController::class,'editProduct']);
         Route::post('/addProduct', [OrdersController::class,'addProduct']);
         Route::post('/deleteProduct',[ OrdersController::class,'deleteProduct']);

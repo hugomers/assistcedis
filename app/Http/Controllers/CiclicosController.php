@@ -143,6 +143,7 @@ class CiclicosController extends Controller
                     $query->whereIn('_workpoint',[1,2,$sid])->distinct();
                 }
                 ])
+                ->withMax('purchases as ultll' , 'created_at')
                 ->whereHas('category.familia.seccion', function($query) use ($seccion) { // Aplicamos el filtro en la relación seccion
                     $query->whereIn('name',$seccion);
                 })
