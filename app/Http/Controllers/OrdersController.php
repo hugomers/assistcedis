@@ -628,7 +628,7 @@ class OrdersController extends Controller
         $requisition->printed = 0;
         $requisition->_warehouse = 'GEN';
         $requisition->time_life = "00:15:00";
-        $requisition->_status = 7;
+        $requisition->_status = 4;
         $requisition->save();
         $res = $requisition->fresh();
         $log = $this->logInt($res->id,$res->_status);
@@ -644,9 +644,9 @@ class OrdersController extends Controller
                             "_supply_by" => 3,
                             'comments' => '',
                             "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0,
-                            "toDelivered" => $required,
-                            "checkout" => 1,
-                            "ipack" => $product->pieces
+                            // "toDelivered" => $required,
+                            // "checkout" => 1,
+                            // "ipack" => $product->pieces
                         ];
 
             }
@@ -654,8 +654,8 @@ class OrdersController extends Controller
 
             $npartition = new partitionRequisition([
                 '_requisition' => $requisition->id,
-                '_status' => 7,
-                'entry_key' => md5($requisition->id),
+                '_status' => 4,
+                // 'entry_key' => md5($requisition->id),
                 '_warehouse' => $requisition->_warehouse
             ]);
             $npartition->save();
@@ -675,8 +675,15 @@ class OrdersController extends Controller
                 'requisition.log'
             ]);
             $miniprinter   = new PrinterController();
+
+            $printerQuery = PrinterVA::where('_type', 2)
+            ->where([['_workpoint', $order->_workpoint_from],['name','RECIBOS']])->first();
+            $printedProvider = $miniprinter->PartitionDirect($printerQuery->ip, $reqio, $order);
+
             $ipProvider    = env("PRINTER_DIRECT");
-            $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio);
+            $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio, $order);
+            $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio, $order);
+
             if ($printedProvider) {
                 $requisition->increment('printed');
             } else {
@@ -685,7 +692,7 @@ class OrdersController extends Controller
                 );
             }
             $log = $requisition->log
-                ->where('id', '>=', 7)
+                ->where('id', '>=', 4)
                 ->map(function ($event) {
                     return [
                         "id"         => $event->id,

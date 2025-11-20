@@ -2164,7 +2164,7 @@ class PrinterController extends Controller
         return true;
     }
 
-    public function PartitionDirect($ip,$requisition){// PARTICION TICKET DE SUCURSAL
+    public function PartitionDirect($ip,$requisition,OrderVA $order){// PARTICION TICKET DE SUCURSAL
         try{
             $connector = new NetworkPrintConnector($ip, 9100, 3);
             $printer = new Printer($connector);
@@ -2180,15 +2180,11 @@ class PrinterController extends Controller
             }
             return $acc;
         }, ["models"=>0, "articles"=>0, "volumen"=>0, "sinVolumen"=>0, "modelsSouldOut"=>0, "articlesSouldOut"=>0]);
-
-        for ($i=0; $i < 3; $i++) {
+            // $order->load(['history']);
+            // $caja = collect($order->history)->first(function ($log) {
+            //     return $log->pivot->_status == 2;
+            // });
             $printer->setJustification(Printer::JUSTIFY_CENTER);
-            if($i == 0){
-            $printer->setTextSize(1,1);
-            $url = "http://192.168.10.189:2201/#/distribute/checkin/{$requisition->id}?key=" . urlencode($requisition->entry_key);
-            // $url = "http://192.168.10.160:8000/#/distribute/checkin/{$requisition->id}?key=" . urlencode($requisition->entry_key);
-            $printer->qrCode($url,Printer::QR_ECLEVEL_M,5,Printer::QR_MODEL_2);
-            }
             $printer->setReverseColors(true);
             $printer->setEmphasis(true);
             if($requisition->printed>0){
@@ -2216,6 +2212,7 @@ class PrinterController extends Controller
             $printer->text("\n NOTAS:    ".$requisition->requisition->notes."\n");
             $printer->setReverseColors(false);
             $printer->text("\n AGENTE:    ".$requisition->requisition->created_by->names."\n");
+            // $printer->text("\n ENTREGA:   ".$caja?->responsable->name."\n");
             if($requisition->notes){
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->selectPrintMode(Printer::MODE_FONT_B);
@@ -2468,7 +2465,7 @@ class PrinterController extends Controller
             $printer->text("GRUPO VIZCARRA\n");
             $printer->feed(1);
             $printer->cut();
-        }
+        // }
         $printer->close();
         return true;
     }
