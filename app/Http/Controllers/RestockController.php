@@ -395,10 +395,13 @@ class RestockController extends Controller
             $change->save();
             $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
             if($bfore == 7){
+                if($partition->getOutDrivingStaff()){
                 $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
                 $to = '120363194490127898@g.us';
                 // $to = '5573461022';
                 $sendMessage = $this->envMssg($message,$to);
+                }
+
             }
             // $idlog = partitionLog::max('id') + 1;
 
@@ -407,7 +410,7 @@ class RestockController extends Controller
                 '_requisition'=>$partition->_requisition,
                 '_partition'=>$partition->id,
                 '_status'=>$status,
-                'details'=>json_encode(['responsable'=>$partition->getCheckStaff()->complete_name]),
+                'details'=>json_encode(['responsable'=> $partition->getCheckStaff() !== null ? $partition->getCheckStaff()->complete_name : 'Directo' ]),
             ];
             $logs = partitionLog::insert($inslo);
             $endpart = $this->verifyPartition($partition->_requisition);

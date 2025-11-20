@@ -13,6 +13,12 @@ use App\Models\ClientVA;
 use App\Models\PrinterVA;
 use App\Models\OrderLogVA;
 use App\Models\ProductOrderedVA;
+use App\Models\Invoice;
+use App\Models\InvoiceBodies;
+use App\Models\partitionRequisition;
+use App\Models\partitionLog;
+use Carbon\CarbonImmutable;
+use Carbon\Carbon;
 
 
 class OrdersController extends Controller
@@ -339,27 +345,30 @@ class OrdersController extends Controller
                     $events++;
                     break;
                 }
-            // case 4: //Por surtir
-            //     $to_supply = $this->getProcess(4);
-            //     if($to_supply[0]['active']){
-            //         $bodegueros = AccountVA::with('user')->whereIn('_rol', [6,7])->whereNotIn('_status', [4,5])->count();
-            //         $tickets = 100000000;
-            //         $in_suppling = Order::where([
-            //             ['_workpoint_from', $workpoint],
-            //             ['_status', $case] // Status Surtiendo
-            //         ])->count(); // Para saber cuantos pedidos se estan surtiendo
-            //         if($in_suppling>($bodegueros*$tickets)){
-            //             // Poner en status 4 (el pedido esta por surtir)
-            //             $user = AccountVA::find($create_by);
-            //             // Order was passed next status by
-            //             $log = $this->createLogCatalog($order->id, 4, []);
-            //             $user->order_log()->save($log);
-            //             $order->_status = 4;
-            //             $order->save();
-            //             $events++;
-            //             break;
-            //         }
-            //     }
+            case 4: //Por surtir
+                $to_supply = $this->getProcess(4,$workpoint);
+                if($to_supply[0]['active']){
+                    $bodegueros = AccountVA::where('_wp_principal',$workpoint)
+                    ->whereIn('_rol', [6,7])
+                    // ->whereNotIn('_status', [4,5])
+                    ->count();
+                    $tickets = 100000000;
+                    $in_suppling = OrderVA::where([
+                        ['_workpoint_from', $workpoint],
+                        ['_status', $case] // Status Surtiendo
+                    ])->count(); // Para saber cuantos pedidos se estan surtiendo
+                    if($in_suppling>($bodegueros*$tickets)){
+                        // Poner en status 4 (el pedido esta por surtir)
+                        $user = AccountVA::find($create_by);
+                        // Order was passed next status by
+                        $log = $this->createLog($order->id, 4, [],'App\User',$create_by);
+                        $user->order_log()->save($log);
+                        $order->_status = 4;
+                        $order->save();
+                        $events++;
+                        break;
+                    }
+                }
             case 5: //Surtiendo
                 $_workpoint_to = $order->_workpoint_from;
                 $order->load([
@@ -385,9 +394,32 @@ class OrdersController extends Controller
                 $cash_ = $order->history->filter(function($log){
                     return $log->pivot->_status == 2;
                 })->values()->all()[0];
-                $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint], ['name', 'LIKE', '%'.$cash_->pivot->responsable->num_cash.'%']])->first();
-                if(!$printer){
-                    $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint]])->first();
+                // $printer = null;
+                // if(count($order->products) > 20){
+                //     $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint], ['name', 'MAYOREO']])->first();
+                // }else{
+                //     $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint], ['name', 'LIKE', '%'.$cash_->pivot->responsable->num_cash.'%']])->first();
+                // }
+
+                // if(!$printer){
+                //     $printer = PrinterVA::where([['_type', 2], ['_workpoint', $workpoint]])->first();
+                // }
+
+
+                $printerQuery = PrinterVA::where('_type', 2)
+                    ->where('_workpoint', $workpoint);
+                if ($order->products->sum('pivot.amount') > 20) {
+                    $printer = $printerQuery->where('name', 'MAYOREO')->first();
+                } else {
+                    $printer = $printerQuery
+                        ->where('name', 'LIKE', '%' . $cash_->pivot->responsable->num_cash . '%')
+                        ->first();
+                }
+
+                if (!$printer) {
+                    $printer = PrinterVA::where('_type', 2)
+                        ->where('_workpoint', $workpoint)
+                        ->first();
                 }
                 $cellerPrinter = new PrinterController();//cambia el printerport por 9100
                 $printed = $cellerPrinter->orderTicket2($printer->ip,$order, $cash_);
@@ -545,5 +577,146 @@ class OrdersController extends Controller
         return response()->json($orders,200);
     }
 
+    public function nextStepCheck(Request $request){
+        // $ordered = $request->id
+        $createRequired = null;
+        $order = OrderVA::find($request->id);
+        $_workpoint_to = $order->_workpoint_from;
+        $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
+            $query->with(['locations' => function($query)  use ($_workpoint_to){
+                $query->whereHas('celler', function($query) use ($_workpoint_to){
+                    $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                });
+            }]);
+        }, 'client', 'price_list', 'status', 'created_by', 'from', 'history']);
 
+        $countBoxes = $order->products->where('pivot._supply_by', 3)->sum('pivot.amount');
+        // return $countBoxes;
+        if($countBoxes <= 10 && $countBoxes > 0 ){
+            $createRequired = $this->createRequiredDirect($order);
+        }
+
+        $_status = $this->getNextStatus($order);
+        $_printer = isset($request->_printer) ? $request->_printer : null;
+        // return $_printer;
+        $_process = array_column(OrderProcessVA::all()->toArray(), 'id');
+        if(in_array($_status, $_process)){
+            $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to);
+            if($result){
+                return response()->json(['success' => true, 'status' => $result, "server_status" => 200, 'order'=>$order, "requisition"=>$createRequired]);
+            } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500]);
+        } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400]);
+    }
+
+    public function createRequiredDirect(OrderVA $order){
+        $toSupply = [];
+
+        $num_ticket = Invoice::where('_workpoint_to',1)
+                                    ->whereDate('created_at',now())
+                                    ->count()+1;
+        $num_ticket_store = Invoice::where('_workpoint_from', $order->_workpoint_from)
+                                        ->whereDate('created_at', now())
+                                        ->count()+1;
+        $requisition = new Invoice;
+        $requisition->notes =" Pedido preventa #".$order->id.", ".$order->name;
+        $requisition->num_ticket = $num_ticket;
+        $requisition->num_ticket_store = $num_ticket_store;
+        $requisition->_created_by = 1;
+        $requisition->_workpoint_from = $order->_workpoint_from;
+        $requisition->_workpoint_to = 1;
+        $requisition->_type = 5;
+        $requisition->printed = 0;
+        $requisition->_warehouse = 'GEN';
+        $requisition->time_life = "00:15:00";
+        $requisition->_status = 7;
+        $requisition->save();
+        $res = $requisition->fresh();
+        $log = $this->logInt($res->id,$res->_status);
+        if($log){
+            $toSupply = [];
+            $products = $order->products->where('pivot._supply_by', 3);
+            foreach($products as $product){
+                    $required = $product['pivot']['amount'];
+                        $toSupply[$product->id] = [
+                            'units' =>$product['pivot']['units'] ,
+                            "cost" => $product->cost,
+                            'amount' => $required,
+                            "_supply_by" => 3,
+                            'comments' => '',
+                            "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0,
+                            "toDelivered" => $required,
+                            "checkout" => 1,
+                            "ipack" => $product->pieces
+                        ];
+
+            }
+            if(isset($toSupply)){ $requisition->products()->attach($toSupply);}
+
+            $npartition = new partitionRequisition([
+                '_requisition' => $requisition->id,
+                '_status' => 7,
+                'entry_key' => md5($requisition->id),
+                '_warehouse' => $requisition->_warehouse
+            ]);
+            $npartition->save();
+
+            foreach ($requisition->products as $prod) {
+                $requisition->products()->updateExistingPivot($prod->id, ['_partition' => $npartition->id]);
+            }
+            $reqio = $npartition->load([
+                'status',
+                'log',
+                'products.locations' => fn($q) => $q->whereHas('celler', fn($l) => $l->where('_workpoint', 1))->whereNull('deleted_at'),
+                'requisition.type',
+                'requisition.status',
+                'requisition.to',
+                'requisition.from',
+                'requisition.created_by',
+                'requisition.log'
+            ]);
+            $miniprinter   = new PrinterController();
+            $ipProvider    = env("PRINTER_DIRECT");
+            $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio);
+            if ($printedProvider) {
+                $requisition->increment('printed');
+            } else {
+                $this->sendWhatsapp("120363185463796253@g.us",
+                    "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))"
+                );
+            }
+            $log = $requisition->log
+                ->where('id', '>=', 7)
+                ->map(function ($event) {
+                    return [
+                        "id"         => $event->id,
+                        "name"       => $event->name,
+                        "active"     => $event->active,
+                        "allow"      => $event->allow,
+                        "details"    => json_decode($event->pivot->details),
+                        "created_at" => $event->pivot->created_at->format('Y-m-d H:i'),
+                        "updated_at" => $event->pivot->updated_at->format('Y-m-d H:i')
+                    ];
+                })
+                ->values();
+            return [
+                "requisition" => $requisition->load(['type', 'status', 'to', 'from', 'created_by', 'log','products']),
+                "partition"=>$reqio,
+                "log" => $log
+            ];
+        }else{
+            return response()->json('no se inserto la factura',500);
+        }
+    }
+
+
+
+    public function logInt($oid,$moveTo){
+            $requisition = Invoice::with(["to", "from", "log", "status", "created_by","partition.status","partition.log","type"])->find($oid);
+            $now = CarbonImmutable::now();
+            $requisition->log()->attach($moveTo, [ 'details'=>json_encode([ "responsable"=>$requisition->created_by['nick'] ]) ]);
+            $requisition->_status=$moveTo;
+            $requisition->save();
+            $requisition->load(['log','status']);
+            return true;
+    }
 }

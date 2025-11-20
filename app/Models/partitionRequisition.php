@@ -18,6 +18,7 @@ class partitionRequisition extends Model
         "_status",
         "_out_verified",
         "_warehouse",
+        'entry_key',
     ];
 
 

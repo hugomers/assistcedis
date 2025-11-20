@@ -450,6 +450,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/changeClientOrder', [OrdersController::class,'changeClientOrder']);
         Route::post('/nextState', [OrdersController::class,'nextState']);
         Route::post('/nextStateFinish', [OrdersController::class,'nextStateFinish']);
+        Route::post('/nextStepCheck', [OrdersController::class,'nextStepCheck']);
         Route::post('/getOrderCash', [OrdersController::class,'getOrderCash']);
         Route::post('/create', [OrdersController::class,'create']);
         Route::post('/orderCatalog', [OrdersController::class,'orderCatalog']);
