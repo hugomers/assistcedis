@@ -582,34 +582,38 @@ class OrdersController extends Controller
         $createRequired = null;
         $order = OrderVA::find($request->id);
         if($order){
-            $_workpoint_to = $order->_workpoint_from;
-            $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
-                $query->with(['locations' => function($query)  use ($_workpoint_to){
-                    $query->whereHas('celler', function($query) use ($_workpoint_to){
-                        $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
-                    });
-                },'stocks' =>  fn($q) => $q->where('id',1)]);
-            },
-            'client', 'price_list', 'status', 'created_by', 'from', 'history']);
+            if($order->_status == 3){
+                $_workpoint_to = $order->_workpoint_from;
+                $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
+                    $query->with(['locations' => function($query)  use ($_workpoint_to){
+                        $query->whereHas('celler', function($query) use ($_workpoint_to){
+                            $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                        });
+                    },'stocks' =>  fn($q) => $q->where('id',1)]);
+                },
+                'client', 'price_list', 'status', 'created_by', 'from', 'history']);
 
-            $countBoxes = $order->products->where('pivot._supply_by', 3)->sum('pivot.amount');
-            // return $countBoxes;
-            if($countBoxes <= 10 && $countBoxes > 0 ){
-                $createRequired = $this->createRequiredDirect($order);
+                $countBoxes = $order->products->where('pivot._supply_by', 3)->sum('pivot.amount');
+                // return $countBoxes;
+                if($countBoxes <= 10 && $countBoxes > 0 ){
+                    $createRequired = $this->createRequiredDirect($order);
+                }
+
+                $_status = $this->getNextStatus($order);
+                $_printer = isset($request->_printer) ? $request->_printer : null;
+                // return $_printer;
+                $_process = array_column(OrderProcessVA::all()->toArray(), 'id');
+                if(in_array($_status, $_process)){
+                    $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to);
+                    if($result){
+                        return response()->json(['success' => true, 'status' => $result, "server_status" => 200, 'order'=>$order, "requisition"=>$createRequired],200);
+                    } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500],500);
+                } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400],400);
+            }else{
+                return response()->json(['success' => false, 'status' => null, 'msg' => "Aun no esta listo para validar o ya se valido ".$request->id , "server_status" => 404],404);
             }
-
-            $_status = $this->getNextStatus($order);
-            $_printer = isset($request->_printer) ? $request->_printer : null;
-            // return $_printer;
-            $_process = array_column(OrderProcessVA::all()->toArray(), 'id');
-            if(in_array($_status, $_process)){
-                $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to);
-                if($result){
-                    return response()->json(['success' => true, 'status' => $result, "server_status" => 200, 'order'=>$order, "requisition"=>$createRequired],200);
-                } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500],500);
-            } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400],400);
         }else{
-             return response()->json(['success' => false, 'status' => null, 'msg' => "No existe el pedido", "server_status" => 404],404);
+             return response()->json(['success' => false, 'status' => null, 'msg' => "No existe el pedido ".$request->id , "server_status" => 404],404);
         }
 
     }
