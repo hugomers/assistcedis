@@ -605,11 +605,11 @@ class OrdersController extends Controller
             if(in_array($_status, $_process)){
                 $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to);
                 if($result){
-                    return response()->json(['success' => true, 'status' => $result, "server_status" => 200, 'order'=>$order, "requisition"=>$createRequired]);
-                } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500]);
-            } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400]);
+                    return response()->json(['success' => true, 'status' => $result, "server_status" => 200, 'order'=>$order, "requisition"=>$createRequired],200);
+                } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500],500);
+            } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400],400);
         }else{
-             return response()->json(['success' => false, 'status' => null, 'msg' => "No existe el pedido", "server_status" => 404]);
+             return response()->json(['success' => false, 'status' => null, 'msg' => "No existe el pedido", "server_status" => 404],404);
         }
 
     }
