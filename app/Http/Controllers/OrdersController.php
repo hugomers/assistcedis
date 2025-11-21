@@ -587,8 +587,9 @@ class OrdersController extends Controller
                 $query->whereHas('celler', function($query) use ($_workpoint_to){
                     $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
                 });
-            }]);
-        }, 'client', 'price_list', 'status', 'created_by', 'from', 'history']);
+            },'stocks' =>  fn($q) => $q->where('id',1)]);
+        },
+        'client', 'price_list', 'status', 'created_by', 'from', 'history']);
 
         $countBoxes = $order->products->where('pivot._supply_by', 3)->sum('pivot.amount');
         // return $countBoxes;
