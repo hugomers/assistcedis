@@ -162,23 +162,45 @@ class RestockController extends Controller
                 ]);
 
                 $ip = null;
-                switch ($toWorkpointId) {
-                    case 1:
-                        $ip = env('PRINTER_P3');
-                        break;
-                    case 2:
-                        $ip = env('PRINTERTEX');
-                        break;
-                    case 16:
-                        $ip = env('PRINTERBRASIL');
-                        break;
+                // switch ($toWorkpointId) {
+                //     case 1:
+                //         $ip = env('PRINTER_P3');
+                //         break;
+                //     case 2:
+                //         $ip = env('PRINTERTEX');
+                //         break;
+                //     case 16:
+                //         $ip = env('PRINTERBRASIL');
+                //         break;
 
-                    default:
+                //     default:
+                //         $ip = env('PRINTER_P3');
+                //         break;
+                // }
+
+                if($toWorkpointId == 1){
+                    if($ubicacion['name'] == 'PLANTA BAJA'){
+                        $ip = env('PRINTER_PB');
+                    }else if($ubicacion['name'] == 'PISO 1'){
                         $ip = env('PRINTER_P3');
-                        break;
+                    }else if($ubicacion['name'] == 'PISO 2'){
+                        $ip = env('PRINTER_P2');
+                    }else if($ubicacion['name'] == 'PISO 3'){
+                        $ip = env('PRINTER_P3');
+                    }else if($ubicacion['name'] == 'PISO 4'){
+                        $ip = env('PRINTER_P4');
+                    }else{
+                        $ip = env('PRINTER_P3');
+                    }
+
+                }else if($toWorkpointId == 2){
+                    $ip = env('PRINTERTEX');
+                }else if($toWorkpointId == 16){
+                    $ip = env('PRINTERBRASIL');
+                }else{
+                    $ip = env('PRINTER_P3');
                 }
-
-                $ip = $toWorkpointId == 2 ? env('PRINTERTEX') : env('PRINTER_P3');
+                // $ip = $toWorkpointId == 2 ? env('PRINTERTEX') : env('PRINTER_P3');
 
                 $cellerPrinter = new PrinterController();
                 $cellerPrinter->PartitionTicket($ip, $reqio);
