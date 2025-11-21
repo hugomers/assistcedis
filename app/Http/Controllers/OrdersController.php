@@ -686,12 +686,14 @@ class OrdersController extends Controller
             ]);
             $miniprinter   = new PrinterController();
 
-            $printerQuery = PrinterVA::where('_type', 2)
-            ->where([['_workpoint', $order->_workpoint_from],['name','RECIBOS']])->first();
-            $printedProvider = $miniprinter->PartitionDirect($printerQuery->ip, $reqio, $order);
+            $printers = PrinterVA::where([['_workpoint', $order->_workpoint_from],['_type', 2]])->whereIn('name',['RECIBOS','MAYOREO'])->get();
+            foreach($printers as $printer){
+                 $printedProvider = $miniprinter->PartitionDirect($printer->ip, $reqio, $order);
+            }
+            // $printedProvider = $miniprinter->PartitionDirect($printerQuery->ip, $reqio, $order);
 
             $ipProvider    = env("PRINTER_DIRECT");
-            $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio, $order);
+            // $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio, $order);
             $printedProvider = $miniprinter->PartitionDirect($ipProvider, $reqio, $order);
 
             if ($printedProvider) {
