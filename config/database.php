@@ -61,12 +61,12 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            'timezone'  => env('DB_TIMEZONE', '+00:00'),
+            'timezone'  => env('DB_TIMEZONE', '-06:00'),
         ],
 
         'vizapi' => [
             'driver' => 'mysql',
-            'url' => env('DATABASE_URL'),
+            'url' => env('DATABASE_URLV'),
             'host' => env('DBV_HOST', '127.0.0.1'),
             'port' => env('DBV_PORT', '3306'),
             'database' => env('DBV_DATABASE', 'forge'),
@@ -82,7 +82,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            'timezone'  => env('DBV_TIMEZONE', '+00:00'),
+            'timezone'  => env('DBV_TIMEZONE', '-06:00'),
         ],
 
         'pgsql' => [
