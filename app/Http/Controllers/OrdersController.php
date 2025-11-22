@@ -258,6 +258,7 @@ class OrdersController extends Controller
                 $num_ticket = OrderVA::where('_workpoint_from', $request->_workpoint)->whereDate('created_at', $now)->count()+1;
                 $client = 0;
                 $order = OrderVA::create([
+                    'created_at'=>  $now,
                     'num_ticket' => $num_ticket,
                     'name' => $request->name,
                     '_client' => $client,

@@ -9,7 +9,7 @@ class OrderVA extends Model
 {
     protected $connection = 'vizapi';
     protected $table = 'orders';
-    protected $fillable = ['num_ticket', 'name', 'printed', '_created_by', '_workpoint_from', 'time_life', '_status', '_client', '_price_list', '_order'];
+    protected $fillable = ['num_ticket', 'name', 'printed', '_created_by', '_workpoint_from', 'time_life', '_status', '_client', '_price_list', '_order','created_at'];
 
     // public function workpoint(){
     //     return $this->belongsTo('App\Models\WorkPointVA', '_workpoint_from');
