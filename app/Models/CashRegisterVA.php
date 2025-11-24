@@ -19,6 +19,12 @@ class CashRegisterVA extends Model
     public function order_log(){
         return $this->morphMany('App\Models\OrderLogVA', 'responsable', '_type', '_responsable', 'id');
     }
+    public function status(){
+        return $this->belongsTo('App\Models\CashRegisterStatusVA', '_status');
+    }
+    public function cashier(){
+        return $this->belongsTo('App\Models\AccountVA', '_account');
+    }
 
 
 }

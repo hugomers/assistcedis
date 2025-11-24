@@ -8,11 +8,13 @@ use App\Models\SeasonsVA;
 use App\Models\AccountVA;
 use App\Models\OrderVA;
 use App\Models\OrderProcessVA;
+use App\Models\OrderProcessConfigVA;
 use App\Models\CashRegisterVA;
 use App\Models\ClientVA;
 use App\Models\PrinterVA;
 use App\Models\OrderLogVA;
 use App\Models\ProductOrderedVA;
+use App\Models\ProductUnitVA;
 use App\Models\Invoice;
 use App\Models\InvoiceBodies;
 use App\Models\partitionRequisition;
@@ -54,6 +56,30 @@ class OrdersController extends Controller
         } else {
             return response()->json('El pedido ya está verificado', 401);
         }
+    }
+
+    public function getOrderPrv(Request $request){
+        $id = $request->pedido;
+        $store = $request->store;
+        $uid = $request->uid;
+        $order = OrderVA::find($id);
+        if($order){
+            if($order->_workpoint_from == $store){
+                if($order->_created_by == $uid){
+                    $order = $order->load(['products.category.familia.seccion','products.prices','products.units','client']);
+                    return response()->json($order,200);
+                }else{
+                    return response()->json(['mssg'=>'No creaste tu el pedido'],401);
+                }
+            }else{
+                return response()->json(['mssg'=>'No perteneces a la surusal'],401);
+            }
+        }else{
+            return response()->json(['mssg'=>'No se encuentra el pedido'],404);
+        }
+
+
+
     }
 
     public function getOrderVerify($ord){
@@ -102,11 +128,13 @@ class OrdersController extends Controller
     public function editProduct(Request $request){
         $product = $request->all();
         $upd = [
-            "toDelivered"=>$product['toDelivered'],
-            "amountDelivered"=>$product['amountDelivered'],
-            "_price_list"=>$product['_price_list'],
+            "amount"=>$product['amount'],
             "price"=>$product['price'],
             "total"=>$product['total'],
+            "units"=>$product['units'],
+            "_price_list"=>$product['_price_list'],
+            "_supply_by"=>$product['_supply_by'],
+            "comments"=>isset($product['comments']) ? $product['comments'] : null
         ];
         $update = ProductOrderedVA::where([['_order',$product['_order']],['_product',$product['_product']]])->update($upd);
         return response()->json($update,200);
@@ -115,16 +143,17 @@ class OrdersController extends Controller
         $product = $request->all();
         $nwProduct = new ProductOrderedVA;
         $nwProduct->kit = '';
-        $nwProduct->units = $product['units'];
-        $nwProduct->price = $product['price'];
         $nwProduct->_product = $product['_product'];
         $nwProduct->_order = $product['_order'];
-        $nwProduct->_supply_by = $product['_supply_by'];
-        $nwProduct->_price_list = $product['_price_list'];
-        $nwProduct->comments = '';
-        $nwProduct->total = $product['total'];
-        $nwProduct->toDelivered = $product['toDelivered'];
+        $nwProduct->amount = $product['amount'];
         $nwProduct->amountDelivered = $product['amountDelivered'];
+        $nwProduct->price = $product['price'];
+        $nwProduct->toDelivered = $product['toDelivered'];
+        $nwProduct->total = $product['total'];
+        $nwProduct->units = $product['units'];
+        $nwProduct->_price_list = $product['_price_list'];
+        $nwProduct->_supply_by = $product['_supply_by'];
+        $nwProduct->comments = isset($product['comments']) ? $product['comments'] : null  ;
         $res = $nwProduct->save();
         return response()->json($res,200);
     }
@@ -255,19 +284,31 @@ class OrdersController extends Controller
         try{
             $order = DB::transaction( function () use ($request){
                 $now = new \DateTime();
+                $_parent = null;
+                $parent = null;
+                if(isset($request->_anex) && $request->_anex){
+                    $parent = OrderVA::find($request->_anex);
+                    if(!$parent){
+                        return response()->json(["success" => false, "server_status" => 404, "msg" => "No se encontro el pedido"]);
+                    }else{
+                        $_parent = $parent->_order ? $parent->_order : $parent->id;
+                    }
+                }
+
+
                 $num_ticket = OrderVA::where('_workpoint_from', $request->_workpoint)->whereDate('created_at', $now)->count()+1;
                 $client = 0;
                 $order = OrderVA::create([
                     // 'created_at'=>  $now,
                     'num_ticket' => $num_ticket,
-                    'name' => $request->name,
+                    'name' => $parent ? $parent->name  :  $request->name,
                     '_client' => $client,
                     '_price_list' => 1,
                     '_created_by' => $request->_created_by,
                     '_workpoint_from' => $request->_workpoint,
                     'time_life' => '00:30:00',
                     '_status' => 1,
-                    '_order' => null
+                    '_order' => $_parent ? $_parent : null
                 ]);
 
                 $this->log(1, $order, $request->_created_by,$request->_workpoint );
@@ -409,7 +450,8 @@ class OrdersController extends Controller
 
                 $printerQuery = PrinterVA::where('_type', 2)
                     ->where('_workpoint', $workpoint);
-                if ($order->products->sum('pivot.amount') > 20) {
+
+                if ($order->products->sum('pivot.amount') > 20 && $order->_workpoint_from == 2) {
                     $printer = $printerQuery->where('name', 'MAYOREO')->first();
                 } else {
                     $printer = $printerQuery
@@ -569,13 +611,32 @@ class OrdersController extends Controller
         return $_status;
     }
 
-    public function getOrders($sid){
+    public function getOrders(Request $request){
+        // return $request->all();
+        $workpoint = $request->wid;
+        $user = $request->uid;
+        $view = $request->view;
+        $units = ProductUnitVA::where('id','!=',4)->get();
+        $rules = SeasonsVA::with('rules')->get();
+        $printers = PrinterVA::where('_workpoint',$workpoint)->get();
+
         $orders = OrderVA::withCount('products')
                     ->with(['status', 'created_by', 'from','history'])
-                    ->where('_workpoint_from',$sid)
-                    ->whereDate('created_at', now()->format('Y-m-d'))
-                    ->get();
-        return response()->json($orders,200);
+                    ->where('_workpoint_from',$workpoint)
+                    ->whereDate('created_at', now()->format('Y-m-d'));
+        if($view == "sales"){
+            $orders = $orders->where('_created_by',$user)->get();
+        }else{
+            $orders = $orders->get();
+        }
+        $res = [
+            "orders"=>$orders,
+            "units"=>$units,
+            "rules"=>$rules,
+            "prints"=>$printers
+        ];
+
+        return response()->json($res,200);
     }
 
     public function nextStepCheck(Request $request){
@@ -594,15 +655,18 @@ class OrdersController extends Controller
                 },
                 'client', 'price_list', 'status', 'created_by', 'from', 'history']);
 
-                $countBoxes = $order->products->where('pivot._supply_by', 3)->sum('pivot.amount');
-                // return $countBoxes;
-                if($countBoxes <= 10 && $countBoxes > 0 ){
-                    $createRequired = $this->createRequiredDirect($order);
+
+                if($order->_workpoint_from == 4){
+                    $countBoxes = $order->products->where('pivot._supply_by', 3)->sum('pivot.amount');
+                    // return $countBoxes;
+                    if($countBoxes <= 10 && $countBoxes > 0 ){
+                        $createRequired = $this->createRequiredDirect($order);
+                    }
                 }
+
 
                 $_status = $this->getNextStatus($order);
                 $_printer = isset($request->_printer) ? $request->_printer : null;
-                // return $_printer;
                 $_process = array_column(OrderProcessVA::all()->toArray(), 'id');
                 if(in_array($_status, $_process)){
                     $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to);
@@ -616,7 +680,32 @@ class OrdersController extends Controller
         }else{
              return response()->json(['success' => false, 'status' => null, 'msg' => "No existe el pedido ".$request->id , "server_status" => 404],404);
         }
+    }
+    public function nextStepPrv(Request $request){
+        $order = OrderVA::find($request->id);
+        if($order){
+                $_workpoint_to = $order->_workpoint_from;
+                $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
+                    $query->with(['locations' => function($query)  use ($_workpoint_to){
+                        $query->whereHas('celler', function($query) use ($_workpoint_to){
+                            $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                        });
+                    },'stocks' =>  fn($q) => $q->where('id',1)]);
+                },
+                'client', 'price_list', 'status', 'created_by', 'from', 'history']);
 
+                $_status = $this->getNextStatus($order);
+                $_printer = isset($request->_printer) ? $request->_printer : null;
+                $_process = array_column(OrderProcessVA::all()->toArray(), 'id');
+                if(in_array($_status, $_process)){
+                    $result = $this->log($_status, $order, $order->_created_by, $_workpoint_to, $_printer['id']);
+                    if($result){
+                        return response()->json(['success' => true, 'status' => $result, "server_status" => 200, 'order'=>$order],200);
+                    } return response()->json(['success' => false, 'status' => null, 'msg' => "No se ha podido cambiar el status", "server_status" => 500],500);
+                } return response()->json(['success' => false, 'msg' => "Status no válido", "server_status" => 400],400);
+        }else{
+             return response()->json(['success' => false, 'status' => null, 'msg' => "No existe el pedido ".$request->id , "server_status" => 404],404);
+        }
     }
 
     public function createRequiredDirect(OrderVA $order){
@@ -728,8 +817,6 @@ class OrdersController extends Controller
         }
     }
 
-
-
     public function logInt($oid,$moveTo){
             $requisition = Invoice::with(["to", "from", "log", "status", "created_by","partition.status","partition.log","type"])->find($oid);
             $now = CarbonImmutable::now();
@@ -738,5 +825,90 @@ class OrdersController extends Controller
             $requisition->save();
             $requisition->load(['log','status']);
             return true;
+    }
+
+    public function getSettings($sid){
+        $config = OrderProcessVA::with([
+            'config' => fn($q) => $q->where('_workpoint', $sid)
+        ])->where('allow',1)->get();
+        $cash = CashRegisterVA::with(['status'])->where('_workpoint',$sid)->get();
+
+        $res = [
+            "config"=>$config,
+            "cash"=>$cash
+        ];
+        return response()->json($res,200);
+    }
+
+    public function changeStatusCash(Request $request){
+        $cash = CashRegisterVA::find($request->id);
+        if($cash){
+            $cash->_status = $request->_status;
+            $cash->save();
+            $res = $cash->load(['status']);
+            return response()->json($res,200);
+        }else{
+            return response()->json(['msg'=>'No se encuentra la caja'],404);
+        }
+    }
+
+    public function changeConfig(Request $request){
+        $config = OrderProcessConfigVA::where([['_workpoint',$request->_workpoint],['_process',$request->_process]])->update(['active'=>$request->active]);
+        if($config){
+            // $config->active = $request->active;
+            // $config->save();
+            return response()->json($config,200);
+        }else{
+            return response()->json(['msg'=>'No se encuentra el proceso'],404);
+        }
+    }
+
+    public function reimpresionClientTicket(Request $request){
+        $order = OrderVA::with((['created_by', 'products', 'client', 'price_list', 'status', 'created_by', 'from', 'history']))->find($request->_order);
+        if($order->_status>2){
+            $printer = PrinterVA::find($request->_printer)->first();
+            $miniprinter = new PrinterController($printer->ip, 9100, 5);
+            $cash_ = $order->history->filter(function($log){
+                return $log->pivot->_status == 2;
+            })->values()->all()[0];
+            $res = $miniprinter->orderReceipt($printer->ip ,$order, $cash_);
+            return response()->json(["success" => $res, "msg" => "ok", "server_status" => 200]);
+        }else{
+            return response()->json(["success" => false, "msg" => "Aun no se puede imprimir el ticket", "server_status" => 500]);
+        }
+        return response()->json(["success" => false, "msg" => "Folio no encontrado", "server_status" => 200]);
+    }
+
+    public function reimpresion(Request $request){
+        $order = OrderVA::find($request->_order);
+        $_workpoint_to = $order->_workpoint_from;
+        $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
+            $query->with([
+                'locations' => function($query)  use ($_workpoint_to){
+                $query->whereHas('celler', function($query) use ($_workpoint_to){
+                    $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
+                });
+            },
+            'stocks' => function($query) use ($_workpoint_to){
+                $query->where('_workpoint', $_workpoint_to);
+                }
+            ]);
+        }, 'client', 'price_list', 'status', 'created_by', 'from', 'history']);
+
+        $cash_ = $order->history->filter(function($log){
+            return $log->pivot->_status == 2;
+        })->values()->all()[0];
+
+        $in_coming = $order->history->filter(function($log){
+            return $log->pivot->_status == 5;
+        })->values()->all()[0];
+        $printer = PrinterVA::find($request->_printer);
+        $cellerPrinter = new PrinterController();
+        $res = $cellerPrinter->orderTicket2($printer->ip, $order, $cash_);
+        if($res){
+            $order->printed = $order->printed +1;
+            $order->save();
+        }
+        return response()->json(["success" => $res, "server_status" => 200]);
     }
 }

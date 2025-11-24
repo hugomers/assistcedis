@@ -441,7 +441,9 @@ Route::middleware('auth')->group(function(){
         Route::get('/getOrder/{ord}', [OrdersController::class,'getOrder']);
         Route::get('/getOrderVerify/{ord}', [OrdersController::class,'getOrderVerify']);
         Route::get('/getOrderAdd/{ord}', [OrdersController::class,'getOrderAdd']);
-        Route::get('/getOrders/{sid}', [OrdersController::class,'getOrders']);
+        Route::get('/getSettings/{sid}', [OrdersController::class,'getSettings']);
+        Route::post('/getOrderPrv', [OrdersController::class,'getOrderPrv']);
+        Route::post('/getOrders', [OrdersController::class,'getOrders']);
         Route::post('/editProduct', [OrdersController::class,'editProduct']);
         Route::post('/addProduct', [OrdersController::class,'addProduct']);
         Route::post('/deleteProduct',[ OrdersController::class,'deleteProduct']);
@@ -454,6 +456,11 @@ Route::middleware('auth')->group(function(){
         Route::post('/getOrderCash', [OrdersController::class,'getOrderCash']);
         Route::post('/create', [OrdersController::class,'create']);
         Route::post('/orderCatalog', [OrdersController::class,'orderCatalog']);
+        Route::post('/changeStatusCash', [OrdersController::class,'changeStatusCash']);
+        Route::post('/changeConfig', [OrdersController::class,'changeConfig']);
+        Route::post('/nextStepPrv', [OrdersController::class,'nextStepPrv']);
+        Route::post('/reimpresionClientTicket', [OrdersController::class,'reimpresionClientTicket']);
+        Route::post('/reimpresion', [OrdersController::class,'reimpresion']);
 
 
     });
