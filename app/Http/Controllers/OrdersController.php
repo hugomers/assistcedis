@@ -866,7 +866,7 @@ class OrdersController extends Controller
     public function reimpresionClientTicket(Request $request){
         $order = OrderVA::with((['created_by', 'products', 'client', 'price_list', 'status', 'created_by', 'from', 'history']))->find($request->_order);
         if($order->_status>2){
-            $printer = PrinterVA::find($request->_printer)->first();
+            $printer = PrinterVA::find($request->_printer);
             $miniprinter = new PrinterController($printer->ip, 9100, 5);
             $cash_ = $order->history->filter(function($log){
                 return $log->pivot->_status == 2;
