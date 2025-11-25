@@ -418,7 +418,7 @@ class OrdersController extends Controller
                 'products' => function($query) use ($_workpoint_to){
                     $query->with([
                         'locations' => function($query)  use ($_workpoint_to){
-                            $query->whereHas('celler', function($query) use ($_workpoint_to){
+                            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($_workpoint_to){
                                 $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
                             });
                         },
@@ -885,7 +885,7 @@ class OrdersController extends Controller
         $order->load(['created_by', 'products' => function($query) use ($_workpoint_to){
             $query->with([
                 'locations' => function($query)  use ($_workpoint_to){
-                $query->whereHas('celler', function($query) use ($_workpoint_to){
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use ($_workpoint_to){
                     $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
                 });
             },
