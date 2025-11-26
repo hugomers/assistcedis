@@ -629,7 +629,7 @@ class OrdersController extends Controller
             $orders = $orders->where('_created_by',$user)->get();
         }else{
             $orders = $orders->get();
-            $user = AccountVA::with(['orders' => fn($q)=> $q->whereDate('created_at',now())->where('_workpoint_from',$workpoint)])->whereHas('orders', function($q) use($workpoint) { $q->whereDate('created_at',now())->where('_workpoint_from',$workpoint);})->get();
+            $accounts = AccountVA::with(['orders' => fn($q)=> $q->whereDate('created_at',now())->where('_workpoint_from',$workpoint)])->whereHas('orders', function($q) use($workpoint) { $q->whereDate('created_at',now())->where('_workpoint_from',$workpoint);})->get();
         }
         $res = [
             "process"=>$process,
