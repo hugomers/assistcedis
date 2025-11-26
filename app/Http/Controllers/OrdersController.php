@@ -619,7 +619,7 @@ class OrdersController extends Controller
         $units = ProductUnitVA::where('id','!=',4)->get();
         $rules = SeasonsVA::with('rules')->get();
         $printers = PrinterVA::where('_workpoint',$workpoint)->get();
-
+        $user = null;
         $orders = OrderVA::withCount('products')
                     ->with(['status', 'created_by', 'from','history'])
                     ->where('_workpoint_from',$workpoint)
@@ -628,8 +628,10 @@ class OrdersController extends Controller
             $orders = $orders->where('_created_by',$user)->get();
         }else{
             $orders = $orders->get();
+            $user = AccountVA::with(['orders' => fn($q)=> $q->whereDate('created_at',now())->where('_workpoint_from',$workpoint)])->whereHas('orders', function($q) use($workpoint) { $q->whereDate('created_at',now())->where('_workpoint_from',$workpoint);})->get();
         }
         $res = [
+            "user"=>$user,
             "orders"=>$orders,
             "units"=>$units,
             "rules"=>$rules,

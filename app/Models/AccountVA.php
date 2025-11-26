@@ -14,4 +14,7 @@ class AccountVA extends Model
     public function order_log(){
         return $this->morphMany('App\Models\OrderLogVA', 'responsable', '_type', '_responsable', 'id');
     }
+    public function orders(){
+        return $this->hasMany('App\Models\OrderVA', '_created_by', 'id');
+    }
 }

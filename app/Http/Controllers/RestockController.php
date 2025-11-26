@@ -1099,9 +1099,9 @@ class RestockController extends Controller
                     $requisition->printed = ($requisition->printed+1);
                     $requisition->save();
                 }else {
-                    $groupvi = "120363185463796253@g.us";
-                    $mess = "El pedido ".$requisition->id." no se logro imprimir, favor de revisarlo";
-                    $this->sendWhatsapp($groupvi, $mess);
+                    // $groupvi = "120363185463796253@g.us";
+                    // $mess = "El pedido ".$requisition->id." no se logro imprimir, favor de revisarlo";
+                    // $this->sendWhatsapp($groupvi, $mess);
                 }
 
             $requisition->refresh('log');
@@ -1640,9 +1640,9 @@ class RestockController extends Controller
         if ($printedProvider) {
             $requisition->increment('printed');
         } else {
-            $this->sendWhatsapp("120363185463796253@g.us",
-                "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES ARBOL)"
-            );
+            // $this->sendWhatsapp("120363185463796253@g.us",
+            //     "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES ARBOL)"
+            // );
         }
         $log = $requisition->log
             ->where('id', '>=', $_status)
