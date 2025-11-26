@@ -619,7 +619,7 @@ class OrdersController extends Controller
         $units = ProductUnitVA::where('id','!=',4)->get();
         $rules = SeasonsVA::with('rules')->get();
         $printers = PrinterVA::where('_workpoint',$workpoint)->get();
-        $user = null;
+        $accounts = null;
         $process= OrderProcessVA::all();
         $orders = OrderVA::withCount('products')
                     ->with(['status', 'created_by', 'from','history'])
@@ -633,7 +633,7 @@ class OrdersController extends Controller
         }
         $res = [
             "process"=>$process,
-            "user"=>$user,
+            "user"=>$accounts,
             "orders"=>$orders,
             "units"=>$units,
             "rules"=>$rules,
