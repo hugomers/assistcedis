@@ -343,10 +343,10 @@ class RestockController extends Controller
         $endpart = $this->verifyPartition($partition->_requisition);
 
         if($change){
-            // $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' transporta el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
-            // $to = '120363194490127898@g.us';
+            $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' transporta el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+            $to = '120363194490127898@g.us';
             // $to = '5573461022';
-            // $sendMessage = $this->envMssg($message,$to);
+            $sendMessage = $this->envMssg($message,$to);
         }
         $res = [
             "partition"=>$partition,
@@ -376,10 +376,10 @@ class RestockController extends Controller
         $logs = partitionLog::insert($inslo);
         $endpart = $this->verifyPartition($partition->_requisition);
         if($change){
-            // $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
-            // $to = '120363194490127898@g.us';
+            $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+            $to = '120363194490127898@g.us';
             // $to = '5573461022';
-            // $sendMessage = $this->envMssg($message,$to);
+            $sendMessage = $this->envMssg($message,$to);
         }
         $res = [
             "partition"=>$partition,
@@ -418,10 +418,10 @@ class RestockController extends Controller
             $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
             if($bfore == 7){
                 if($partition->getOutDrivingStaff()){
-                // $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
-                // $to = '120363194490127898@g.us';
+                $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+                $to = '120363194490127898@g.us';
                 // $to = '5573461022';
-                // $sendMessage = $this->envMssg($message,$to);
+                $sendMessage = $this->envMssg($message,$to);
                 }
 
             }
