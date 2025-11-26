@@ -793,7 +793,14 @@ class OrdersController extends Controller
             if ($printedProvider) {
                 $requisition->increment('printed');
             } else {
-                $this->envMssg("El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))", "120363185463796253@g.us");
+                $ipProviderPS3   = env("PRINTER_P3");
+                $doint = $miniprinter->PartitionDirect($ipProviderPS3, $reqio, $order);
+                if($doint){
+                    $requisition->increment('printed');
+                }else{
+                    $this->envMssg("El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))", "120363185463796253@g.us");
+                }
+
             }
             $log = $requisition->log
                 ->where('id', '>=', 4)
