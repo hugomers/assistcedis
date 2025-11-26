@@ -793,9 +793,9 @@ class OrdersController extends Controller
             if ($printedProvider) {
                 $requisition->increment('printed');
             } else {
-                $this->sendWhatsapp("120363185463796253@g.us",
-                    "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))"
-                );
+                // $this->sendWhatsapp("120363185463796253@g.us",
+                //     "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))"
+                // );
             }
             $log = $requisition->log
                 ->where('id', '>=', 4)
