@@ -793,9 +793,7 @@ class OrdersController extends Controller
             if ($printedProvider) {
                 $requisition->increment('printed');
             } else {
-                // $this->sendWhatsapp("120363185463796253@g.us",
-                //     "El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))"
-                // );
+                $this->envMssg("El pedido " . $requisition->id . " no se logró imprimir, favor de revisarlo (ES DIRECTO (SP2))", "120363185463796253@g.us");
             }
             $log = $requisition->log
                 ->where('id', '>=', 4)
@@ -914,5 +912,20 @@ class OrdersController extends Controller
             $order->save();
         }
         return response()->json(["success" => $res, "server_status" => 200]);
+    }
+
+    public function envMssg($message,$to){
+        $url = env('URLWHA');
+        $token = env('WATO');
+
+        $response = Http::withOptions([
+            'verify' => false, // Esto deshabilita la verificación SSL, similar a CURLOPT_SSL_VERIFYHOST y CURLOPT_SSL_VERIFYPEER en cURL
+        ])->withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'token' => $token,
+            'to' => $to,
+            'body' => $message,
+        ]);
     }
 }
