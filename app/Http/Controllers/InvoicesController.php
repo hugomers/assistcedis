@@ -343,26 +343,53 @@ class InvoicesController extends Controller
                 $to
             ];
 
-            $query = Invoice::with(['status', 'to', 'from', 'created_by','log','partition.status', 'partition.log'])
-                ->withCount(["products"])
-                ->whereBetween(DB::raw('DATE(created_at)'),[$from,$to])->where(function ($q2) use ($request) {
-                        $q2->where('_workpoint_to', $request->storeTo)
-                        ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
-                })->get();
-            // $partitions =partitionRequisition::with(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])->whereHas('requisition',function ($q) use($dates,$request)  {$q->whereBetween(DB::raw('DATE(created_at)'),$dates)->where('_workpoint_to',$request->storeTo); })->get();
+            // $query = Invoice::with(['status', 'to', 'from', 'created_by','log','partition.status', 'partition.log'])
+            //     ->withCount(["products"])
+            //     ->whereBetween(DB::raw('DATE(created_at)'),[$from,$to])->where(function ($q2) use ($request) {
+            //             $q2->where('_workpoint_to', $request->storeTo)
+            //             ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
+            //     })->get();
+            // // $partitions =partitionRequisition::with(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])->whereHas('requisition',function ($q) use($dates,$request)  {$q->whereBetween(DB::raw('DATE(created_at)'),$dates)->where('_workpoint_to',$request->storeTo); })->get();
 
-            $partitions =partitionRequisition::with(['status','log','requisition.to','products.prices','requisition.from','requisition.created_by','requisition.log'])
-                ->whereHas('requisition',function ($q) use($dates,$request)  {
-                    $q->whereBetween(DB::raw('DATE(created_at)'),$dates)
-                    ->where(function ($q2) use ($request) {
-                        $q2->where('_workpoint_to', $request->storeTo)
-                        ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
-                }); })->get();
+            // $partitions =partitionRequisition::with(['status','log','requisition.to','products.prices','requisition.from','requisition.created_by','requisition.log'])
+            //     ->whereHas('requisition',function ($q) use($dates,$request)  {
+            //         $q->whereBetween(DB::raw('DATE(created_at)'),$dates)
+            //         ->where(function ($q2) use ($request) {
+            //             $q2->where('_workpoint_to', $request->storeTo)
+            //             ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
+            //     }); })->get();
+            // foreach ($partitions as $partition) {
+            //     $partition->verified = $partition->getOutVerifiedStaff();
+            //     $partition->receipt  = $partition->getCheckStaff();
+            //     $partition->driving  = $partition->getOutDrivingStaff();
+            // }
+
+            $query = Invoice::with([
+                    'status', 'to', 'from', 'created_by', 'log',
+                    'partition.status',
+                    'partition.log',
+                    'partition.requisition.to',
+                    'partition.requisition.from',
+                    'partition.requisition.created_by',
+                    'partition.products.prices'
+                ])
+                ->withCount(['products'])
+                ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
+                ->where(function ($q2) use ($request) {
+                    $q2->where('_workpoint_to', $request->storeTo)
+                        ->orWhere('_workpoint_from', $request->storeTo);
+                })
+                ->get();
+
+
+            $partitions = $query->pluck('partition')->filter()->flatten();
+
             foreach ($partitions as $partition) {
                 $partition->verified = $partition->getOutVerifiedStaff();
                 $partition->receipt  = $partition->getCheckStaff();
                 $partition->driving  = $partition->getOutDrivingStaff();
             }
+
             $pdss = DB::connection('vizapi')->select(
                     "SELECT
                         COUNT(PS._product) as total
