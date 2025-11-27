@@ -1288,8 +1288,13 @@ class PrinterController extends Controller
     }
 
     public function orderReceipt($ip, $order, $cash){
-        $connector = new NetworkPrintConnector($ip, 9100, 3);
-        $printer = new Printer($connector);
+        // $connector = new NetworkPrintConnector($ip, 9100, 3);
+        // $printer = new Printer($connector);
+
+        try{
+            $connector = new NetworkPrintConnector($ip, 9100, 3);
+            $printer = new Printer($connector);
+        }catch(\Exception $e){ return null;}
         $summary = $order->products->reduce(function($summary, $product){
             $summary['models'] = $summary['models'] + 1;
             $summary['units'] = $summary['units'] + $product->pivot->units;
