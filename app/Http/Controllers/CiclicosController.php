@@ -307,7 +307,7 @@ class CiclicosController extends Controller
                 ->whereHas('celler', function($query) use ($data) {
                     $rol = $data['rol'];
                     $query->where([['_workpoint', $data['workpoint']]]);
-                    if(in_array($rol, [1,2,5,6,12,22])){//admins
+                    if(in_array($rol, [1,2,5,6,12,22,15,16,20])){//admins
                         $query = $query;
                     }else if(in_array($rol, [24,4,17])){//almacen
                         $query = $query->where('_type',1);

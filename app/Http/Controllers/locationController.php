@@ -31,7 +31,7 @@ class locationController extends Controller
         $cellers = CellerVA::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('_workpoint',$sid);
         if(in_array($rol, [1,2,5,6,12,22])){//admins
             $cellers = $cellers->get();
-        }else if(in_array($rol, [24,4,17])){//almacen
+        }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
             $cellers = $cellers->where('_type',1)->get();
         }else if(in_array($rol, [8,9])){//ventas
             $cellers = $cellers->where('_type',2)->get();
