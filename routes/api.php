@@ -371,6 +371,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/addEntryFS',[InvoicesController::class,'addEntryFS']);
         Route::post('/indexDashboard',[InvoicesController::class,'indexDashboard']);
         Route::post('/print/forsupply',[InvoicesController::class,'printforsupply']);
+        Route::post('/print/forsupplyStore',[InvoicesController::class,'printforsupplyStore']);
         Route::post('/print/Partition',[InvoicesController::class,'pritnforPartition']);
         Route::post('/changestateRequisition',[InvoicesController::class,'changestateRequisition']);
         Route::post('/setdelivery',[InvoicesController::class,'setdelivery']);
@@ -398,8 +399,9 @@ Route::middleware('auth')->group(function(){
     });
 
     Route::prefix('/locations')->group(function(){
-        Route::get('/{sid}',[locationController::class, 'index']);
+
         Route::get('/getInit/{sid}',[locationController::class, 'getInit']);
+        Route::post('/',[locationController::class, 'index']);
         Route::post('/obtProductSections',[locationController::class, 'obtProductSections']);
         Route::post('/obtProduct',[locationController::class, 'obtProduct']);
         Route::post('/obtProductCategories',[locationController::class, 'obtProductCategories']);

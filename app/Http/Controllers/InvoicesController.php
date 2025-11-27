@@ -1330,4 +1330,31 @@ class InvoicesController extends Controller
         }
     }
 
+    public function printforsupplyStore(Request $request){
+        $ip = $request->ip;
+        $port = $request->port;
+        $order = $request->order;
+        $requisition = Invoice::find($order);
+
+        $_workpoint_to = $requisition->_workpoint_to;
+
+        $requisition->load(['log', 'products' => function($query) use ($_workpoint_to){
+            $query->with(['locations' => function($query)  use ($_workpoint_to){
+                $query->whereHas('celler', function($query) use ($_workpoint_to){
+                    $query->where('_workpoint', $_workpoint_to);
+                });
+            }]);
+        }]);
+        // return $requisition;
+        $printer = new PrinterController();
+        $printed = $printer->requisitionTicketStore($ip, $requisition);
+
+        if($printed){
+            $requisition->printed = $requisition->printed +1;
+            $requisition->save();
+        }
+
+        return response()->json($printed);
+    }
+
 }

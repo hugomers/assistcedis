@@ -297,6 +297,27 @@ class CiclicosController extends Controller
                 });
             }]);
         }
+        if(isset($request->with_locations_loc) && $request->with_locations_loc){ //Se puede agregar todas las ubicaciones de la sucursal
+            $data = [
+                "workpoint"=>$workpoint,
+                "rol"=>$request->with_locations_loc
+            ];
+            $query = $query->with(['locations' => function($query) use ($data) {
+                $query->where('deleted_at',null)
+                ->whereHas('celler', function($query) use ($data) {
+                    $rol = $data['rol'];
+                    $query->where([['_workpoint', $data['workpoint']]]);
+                    if(in_array($rol, [1,2,5,6,12,22])){//admins
+                        $query = $query;
+                    }else if(in_array($rol, [24,4,17])){//almacen
+                        $query = $query->where('_type',1);
+                    }else if(in_array($rol, [8,9])){//ventas
+                        $query = $query->where('_type',2);
+                    }
+                    ;
+                });
+            }]);
+        }
 
         if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
             if($request->with_stock){
