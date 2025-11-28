@@ -160,6 +160,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/setMassisveMinMax',[ProductsController::class, 'setMassisveMinMax']);
         Route::post('/updateImgProduct',[ProductsController::class, 'updateImgProduct']);
         Route::post('/massiveUpdateImg',[ProductsController::class, 'massiveUpdateImg']);
+        Route::post('/updateStatusProduct',[ProductsController::class, 'updateStatusProduct']);
+
     });
 
     Route::prefix('/admincli')->group(function(){

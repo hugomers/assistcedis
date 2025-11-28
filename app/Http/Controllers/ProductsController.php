@@ -1123,4 +1123,13 @@ class ProductsController extends Controller
 
         return response()->json($res,200);
     }
+
+    public function updateStatusProduct(Request $request){
+        $product = ProductVA::find($request->_product);
+        if($product){
+            $result =  $product->stocks()->updateExistingPivot($request->wid, ['_status' => $request->_status]);
+            return response()->json(["success" => $result]);
+        }
+        return response()->json(["success" => false]);
+    }
 }
