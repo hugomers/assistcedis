@@ -62,17 +62,20 @@ class OrdersController extends Controller
         $id = $request->pedido;
         $store = $request->store;
         $uid = $request->uid;
+        $rol = $request->_rol;
         $order = OrderVA::find($id);
         if($order){
             if($order->_workpoint_from == $store){
-                if($order->_created_by == $uid){
-                    $order = $order->load(['products.category.familia.seccion','products.prices','products.units','client']);
+                if($order->_created_by == $uid  || in_array($rol,[1,2,5,6,12,22]) ){
+                    $order = $order->load(['products.category.familia.seccion','products.prices','products.units','client',
+                        'products.stocks' => fn($q) => $q->whereIn('id',[1,2,$store])
+                    ]);
                     return response()->json($order,200);
                 }else{
                     return response()->json(['mssg'=>'No creaste tu el pedido'],401);
                 }
             }else{
-                return response()->json(['mssg'=>'No perteneces a la surusal'],401);
+                return response()->json(['mssg'=>'No perteneces a la sucursal'],401);
             }
         }else{
             return response()->json(['mssg'=>'No se encuentra el pedido'],404);
