@@ -407,4 +407,197 @@ class locationController extends Controller
         }
         return response()->json($res, 200);
     }
+
+    public function reportLocations (Request $request){
+        $workpoint = $request->workpoint;
+        $seccion = $request->section;
+        $rol = $request->_rol;
+        $type = $request->_type;
+        $data = [
+            "workpoint"=>$workpoint,
+            "rol"=>$rol
+        ];
+
+        $productos = ProductVA::with([
+        'category.familia.seccion',
+        'status',
+        'providers',
+        'makers',
+        ])
+        ->whereHas('category.familia.seccion', function($query) use ($seccion) {
+            $query->where('id',$seccion);
+        })
+        ->where('_status', '!=', 4);
+
+        if($type == 1){//con stock sin ubicacion
+            $productos = $productos->with([
+                'stocks' => function($query) use ($workpoint) {
+                    $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
+                    ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
+                },
+                'locations' => function($query) use ($data) {
+                    $query->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
+                        $rol = $data['rol'];
+                        $query->where('_workpoint', $data['workpoint']);
+                        if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                            $query = $query;
+                        }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                            $query = $query->where('_type',1);
+                        }else if(in_array($rol, [8,9,27,28])){//ventas
+                            $query = $query->where('_type',2);
+                        }
+                    });
+                },
+            ])
+            ->whereHas('stocks', function($query) use ($workpoint) {
+                $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
+                ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
+            })
+            ->whereHas('locations', function($query) use ($data) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
+                    $rol = $data['rol'];
+                    $query->where('_workpoint', $data['workpoint']);
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        $query = $query;
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        $query = $query->where('_type',1);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        $query = $query->where('_type',2);
+                    }
+            });},'<=',0)->get();
+        }else if($type == 2){//sin stock con ubicacion
+
+            $productos = $productos->with([
+                'stocks' => function($query) use($workpoint) {
+                    $query->where([["stock", "<=", "0"], ["_workpoint", $workpoint]]);
+                },
+                'locations' => function($query)use($data){
+                    $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                        $rol = $data['rol'];
+                        $query->where('_workpoint', $data['workpoint']);
+                        if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                            $query = $query;
+                        }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                            $query = $query->where('_type',1);
+                        }else if(in_array($rol, [8,9,27,28])){//ventas
+                            $query = $query->where('_type',2);
+                        }
+                    });
+                },
+            ])
+            ->whereHas('stocks', function($query) use($workpoint) {
+                $query->where([["stock", "<=", 0], ["stock", "<=", 0], ["_workpoint", $workpoint]]);
+            })
+            ->whereHas('locations', function($query) use($data) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                    $rol = $data['rol'];
+                    $query->where('_workpoint', $data['workpoint']);
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        $query = $query;
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        $query = $query->where('_type',1);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        $query = $query->where('_type',2);
+                    }
+                });},'>',0)
+            ->get();
+        }else if($type == 3){//con stock con ubicacion
+
+            $productos = $productos->with([
+                'stocks' => function($query) use($workpoint) {
+                    $query->where([["stock", ">", "0"], ["_workpoint", $workpoint]]);
+                },
+                'locations' => function($query)use($data){
+                    $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                        $rol = $data['rol'];
+                        $query->where('_workpoint', $data['workpoint']);
+                        if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                            $query = $query;
+                        }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                            $query = $query->where('_type',1);
+                        }else if(in_array($rol, [8,9,27,28])){//ventas
+                            $query = $query->where('_type',2);
+                        }
+                    });
+                },
+            ])
+            ->whereHas('stocks', function($query) use($workpoint) {
+                $query->where([["stock", ">", 0], ["stock", ">", 0], ["_workpoint", $workpoint]]);
+            })
+            ->whereHas('locations', function($query) use($data) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                    $rol = $data['rol'];
+                    $query->where('_workpoint', $data['workpoint']);
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        $query = $query;
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        $query = $query->where('_type',1);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        $query = $query->where('_type',2);
+                    }
+                });},'>',0)
+            ->get();
+        }
+        return response()->json($productos,200);
+    }
+
+    public function reportMinMax(Request $request){
+        $workpoint = $request->workpoint;
+        $seccion = $request->section;
+        $rol = $request->_rol;
+        $type = $request->_type;
+        $data = [
+            "workpoint"=>$workpoint,
+            "rol"=>$rol
+        ];
+
+        $productos = ProductVA::with([
+        'category.familia.seccion',
+        'status',
+        'providers',
+        'makers',
+        'locations' => function($query)use($data){
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                $rol = $data['rol'];
+                $query->where('_workpoint', $data['workpoint']);
+                if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                    $query = $query;
+                }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                    $query = $query->where('_type',1);
+                }else if(in_array($rol, [8,9,27,28])){//ventas
+                    $query = $query->where('_type',2);
+                }
+            });
+        },
+        ])
+        ->whereHas('category.familia.seccion', function($query) use ($seccion) {
+            $query->where('id',$seccion);
+        })
+        ->where('_status', '!=', 4);
+
+        if($type == 1){// con maximos con stock
+            $productos = $productos->with(["stocks" => function($query) use ($workpoint) {
+                $query->where([["stock", ">", 0], ["min", ">", 0], ["max", ">", 0], ["_workpoint", $workpoint]]
+            );}])
+            ->whereHas('stocks', function($query) use ($workpoint) {
+                $query->where([["stock", ">", 0], ["min", ">", 0], ["max", ">", 0], ["_workpoint", $workpoint]]);
+            })->get();
+        }else if($type == 2){ // sin maximos con stock
+            $productos = $productos->with(["stocks" => function($query) use ($workpoint) {
+                $query->where([["stock", ">", 0], ["min", "<=", 0], ["max", "<=", 0], ["_workpoint", $workpoint]]
+            );}])
+            ->whereHas('stocks', function($query) use ($workpoint) {
+                $query->where([["stock", ">", 0], ["min", "<=", 0], ["max", "<=", 0], ["_workpoint", $workpoint]]);
+            })->get();
+        }else if($type == 3){// con maximos sin stock
+            $productos = $productos->with(["stocks" => function($query) use ($workpoint) {
+                $query->where([["stock", "<=", 0], ["min", ">", 0], ["max", ">", 0], ["_workpoint", $workpoint]]
+            );}])
+            ->whereHas('stocks', function($query) use ($workpoint) {
+                $query->where([["stock", "<=", 0], ["min", ">", 0], ["max", ">", 0], ["_workpoint", $workpoint]]);
+            })->get();
+        }
+        return response()->json($productos,200);
+    }
+
 }

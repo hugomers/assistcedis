@@ -415,6 +415,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/deleteCategoriesLocations',[locationController::class, 'deleteCategoriesLocations']);
         Route::post('/addMassiveLocation',[locationController::class, 'addMassiveLocation']);
         Route::post('/deleteMassiveLocation',[locationController::class, 'deleteMassiveLocation']);
+        Route::post('/reportLocations',[locationController::class, 'reportLocations']);
+        Route::post('/reportMinMax',[locationController::class, 'reportMinMax']);
     });
 
     Route::prefix('/compare')->group(function(){
