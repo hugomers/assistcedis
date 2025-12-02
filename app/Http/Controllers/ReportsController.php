@@ -101,6 +101,7 @@ class ReportsController extends Controller
                 'providers',
                 'makers',
                 'category.familia.seccion',
+                'stocks'=> fn($q) => $q->where('active', 1)
             ])
             ->when(count($filters['categories']) > 0, fn($q) =>
                 $q->whereHas('category', fn($q2) =>
