@@ -33,7 +33,7 @@ class locationController extends Controller
             $cellers = $cellers->get();
         }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
             $cellers = $cellers->where('_type',1)->get();
-        }else if(in_array($rol, [8,9])){//ventas
+        }else if(in_array($rol, [8,9,27,28])){//ventas
             $cellers = $cellers->where('_type',2)->get();
         }
         return response()->json($cellers,200);

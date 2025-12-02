@@ -615,7 +615,15 @@ class OrdersController extends Controller
     }
 
     public function getOrders(Request $request){
-        // return $request->all();
+        $fechas = $request->date;
+        if(isset($fechas['from'])){
+            $from = $fechas['from'];
+            $to = $fechas['to'];
+        }else{
+            $from = $fechas;
+            $to = $fechas;
+        }
+
         $workpoint = $request->wid;
         $user = $request->uid;
         $view = $request->view;
@@ -627,7 +635,8 @@ class OrdersController extends Controller
         $orders = OrderVA::withCount('products')
                     ->with(['status', 'created_by', 'from','history'])
                     ->where('_workpoint_from',$workpoint)
-                    ->whereDate('created_at', now()->format('Y-m-d'));
+                    ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to]);
+                    // ->whereDate('created_at', now()->format('Y-m-d'));
         if($view == "sales"){
             $orders = $orders->where('_created_by',$user)->get();
         }else{

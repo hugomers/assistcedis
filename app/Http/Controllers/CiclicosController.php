@@ -311,7 +311,7 @@ class CiclicosController extends Controller
                         $query = $query;
                     }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
                         $query = $query->where('_type',1);
-                    }else if(in_array($rol, [8,9])){//ventas
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
                         $query = $query->where('_type',2);
                     }
                     ;
