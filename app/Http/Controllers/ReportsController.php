@@ -256,7 +256,7 @@ class ReportsController extends Controller
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);})
         ->whereHas('locations', function($query) use ($workpoint){
             $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint){
-                $query->where('_workpoint', $workpoint)->where('_type',1)->where('_type',2);
+                $query->where('_workpoint', $workpoint);
             });},'>',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
@@ -301,7 +301,7 @@ class ReportsController extends Controller
         })
         ->whereHas('locations', function($query) use ($workpoint) {
             $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
-                $query->where('_workpoint', $workpoint)->where('_type',1)->where('_type',2);
+                $query->where('_workpoint', $workpoint);
             });},'<=',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);

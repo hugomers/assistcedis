@@ -467,7 +467,7 @@ class locationController extends Controller
                     $rol = $data['rol'];
                     $query->where('_workpoint', $data['workpoint']);
                     if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        $query = $query->where('_type',1)->where('_type',2);
+                        $query = $query->whereIn('_type',[1,2]);
                     }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
                         $query = $query->where('_type',1);
                     }else if(in_array($rol, [8,9,27,28])){//ventas
@@ -582,7 +582,8 @@ class locationController extends Controller
                     $rol = $data['rol'];
                     $query->where('_workpoint', $data['workpoint']);
                     if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        $query = $query->where('_type',1)->where('_type',2);
+                        // $query = $query->where('_type',1)->where('_type',2);
+                        $query = $query->whereIn('_type',[1,2]);
                     }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
                         $query = $query->where('_type',1);
                     }else if(in_array($rol, [8,9,27,28])){//ventas
