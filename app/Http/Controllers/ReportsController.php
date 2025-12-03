@@ -274,16 +274,8 @@ class ReportsController extends Controller
 
                 return $p;
         })
-        ->filter(function($p) use($data){
-                $rol = $data['rol'];
-                if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                    return ($p->bodega->count() > 0 && $p->ventas->count() > 0);
-                    // $query = $query->whereIn('_type',[1,2]);
-                }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
-                    return ($p->bodega->count() > 0);
-                }else if(in_array($rol, [8,9,27,28])){//ventas
-                    return ( $p->ventas->count() > 0);
-                }
+        ->filter(function($p) {
+            return ($p->bodega->count() > 0 && $p->ventas->count() > 0);
         })
         ->values()
         ->toArray();
@@ -331,16 +323,8 @@ class ReportsController extends Controller
 
                 return $p;
         })
-        ->filter(function($p) use($data){
-        $rol = $data['rol'];
-            if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                return !($p->bodega->count() > 0 && $p->ventas->count() > 0);
-                // $query = $query->whereIn('_type',[1,2]);
-            }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
-                return !($p->bodega->count() > 0);
-            }else if(in_array($rol, [8,9,27,28])){//ventas
-                return !( $p->ventas->count() > 0);
-            }
+        ->filter(function($p) {
+            return !($p->bodega->count() > 0 && $p->ventas->count() > 0);
         })
         ->values()
         ->toArray();
