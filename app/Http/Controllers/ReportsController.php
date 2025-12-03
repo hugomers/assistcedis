@@ -256,12 +256,25 @@ class ReportsController extends Controller
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);})
         ->whereHas('locations', function($query) use ($workpoint){
             $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint){
-                $query->where('_workpoint', $workpoint);
+                $query->where('_workpoint', $workpoint)->where('_type',1)->where('_type',2);
             });},'>',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
-        ->where('_status', '!=', 4)->get()->toArray();;
+        ->where('_status', '!=', 4)
+        ->get()
+        ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+        })
+        ->toArray();;
 
         return $productos;
     }
@@ -288,12 +301,25 @@ class ReportsController extends Controller
         })
         ->whereHas('locations', function($query) use ($workpoint) {
             $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
-                $query->where('_workpoint', $workpoint);
+                $query->where('_workpoint', $workpoint)->where('_type',1)->where('_type',2);
             });},'<=',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
-        ->where('_status', '!=', 4)->get()->toArray();;
+        ->where('_status', '!=', 4)
+        ->get()
+        ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+        })
+        ->toArray();;
         return $productos;
     }
 
@@ -346,7 +372,19 @@ class ReportsController extends Controller
             $query->whereIn('id',$seccion);
             })
         ->where('_status', '!=', 4)
-        ->get()->toArray();;
+        ->get()
+        ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+        })
+        ->toArray();;
         return $productos;
     }
 

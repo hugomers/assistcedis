@@ -430,13 +430,14 @@ class locationController extends Controller
         ->where('_status', '!=', 4);
 
         if($type == 1){//con stock sin ubicacion
+
             $productos = $productos->with([
                 'stocks' => function($query) use ($workpoint) {
                     $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
                     ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
                 },
                 'locations' => function($query) use ($data) {
-                    $query->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
+                    $query->with('celler')->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
                         $rol = $data['rol'];
                         $query->where('_workpoint', $data['workpoint']);
                         if(in_array($rol, [1,2,5,6,12,22,18])){//admins
@@ -449,22 +450,43 @@ class locationController extends Controller
                     });
                 },
             ])
-            ->whereHas('stocks', function($query) use ($workpoint) {
-                $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
-                ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
+            ->whereHas('stocks', function($query) use ($data) {
+                $rol = $data['rol'];
+                 if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        $query = $query->where([["gen", ">", 0], ["_workpoint", $data['workpoint']]])->orWhere([["exh", ">", 0], ["_workpoint", $data['workpoint']]]);
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        $query = $query->where([["gen", ">", 0], ["_workpoint", $data['workpoint']]]);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        $query = $query->where([["exh", ">", 0], ["_workpoint", $data['workpoint']]]);
+                    }
+                // $query->where([["gen", ">", 0], ["_workpoint", $data['workpoint']]])
+                // ->orWhere([["exh", ">", 0], ["_workpoint", $data['workpoint']]]);
             })
             ->whereHas('locations', function($query) use ($data) {
                 $query->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
                     $rol = $data['rol'];
                     $query->where('_workpoint', $data['workpoint']);
                     if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        $query = $query;
+                        $query = $query->where('_type',1)->where('_type',2);
                     }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
                         $query = $query->where('_type',1);
                     }else if(in_array($rol, [8,9,27,28])){//ventas
                         $query = $query->where('_type',2);
                     }
-            });},'<=',0)->get();
+            });},'<=',0)
+            ->get()
+            ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+            });
+
         }else if($type == 2){//sin stock con ubicacion
 
             $productos = $productos->with([
@@ -472,7 +494,7 @@ class locationController extends Controller
                     $query->where([["stock", "<=", "0"], ["_workpoint", $workpoint]]);
                 },
                 'locations' => function($query)use($data){
-                    $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                    $query->with('celler')->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
                         $rol = $data['rol'];
                         $query->where('_workpoint', $data['workpoint']);
                         if(in_array($rol, [1,2,5,6,12,22,18])){//admins
@@ -485,8 +507,19 @@ class locationController extends Controller
                     });
                 },
             ])
-            ->whereHas('stocks', function($query) use($workpoint) {
-                $query->where([["stock", "<=", 0], ["stock", "<=", 0], ["_workpoint", $workpoint]]);
+            ->whereHas('stocks', function($query) use($data) {
+
+                $rol = $data['rol'];
+                if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                    $query->where([["stock", "<=", 0], ["_workpoint",$data['workpoint']]]);
+                }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                    $query->where([["gen", "<=", 0], ["_workpoint", $data['workpoint']]]);
+                }else if(in_array($rol, [8,9,27,28])){//ventas
+                    $query->where([["exh", "<=", 0], ["_workpoint", $data['workpoint']]]);
+                }
+
+
+                // $query->where([["stock", "<=", 0], ["stock", "<=", 0], ["_workpoint", $workpoint]]);
             })
             ->whereHas('locations', function($query) use($data) {
                 $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
@@ -500,7 +533,19 @@ class locationController extends Controller
                         $query = $query->where('_type',2);
                     }
                 });},'>',0)
-            ->get();
+            ->get()
+            ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+            });
+
         }else if($type == 3){//con stock con ubicacion
 
             $productos = $productos->with([
@@ -508,7 +553,7 @@ class locationController extends Controller
                     $query->where([["stock", ">", "0"], ["_workpoint", $workpoint]]);
                 },
                 'locations' => function($query)use($data){
-                    $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                    $query->with('celler')->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
                         $rol = $data['rol'];
                         $query->where('_workpoint', $data['workpoint']);
                         if(in_array($rol, [1,2,5,6,12,22,18])){//admins
@@ -521,22 +566,41 @@ class locationController extends Controller
                     });
                 },
             ])
-            ->whereHas('stocks', function($query) use($workpoint) {
-                $query->where([["stock", ">", 0], ["stock", ">", 0], ["_workpoint", $workpoint]]);
+            ->whereHas('stocks', function($query) use($data) {
+                $rol = $data['rol'];
+                if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                    $query->where([["stock", ">", 0], ["_workpoint", $data['workpoint']]]);
+                }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                    $query->where([["gen", ">", 0], ["_workpoint", $data['workpoint']]]);
+                }else if(in_array($rol, [8,9,27,28])){//ventas
+                    $query->where([["exh", ">", 0], ["_workpoint", $data['workpoint']]]);
+                }
+                // $query->where([["stock", ">", 0], ["stock", ">", 0], ["_workpoint", $workpoint]]);
             })
             ->whereHas('locations', function($query) use($data) {
                 $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
                     $rol = $data['rol'];
                     $query->where('_workpoint', $data['workpoint']);
                     if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        $query = $query;
+                        $query = $query->where('_type',1)->where('_type',2);
                     }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
                         $query = $query->where('_type',1);
                     }else if(in_array($rol, [8,9,27,28])){//ventas
                         $query = $query->where('_type',2);
                     }
                 });},'>',0)
-            ->get();
+            ->get()
+            ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+            });
         }
         return response()->json($productos,200);
     }
