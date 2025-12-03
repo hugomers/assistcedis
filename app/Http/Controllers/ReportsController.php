@@ -254,10 +254,10 @@ class ReportsController extends Controller
         ->whereHas('stocks', function($query) use ($workpoint){
             $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);})
-        ->whereHas('locations', function($query) use ($workpoint){
-            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint){
-                $query->where('_workpoint', $workpoint);
-            });},'>',0)
+        // ->whereHas('locations', function($query) use ($workpoint){
+        //     $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint){
+        //         $query->where('_workpoint', $workpoint);
+        //     });},'>',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
@@ -274,7 +274,19 @@ class ReportsController extends Controller
 
                 return $p;
         })
-        ->toArray();;
+        ->filter(function($p) use($data){
+                $rol = $data['rol'];
+                if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                    return ($p->bodega->count() > 0 && $p->ventas->count() > 0);
+                    // $query = $query->whereIn('_type',[1,2]);
+                }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                    return ($p->bodega->count() > 0);
+                }else if(in_array($rol, [8,9,27,28])){//ventas
+                    return ( $p->ventas->count() > 0);
+                }
+        })
+        ->values()
+        ->toArray();
 
         return $productos;
     }
@@ -299,10 +311,10 @@ class ReportsController extends Controller
             $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
             ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
         })
-        ->whereHas('locations', function($query) use ($workpoint) {
-            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
-                $query->where('_workpoint', $workpoint);
-            });},'<=',0)
+        // ->whereHas('locations', function($query) use ($workpoint) {
+        //     $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
+        //         $query->where('_workpoint', $workpoint);
+        //     });},'<=',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
             $query->whereIn('id',$seccion);
             })
@@ -319,7 +331,19 @@ class ReportsController extends Controller
 
                 return $p;
         })
-        ->toArray();;
+        ->filter(function($p) use($data){
+        $rol = $data['rol'];
+            if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                return !($p->bodega->count() > 0 && $p->ventas->count() > 0);
+                // $query = $query->whereIn('_type',[1,2]);
+            }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                return !($p->bodega->count() > 0);
+            }else if(in_array($rol, [8,9,27,28])){//ventas
+                return !( $p->ventas->count() > 0);
+            }
+        })
+        ->values()
+        ->toArray();
         return $productos;
     }
 

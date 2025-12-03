@@ -462,18 +462,12 @@ class locationController extends Controller
                 // $query->where([["gen", ">", 0], ["_workpoint", $data['workpoint']]])
                 // ->orWhere([["exh", ">", 0], ["_workpoint", $data['workpoint']]]);
             })
-            ->whereHas('locations', function($query) use ($data) {
-                $query->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
-                    $rol = $data['rol'];
-                    $query->where('_workpoint', $data['workpoint']);
-                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        $query = $query->whereIn('_type',[1,2]);
-                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
-                        $query = $query->where('_type',1);
-                    }else if(in_array($rol, [8,9,27,28])){//ventas
-                        $query = $query->where('_type',2);
-                    }
-            });},'<=',0)
+            // ->whereHas('locations', function($query) use ($data) {
+            //     $query->where('deleted_at',null)->whereHas('celler', function($query) use ($data) {
+            //         $rol = $data['rol'];
+            //         $query->where('_workpoint', $data['workpoint']);
+
+            // });})
             ->get()
             ->map(function($p){
                 $p->bodega = $p->locations->filter(function($loc){
@@ -485,7 +479,19 @@ class locationController extends Controller
                 })->values();
 
                 return $p;
-            });
+            })
+            ->filter(function($p) use($data){
+                    $rol = $data['rol'];
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        return !($p->bodega->count() > 0 && $p->ventas->count() > 0);
+                        // $query = $query->whereIn('_type',[1,2]);
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        return !($p->bodega->count() > 0);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        return !( $p->ventas->count() > 0);
+                    }
+            })
+            ->values();
 
         }else if($type == 2){//sin stock con ubicacion
 
@@ -577,19 +583,19 @@ class locationController extends Controller
                 }
                 // $query->where([["stock", ">", 0], ["stock", ">", 0], ["_workpoint", $workpoint]]);
             })
-            ->whereHas('locations', function($query) use($data) {
-                $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
-                    $rol = $data['rol'];
-                    $query->where('_workpoint', $data['workpoint']);
-                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        // $query = $query->where('_type',1)->where('_type',2);
-                        $query = $query->whereIn('_type',[1,2]);
-                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
-                        $query = $query->where('_type',1);
-                    }else if(in_array($rol, [8,9,27,28])){//ventas
-                        $query = $query->where('_type',2);
-                    }
-                });},'>',0)
+            // ->whereHas('locations', function($query) use($data) {
+            //     $query->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+            //         $rol = $data['rol'];
+            //         $query->where('_workpoint', $data['workpoint']);
+            //         if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+            //             // $query = $query->where('_type',1)->where('_type',2);
+            //             $query = $query->whereIn('_type',[1,2]);
+            //         }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+            //             $query = $query->where('_type',1);
+            //         }else if(in_array($rol, [8,9,27,28])){//ventas
+            //             $query = $query->where('_type',2);
+            //         }
+            //     });},'>',0)
             ->get()
             ->map(function($p){
                 $p->bodega = $p->locations->filter(function($loc){
@@ -601,7 +607,19 @@ class locationController extends Controller
                 })->values();
 
                 return $p;
-            });
+            })
+            ->filter(function($p) use($data){
+                    $rol = $data['rol'];
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        return ($p->bodega->count() > 0 && $p->ventas->count() > 0);
+                        // $query = $query->whereIn('_type',[1,2]);
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        return ($p->bodega->count() > 0);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        return ( $p->ventas->count() > 0);
+                    }
+            })
+            ->values();
         }
         return response()->json($productos,200);
     }
