@@ -12,33 +12,40 @@ use App\Models\ProductCategoriesVA;
 use App\Models\CellerVA;
 use App\Models\Invoice;
 use App\Models\CellerSectionVA;
+use App\Models\AccountVA;
+use App\Models\User;
 use App\Http\Resources\inventory as InventoryResource;
 
 class CiclicosController extends Controller
 {
     public function index(Request $request){
-        // sleep(3);
-        try {
-            $view = $request->query("v");
-            $store = $request->query("store");
-            $now = CarbonImmutable::now();
+            $fechas = $request->date;
+            if(isset($fechas['from'])){
+                $from = $fechas['from'];
+                $to = $fechas['to'];
+            }else{
+                $from = $fechas;
+                $to = $fechas;
+            }
+            $storeA = $request->suc;
+            // return $storeA;
+            $store = $request->store;
 
-            $from = $now->startOf($view)->format("Y-m-d H:i");
-            $to = $now->endOf("day")->format("Y-m-d H:i");
-            $resume = [];
-
-            $inventories = CycleCountVA::with([ 'status', 'type', 'log', 'created_by' ])
+            $inventories = CycleCountVA::with([ 'status', 'type', 'log', 'created_by', 'responsables' ])
                 ->withCount('products')
-                ->where(function($q) use($from,$to){ return $q->where([ ['created_at','>=',$from],['created_at', '<=', $to] ]); })
+                ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
                 ->where("_workpoint",$store)
                 ->get();
+            $responsables = User::with('staff')->where('_store', $storeA)->WhereIn('_rol',[4,8,9,24])->get();
+            $seccion = ProductCategoriesVA::where('deep',0)->where('alias','!=',null)->get();
+            $cellers = CellerVA::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('_workpoint',$store)->get();
 
             return response ()->json([
                 "inventories"=>$inventories,
-                "params"=>[ $from, $to, $view, $store ],
-                "req"=>$request->all()
+                "colab" => $responsables,
+                "secciones"=>$seccion,
+                "locations"=>$cellers,
             ]);
-        }  catch (\Error $e) { return response()->json($e,500); }
     }
 
     public function find(Request $request){
@@ -303,7 +310,8 @@ class CiclicosController extends Controller
                 "rol"=>$request->with_locations_loc
             ];
             $query = $query->with(['locations' => function($query) use ($data) {
-                $query->where('deleted_at',null)
+                $query->with('celler')
+                ->where('deleted_at',null)
                 ->whereHas('celler', function($query) use ($data) {
                     $rol = $data['rol'];
                     $query->where([['_workpoint', $data['workpoint']]]);
@@ -404,7 +412,353 @@ class CiclicosController extends Controller
         ]);
     }
 
+    public function obtProductSections(Request $request){
+        $workpoint = $request->workpoint;
+        $sectionId = $request->ubicacion;
+        $seccion = $request->seccion;
+        // return $sectionId;
+        $allIds = [];
+        $sections = CellerSectionVA::with(['children' => fn($q) => $q->whereNull('deleted_at')])->whereIn('id',$sectionId)->get();
+        if (!$sections) {
+            return response()->json([], 404);
+        }
+        foreach($sections as $section){
+        $allIds[] = $section->getAllDescendantIds();
+        }
+        // return $allIds;
 
+        $products = ProductVA::with([
+            'units',
+            'variants',
+            'status',
+            'category.familia.seccion',
+            'locations' => function($query) use ($workpoint) {
+                $query->with('celler')
+                ->whereNull('deleted_at')
+                ->whereHas('celler', function($query) use ($workpoint) {
+                    $query->where([['_workpoint', $workpoint]]);
+                });
+            },
+        ])
+        ->whereHas('category.familia.seccion', function($query) use ($seccion) {
+            $query->where('id',$seccion);
+        })
+        ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
+        ->where('_status','!=',4)
+        ->get();
+        return response()->json($products);
+    }
+
+    public function obtProductSLocation(Request $request){
+        $workpoint = $request->workpoint;
+        $seccion = $request->seccion;
+        $productos = ProductVA::with([
+            'providers',
+            'makers',
+            'stocks' => function($query) use ($workpoint) {
+                $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
+                ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
+            },
+            'locations' => function($query) use ($workpoint) {
+                $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
+                    $query->where('_workpoint', $workpoint);
+                });
+            },
+            'category.familia.seccion',
+            'status'
+        ])
+        ->whereHas('stocks', function($query) use ($workpoint) {
+            $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
+            ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
+        })
+        ->whereHas('locations', function($query) use ($workpoint) {
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
+                $query->where('_workpoint', $workpoint);
+        });},'<=',0)
+        ->whereHas('category.familia.seccion', function($query) use ($seccion) {
+            $query->where('id',$seccion);
+        })
+        ->where('_status', '!=', 4)
+        ->get();
+        return response()->json($productos);
+    }
+
+    public function addCyclecount(Request $request){
+        $cyclecounts = [];
+        $warehouses = [
+            ["id" => 'GEN', "name" => 'General'],
+            ["id" => 'EXH', "name" => 'Exhibicion'],
+        ];
+
+        // ids de productos enviados
+        $_products = $request->collect('products')->pluck('id')->values()->all();
+
+        // usuario que crea (id de account)
+        $created_by = $request->_account ?? null;
+
+        // validación mínima
+        if (empty($_products) || !$created_by) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Faltan productos o usuario creador'
+            ], 422);
+        }
+
+        foreach ($warehouses as $warehouse) {
+            // cada warehouse se procesa en su propia transacción
+            try {
+                $result = DB::transaction(function() use ($request, $warehouse, $_products, $created_by) {
+                    $counter = CycleCountVA::create([
+                        'notes' => $request->notes ?? "",
+                        '_workpoint' => $request->_workpoint,
+                        '_created_by' => $created_by,
+                        '_type' => $request->type['val']['id'] ?? null,
+                        '_status' => 1
+                    ]);
+
+                    $this->log(1, $counter, $created_by);
+
+                    if ($warehouse['id'] === 'GEN') {
+                        $responsables = $request->collect('resgen')->pluck('staff.id_va')->filter()->values()->all();
+                    } else {
+                        $responsables = $request->collect('resexh')->pluck('staff.id_va')->filter()->values()->all();
+                    }
+
+                    if (!empty($responsables)) {
+                        $counter->responsables()->syncWithoutDetaching($responsables);
+                    }
+
+                    // traer productos con stocks y ubicaciones filtradas por workpoint
+                    $products = ProductVA::with([
+                        'stocks' => function($q) use ($counter) {
+                            $q->where('_workpoint', $counter->_workpoint);
+                        },
+                        'locations' => function($q) use ($counter) {
+                            $q->whereNull('deleted_at')->whereHas('celler', function($q2) use ($counter){
+                                $q2->where('_workpoint', $counter->_workpoint);
+                            });
+                        }
+                    ])->whereIn('id', $_products)->get();
+
+                    $products_add = [];
+
+                    foreach ($products as $product) {
+                        $stock = 0;
+                        if ($product->relationLoaded('stocks') && $product->stocks->count() > 0) {
+                            if ($warehouse['id'] === 'GEN') {
+                                // $responsables = $request->collect('resgen')->pluck('staff.id_va')->filter()->values()->all();
+                                $stock = $product->stocks[0]->pivot->gen ?? 0;
+                            } else if ($warehouse['id'] === 'EXH') {
+                                // $responsables = $request->collect('resexh')->pluck('staff.id_va')->filter()->values()->all();
+                                $stock = $product->stocks[0]->pivot->exh ?? 0;
+                            }
+                            // $stock = $product->stocks[0]->pivot->stock ?? 0;
+                        }
+
+                        $counter->products()->attach($product->id, [
+                            'stock' => $stock,
+                            'stock_acc' => $stock > 0 ? null : 0,
+                            'details' => json_encode(["editor" => ""])
+                        ]);
+
+                        $products_add[] = [
+                            "id" => $product->id,
+                            "code" => $product->code,
+                            "name" => $product->name,
+                            "description" => $product->description,
+                            "dimensions" => $product->dimensions,
+                            "pieces" => $product->pieces,
+                            "ordered" => [
+                                "stocks" => $stock,
+                                "stocks_acc" => $stock > 0 ? null : 0,
+                                "details" => ["editor" => ""]
+                            ],
+                            "units" => $product->units,
+                            "locations" => $product->locations->map(function($location){
+                                return [
+                                    "id" => $location->id,
+                                    "name" => $location->name,
+                                    "alias" => $location->alias,
+                                    "path" => $location->path
+                                ];
+                            })->values()->all()
+                        ];
+                    }
+
+                    $counter->settings = json_encode(["warehouse" => $warehouse]);
+                    $counter->_status = 2;
+                    $counter->save();
+                    $this->log(2, $counter, $created_by);
+                    return [
+                        'counter' => $counter->fresh(['workpoint', 'created_by', 'type', 'status', 'responsables', 'log'])->loadCount('products'),
+                    ];
+                }, 5);
+
+                if ($result && isset($result['counter'])) {
+                    $cyclecounts[] = [
+                        'warehouse' => $warehouse,
+                        'counter' => $result['counter'],
+                    ];
+                }
+            } catch (\Throwable $e) {
+                \Log::error('addCyclecount error for warehouse '.$warehouse['id'].': '.$e->getMessage(), [
+                    'exception' => $e
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => "Error al procesar warehouse {$warehouse['id']}",
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $cyclecounts
+        ]);
+    }
+
+    public function log($case, CycleCountVA $inventory, $user){
+        $account = AccountVA::find($user);
+        $responsable = $account ? ($account->names . ' ' . ($account->surname_pat ?? '')) : 'Desconocido';
+
+        switch($case){
+            case 1:
+                $inventory->log()->attach(1, [
+                    'details' => json_encode(["responsable" => $responsable]),
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+                return true;
+
+            case 2:
+                if ($inventory->products()->count() > 0) {
+                    $inventory->log()->attach(2, [
+                        'details' => json_encode(["responsable" => $responsable]),
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]);
+                    return true;
+                }
+                return false;
+
+            case 3:
+                $num = $inventory->products()->whereNull('stock_acc')->count();
+                if ($num <= 0) {
+                    $this->saveFinalStock($inventory);
+                    $inventory->log()->attach(3, [
+                        'details' => json_encode(["responsable" => $responsable]),
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]);
+                    return true;
+                }
+                return false;
+
+            case 4:
+                $inventory->log()->attach(4, [
+                    'details' => json_encode(["responsable" => $responsable]),
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    public function saveFinalStock(CycleCountVA $inventory){
+        $workpoint = $inventory->_workpoint;
+        // $warehouse = json_decode($inventory->settings)['warehouse']->id;
+
+        $settings = json_decode($inventory->settings);
+        $warehouse = $settings->warehouse;   // objeto
+        $warehouseId = $warehouse->id;
+
+        foreach($inventory->products as $product){
+            $stock_store = $product->stocks->filter(function($stock) use ($workpoint){
+                return ($stock->id ?? $stock->_workpoint ?? null) == $workpoint;
+            })->values()->all();
+            if ($warehouseId === 'GEN') {
+                $stock = count($stock_store) > 0 ? ($stock_store[0]->pivot->gen ?? 0) : 0;
+            }else if  ($warehouseId === 'EXH') {
+                $stock = count($stock_store) > 0 ? ($stock_store[0]->pivot->exh ?? 0) : 0;
+            }
+            $inventory->products()->updateExistingPivot($product->id, ["stock_end" => $stock]);
+        }
+    }
+
+    public function getCyclecount(Request $request){
+        $id = $request->cyclecount;
+        $rol = $request->_rol;
+        $uid = $request->id;
+
+        $cyclecount = CycleCountVA::find($id);
+        if($cyclecount){
+            $cyclecount->load(['workpoint', 'created_by', 'type', 'status', 'responsables', 'log']);
+            $data = [
+                "rol"=>$rol,
+                "workpoint"=>$cyclecount->_workpoint
+            ];
+            $cyclecount = $cyclecount->load(['products.locations' => function($query)use($data){
+                    $query->with('celler')->where('deleted_at',null)->whereHas('celler', function($query) use($data) {
+                        $rol = $data['rol'];
+                        $query->where('_workpoint', $data['workpoint']);
+                        if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                            $query = $query;
+                        }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                            $query = $query->where('_type',1);
+                        }else if(in_array($rol, [8,9,27,28])){//ventas
+                            $query = $query->where('_type',2);
+                        }
+                    });
+            },'products.variants']);
+            if(in_array($rol, [1,2,5,6,12,22,18])){
+                return response()->json($cyclecount,200);
+            }else{
+                $responsablesIds = $cyclecount->responsables->pluck('id')->toArray();
+
+                if (in_array($uid, $responsablesIds)) {
+                    return response()->json($cyclecount, 200);
+                }
+                return response()->json([
+                    'message' => 'No autorizado para ver este ciclo'
+                ], 403);
+            }
+
+        }else{
+            return response()->json(['message'=>'El ciclico no existe :/'],404);
+        }
+    }
+
+    public function saveValue(Request $request){ // Función para poner el valor contado durante el conteo ciclico
+        $account = AccountVA::find($request->_user);
+        $inventory = CycleCountVA::find($request->_inventory);
+        // $settings = $request->settings;
+        if($inventory){
+            $inventory->products()->updateExistingPivot($request->_product, ['stock_acc' => $request->stock , "details" => json_encode(["editor" => $account])]);
+            return response()->json(["success" => true]);
+        }
+        return response()->json(["success" => false, "message" => "Folio de inventario no encontrado"]);
+    }
+
+    public function nextStep(Request $request){ // Función para cambiar el status de un conteo ciclico
+        $workpoint = $request->workpoint;
+        $user = $request->user;
+        $inventory = CycleCountVA::find($request->_inventory);
+        if($inventory){
+            $status = isset($request->_status) ? $request->_status : $inventory->_status+1;
+            if($status>0 && $status<5){
+                $result = $this->log($status, $inventory,$user);
+                if($result){
+                    $inventory->_status= $status;
+                    $inventory->save();
+                    $inventory->load(['workpoint', 'created_by', 'type', 'status', 'responsables', 'log'])->loadCount('products');
+                }
+                return response()->json(["success" => $result, 'inventario' => $inventory]);
+            }
+            return response()->json(["success" => false, "message" => "Status no válido"]);
+        }else{
+            return response()->json(["success" => false, "message" => "Clave de inventario no válido"]);
+        }
+    }
 
 
 

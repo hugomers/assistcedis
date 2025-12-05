@@ -261,8 +261,14 @@ Route::middleware('auth')->group(function(){
 
 
     Route::prefix('/ciclicos')->group(function(){
-        Route::get('/',[CiclicosController::class, 'index']);
         Route::get('/{folio}',[CiclicosController::class, 'find']);
+        Route::post('/',[CiclicosController::class, 'index']);
+        Route::post('/obtProductSections',[CiclicosController::class, 'obtProductSections']);
+        Route::post('/obtProductSLocation',[CiclicosController::class, 'obtProductSLocation']);
+        Route::post('/addCyclecount',[CiclicosController::class, 'addCyclecount']);
+        Route::post('/getCyclecount',[CiclicosController::class, 'getCyclecount']);
+        Route::post('/saveValue',[CiclicosController::class, 'saveValue']);
+        Route::post('/nextStep',[CiclicosController::class, 'nextStep']);
     });
 
     Route::prefix('/requisition')->group(function(){
