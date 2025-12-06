@@ -947,4 +947,21 @@ class OrdersController extends Controller
             'body' => $message,
         ]);
     }
+    public function getOrdersDownload(Request $request){
+        $prvs = $request->prvs;
+        $store = $request->store;
+        $orders = OrderVA::with([
+            'status',
+            'created_by',
+            'products.category.familia.seccion' => fn($q) => $q->whereIn('id',[1,2,$store]),
+        ])
+        ->whereIn('id',$prvs)
+        ->get();
+        $orders->each(function ($order) {
+            $order->products->each(function ($product) {
+                $product->pivot->load('supplyBy');
+            });
+        });
+        return response()->json($orders,200);
+    }
 }

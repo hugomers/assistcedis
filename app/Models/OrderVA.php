@@ -49,6 +49,7 @@ class OrderVA extends Model
 
     public function products(){
         return $this->belongsToMany('App\Models\ProductVA', 'product_ordered', '_order', '_product')
+                    ->using('App\Models\ProductOrderedPivot')
                     ->withPivot('kit', 'units', 'price', '_price_list', "comments", "total", "amount", '_supply_by', 'toDelivered', 'ipack', 'amountDelivered');
     }
     public function getStaff(){

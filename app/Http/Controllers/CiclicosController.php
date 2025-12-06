@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Carbon\CarbonImmutable;
 use App\Models\CycleCountVA;
+use App\Models\CycleCountBodyVA;
 use App\Models\ProductVA;
 use App\Models\ProductCategoriesVA;
 use App\Models\CellerVA;
@@ -36,6 +37,21 @@ class CiclicosController extends Controller
                 ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
                 ->where("_workpoint",$store)
                 ->get();
+
+            $inventories->each(function ($inv) {
+                $total = 0;
+                $count = 0;
+                foreach ($inv->products as $p) {
+                    $acc = $p->pivot->stock_acc;
+                    $end = $p->pivot->stock_end;
+                    if ($acc > 0 && $end > 0) {
+                        $precision = ($acc / $end);
+                        $total += $precision;
+                    }
+                    $count++;
+                }
+                $inv->precision = $count > 0 ? round($total / $count, 2) * 100 : 0;
+            });
             $responsables = User::with('staff')->where('_store', $storeA)->WhereIn('_rol',[4,8,9,24])->get();
             $seccion = ProductCategoriesVA::where('deep',0)->where('alias','!=',null)->get();
             $cellers = CellerVA::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('_workpoint',$store)->get();
@@ -64,7 +80,8 @@ class CiclicosController extends Controller
                                                 $query->whereHas('celler', function($query) use($wkp){
                                                     $query->where('_workpoint', $wkp);
                                                 });
-                                            }]);
+                                            },
+                                        'stocks'=> function($q) use ($wkp){$q->where('id',$wkp);} ]);
                                         }
                     ])
                     ->where([ ["id","=",$folio], ["_workpoint","=",$wkp] ])
@@ -72,7 +89,7 @@ class CiclicosController extends Controller
 
         if($inventory){
             return response()->json([
-                "inventory" => new InventoryResource($inventory),
+                "inventory" => $inventory,
                 "params" => [$folio, $wkp]
             ]);
         }else{ return response("Not Found",404); }
@@ -441,7 +458,7 @@ class CiclicosController extends Controller
             },
         ])
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
-            $query->where('id',$seccion);
+            $query->whereIn('id',$seccion);
         })
         ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
         ->where('_status','!=',4)
@@ -476,7 +493,7 @@ class CiclicosController extends Controller
                 $query->where('_workpoint', $workpoint);
         });},'<=',0)
         ->whereHas('category.familia.seccion', function($query) use ($seccion) {
-            $query->where('id',$seccion);
+            $query->whereIn('id',$seccion);
         })
         ->where('_status', '!=', 4)
         ->get();
@@ -758,6 +775,70 @@ class CiclicosController extends Controller
         }else{
             return response()->json(["success" => false, "message" => "Clave de inventario no válido"]);
         }
+    }
+
+    public function productCyclecount(Request $request){
+        $params = $request->params;
+        $store = $request->store;
+        $fechas = $params['date'];
+        $sections = collect($params['sections'])->pluck('id');
+        if(isset($fechas['from'])){
+            $from = $fechas['from'];
+            $to = $fechas['to'];
+        }else{
+            $from = $fechas;
+            $to = $fechas;
+        }
+        $pasdat = [
+            "from"=>$from,
+            "to"=>$to,
+            "store"=>$store
+        ];
+
+        $productosContados = CycleCountBodyVA::with('cyclecount')->whereHas('cyclecount', function($query) use ($pasdat) {
+                $query->whereBetween(DB::raw('DATE(created_at)'), [$pasdat['from'], $pasdat['to']])
+                ->where("_workpoint",$pasdat['store']);
+        })
+        ->get()
+        ->pluck('_product')
+        ->unique();
+
+        $productos = ProductVA::with([
+        'providers',
+        'makers',
+        'stocks' => function($query) use ($store){
+            $query->where([["gen", ">", "0"], ["_workpoint", $store]])
+            ->orWhere([["exh", ">", 0], ["_workpoint", $store]]);
+        },
+        'locations' => function($query) use ($store){
+            $query->where('deleted_at',null)->whereHas('celler', function($query) use ($store){
+                $query->where('_workpoint', $store);
+            });
+        },
+        'category.familia.seccion',
+        'status'
+        ])
+        ->whereHas('stocks', function($query) use ($store){
+            $query->where([["gen", ">", 0], ["_workpoint", $store]])
+            ->orWhere([["exh", ">", 0], ["_workpoint", $store]]);})
+        ->whereHas('category.familia.seccion', function($query) use ($sections) {
+            $query->whereIn('id',$sections);
+            })
+        ->where('_status', '!=', 4)
+        ->whereNotIn('id', $productosContados)
+        ->get()
+        ->map(function($p){
+                $p->bodega = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 1;
+                })->values();
+
+                $p->ventas = $p->locations->filter(function($loc){
+                    return $loc->celler->_type == 2;
+                })->values();
+
+                return $p;
+        });
+        return response()->json($productos,200);
     }
 
 

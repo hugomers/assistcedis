@@ -269,6 +269,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/getCyclecount',[CiclicosController::class, 'getCyclecount']);
         Route::post('/saveValue',[CiclicosController::class, 'saveValue']);
         Route::post('/nextStep',[CiclicosController::class, 'nextStep']);
+        Route::post('/productCyclecount',[CiclicosController::class, 'productCyclecount']);
     });
 
     Route::prefix('/requisition')->group(function(){
@@ -473,8 +474,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/nextStepPrv', [OrdersController::class,'nextStepPrv']);
         Route::post('/reimpresionClientTicket', [OrdersController::class,'reimpresionClientTicket']);
         Route::post('/reimpresion', [OrdersController::class,'reimpresion']);
-
-
+        Route::post('/getOrdersDownload', [OrdersController::class,'getOrdersDownload']);
     });
 
     Route::prefix('catalog')->group(function(){
