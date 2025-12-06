@@ -953,7 +953,8 @@ class OrdersController extends Controller
         $orders = OrderVA::with([
             'status',
             'created_by',
-            'products.category.familia.seccion' => fn($q) => $q->whereIn('id',[1,2,$store]),
+            'products.stocks' => fn($q) => $q->whereIn('id',[1,2,$store]),
+            'products.category.familia.seccion'
         ])
         ->whereIn('id',$prvs)
         ->get();
