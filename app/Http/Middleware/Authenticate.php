@@ -63,7 +63,7 @@ class Authenticate
             return response()->json([
                 'error' => 'Acceso denegado: IP no permitida',
                 'ip' => $ip,
-                'records'=>$records[0]['ip']
+                'records'=>$records
             ], 403);
         }
         return $next($request);
