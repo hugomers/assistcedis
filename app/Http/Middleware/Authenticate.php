@@ -56,8 +56,10 @@ class Authenticate
         $ip = $request->ip();
         if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
             return response()->json([
-                'error' => 'Acceso denegado: IP no permitida',
-                'ip' => $ip
+    'remote_addr'       => $_SERVER['REMOTE_ADDR'] ?? null,
+    'x_forwarded_for'   => $request->header('X-Forwarded-For'),
+    'x_real_ip'         => $request->header('X-Real-IP'),
+    'forwarded'         => $request->header('Forwarded'),
             ], 403);
         }
         return $next($request);
