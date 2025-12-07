@@ -54,10 +54,16 @@ class Authenticate
                 break;
         }
         $ip = $request->ip();
+        $records = dns_get_record('mx68-correo1-prndtztbzk.dynamic-m.com', DNS_A);
+
+        // if (!empty($records)) {
+        //     $allowedIps = $records[0]['ip']; // IP pública actual del modem
+        // }
         if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
             return response()->json([
                 'error' => 'Acceso denegado: IP no permitida',
-                'ip' => $ip
+                'ip' => $ip,
+                'records'=>$records
             ], 403);
         }
         return $next($request);
