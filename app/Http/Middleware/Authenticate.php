@@ -58,8 +58,7 @@ class Authenticate
         if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
             return response()->json([
                 'error' => 'Acceso denegado: IP no permitida',
-                'ip' => $ip,
-                'otraip'=>$clientIp
+                'ip' => $ip
             ], 403);
         }
         return $next($request);
