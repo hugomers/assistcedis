@@ -30,37 +30,42 @@ class Authenticate
         }
         $user = $payload;
         $listUser = User::find($user['uid']);
-        $segmentaciones = StoreSegment::all();
-        $ips = null;
-        switch ($user['rol']) {
-            case 'root':
-            case 'dir':
-            case 'des':
-            case 'com':
-            case 'adm':
-                $ips = '*';
-                break;
-            case 'gen':
-            case 'aux':
-            case 'aud':
-            case 'chf':
-            case 'gce':
-            case 'jch':
-            case 'audc':
-                $ips = $segmentaciones->pluck('segment')->toArray();
-                break;
-            default:
-                $ips = $segmentaciones->where('_store', $listUser->_store)->pluck('segment')->toArray();
-                break;
-        }
-        $ip = $request->ip();
-
-        if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
+        if($listUser->_active == 0){
             return response()->json([
-                'error' => 'Acceso denegado: IP no permitida',
-                'ip' => $ip
-            ], 403);
+                'error' => 'Acceso denegado',
+            ], 401);
         }
+        // $segmentaciones = StoreSegment::all();
+        // $ips = null;
+        // switch ($user['rol']) {
+        //     case 'root':
+        //     case 'dir':
+        //     case 'des':
+        //     case 'com':
+        //     case 'adm':
+        //         $ips = '*';
+        //         break;
+        //     case 'gen':
+        //     case 'aux':
+        //     case 'aud':
+        //     case 'chf':
+        //     case 'gce':
+        //     case 'jch':
+        //     case 'audc':
+        //         $ips = $segmentaciones->pluck('segment')->toArray();
+        //         break;
+        //     default:
+        //         $ips = $segmentaciones->where('_store', $listUser->_store)->pluck('segment')->toArray();
+        //         break;
+        // }
+        // $ip = $request->ip();
+
+        // if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
+        //     return response()->json([
+        //         'error' => 'Acceso denegado: IP no permitida',
+        //         'ip' => $ip
+        //     ], 403);
+        // }
         return $next($request);
     }
 }
