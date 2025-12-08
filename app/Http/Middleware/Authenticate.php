@@ -58,7 +58,7 @@ class Authenticate
         $clientIp = $request->header('X-Forwarded-For');
         if ($clientIp) {
             $ipid = explode(',', $clientIp);
-            $clientIp = trim($ipid[0]); // El primer elemento suele ser la IP original
+            $clientIp = $ipid;
         }
 
         if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
