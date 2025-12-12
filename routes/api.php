@@ -29,10 +29,7 @@ use App\Http\Controllers\WithdrawalsController;
 use App\Http\Controllers\CiclicosController;
 use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\CatalogController;
-
-
-
-
+use App\Http\Controllers\BillingController;
 
 Route::prefix('/users')->group(function(){
     Route::post('trySignin',[UserController::class, 'trySignin']);
@@ -40,9 +37,17 @@ Route::prefix('/users')->group(function(){
 });
 Route::post('restock/partitions/{id}/lock', [RestockController::class, 'lockPartition']);
 Route::post('restock/partitions/{id}/unlock', [RestockController::class, 'unlockPartition']);
+Route::prefix('billing')->group(function(){
+    Route::get('/',[BillingController::class, 'index']);
+    Route::post('/readConstancy',[BillingController::class, 'readConstancy']);
+    Route::post('/validTicket',[BillingController::class, 'validTicket']);
+    Route::post('/sendBilling',[BillingController::class, 'sendBilling']);
 
+});
 
 Route::middleware('auth')->group(function(){
+
+
 
     Route::post('/syncstaff',[StaffController::class,'replystaff']);
     Route::post('/checklistiop',[StaffController::class,'checklistiop']);
@@ -482,7 +487,13 @@ Route::middleware('auth')->group(function(){
         Route::get('familys/{root}', [CatalogController::class, 'getFamilys']);
         Route::post('/',[CatalogController::class, 'getPrinters']);
         Route::post('family-products', [CatalogController::class, 'getFamilysProducts']);
-
+    });
+    Route::prefix('/billing')->group(function(){
+        Route::post('/getBilling',[BillingController::class, 'getBilling']);
+        Route::post('/getBillings',[BillingController::class, 'getBillings']);
+        Route::post('/getFolio',[BillingController::class, 'getFolio']);
+        Route::post('/nextState',[BillingController::class, 'nextState']);
+        Route::post('/finishState',[BillingController::class, 'finishState']);
 
     });
 
