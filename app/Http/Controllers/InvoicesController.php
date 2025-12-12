@@ -451,9 +451,9 @@ class InvoicesController extends Controller
             ])->findOrFail($id);
             $toWorkpointId = $order->to->id;
             $order->load([
-            'products' => fn($q) => $q->whereHas('stocks', fn($s) =>
-                $s->where('_workpoint', $toWorkpointId)->where('stock', '>', 0)
-            ),
+            // 'products' => fn($q) => $q->whereHas('stocks', fn($s) =>
+            //     $s->where('_workpoint', $toWorkpointId)->where('stock', 0)
+            // ),
             'products.category.familia.seccion',
             'products.units',
             'products.variants',
@@ -461,7 +461,7 @@ class InvoicesController extends Controller
             // 'products.stocks' => fn($q) =>
             //     $q->where('_workpoint', $toWorkpointId)->where('stock', '>', 0),
             'products.locations' => fn($q) =>
-                $q->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))
+                $q->whereNull('deleted_at')->whereHas('celler', fn($l) => $l->where('_workpoint', $toWorkpointId))
                 ->whereNull('deleted_at'),
             ]);
 
