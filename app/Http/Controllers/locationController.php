@@ -374,7 +374,7 @@ class locationController extends Controller
                         "user" => $user,
                         "ip"   => $ip,
                         "type" => "delete",
-                        "product" => $$delProd->id,
+                        "product" => $delProd->id,
                         "section" => $locationIds,
                         "created" => Carbon::now()->format('Y-m-d'),
                         "hora"    => Carbon::now()->format('H:i:s'),
