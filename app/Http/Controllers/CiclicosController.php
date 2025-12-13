@@ -841,6 +841,44 @@ class CiclicosController extends Controller
         return response()->json($productos,200);
     }
 
+    public function addMassiveProductCyclecount(Request $request){
+        $imports = $request->all();
+        $resproduct = [];
+        foreach($imports as $import){
+            $workpoint = $import['_workpoint'];
+            $product = $import['_product'];
+
+            $resproduct[] = ProductVA::with([
+                'providers',
+                'makers',
+                'stocks' => function($query) use ($workpoint) {
+                    $query->where([["gen", ">", 0], ["_workpoint", $workpoint]])
+                    ->orWhere([["exh", ">", 0], ["_workpoint", $workpoint]]);
+                },
+                'locations' => function($query) use ($workpoint) {
+                    $query->with('celler')->where('deleted_at',null)->whereHas('celler', function($query) use ($workpoint) {
+                        $query->where('_workpoint', $workpoint);
+                    });
+                },
+                'category.familia.seccion',
+                'status'
+            ])
+            ->whereHas('variants', function(Builder $query) use ($product){
+                $query->where('barcode', $product);
+            })
+            ->orWhere(function($query) use($product){
+                $query->where('name', $product);
+            })
+            ->orWhere(function($query) use($product){
+                $query->where('code', $product);
+            })
+            ->where('_status', '!=', 4)
+            ->first();
+        }
+
+        return response()->json($resproduct);
+    }
+
 
 
 }

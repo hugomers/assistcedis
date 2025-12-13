@@ -275,6 +275,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/saveValue',[CiclicosController::class, 'saveValue']);
         Route::post('/nextStep',[CiclicosController::class, 'nextStep']);
         Route::post('/productCyclecount',[CiclicosController::class, 'productCyclecount']);
+        Route::post('/addMassiveProductCyclecount',[CiclicosController::class, 'addMassiveProductCyclecount']);
+
     });
 
     Route::prefix('/requisition')->group(function(){
