@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use App\Models\ProductVA;
 use App\Models\PrinterVA;
 use App\Models\ProvidersVA;
@@ -43,7 +44,6 @@ class CatalogController extends Controller
     }
 
     public function getFamilysProducts(Request $request){
-
         $family = $request->family;
         $workpoint = $request->workpoint;
         $getsection = ProductCategoriesVA::find($family);
@@ -67,6 +67,19 @@ class CatalogController extends Controller
             "categories"=>$categories
          ];
         return response()->json($res,200);
+    }
+
+    public function getProductMedia(Request $request){
+        $product = $request->id;
+
+        $files = Storage::files("vhelpers/Products/$product");
+
+        $media = collect($files)->map(fn ($file) => [
+            'type' => str_ends_with($file, '.mp4') ? 'video' : 'image',
+            'url' => Storage::disk('s3')->url($file),
+        ]);
+
+        return response()->json($media);
 
     }
 }

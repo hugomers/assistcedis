@@ -489,6 +489,7 @@ Route::middleware('auth')->group(function(){
         Route::get('familys/{root}', [CatalogController::class, 'getFamilys']);
         Route::post('/',[CatalogController::class, 'getPrinters']);
         Route::post('family-products', [CatalogController::class, 'getFamilysProducts']);
+        Route::post('getProductMedia', [CatalogController::class, 'getProductMedia']);
     });
     Route::prefix('/billing')->group(function(){
         Route::post('/getBilling',[BillingController::class, 'getBilling']);
