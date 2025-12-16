@@ -1524,6 +1524,9 @@ class PrinterController extends Controller
         $printer->text(" ".$product->pivot->units."pz");
         $printer->setReverseColors(false);
         $printer->text(" D->".$stock[0]->pivot->gen." \n");
+        $printer->setBarcodeHeight(40);
+        $printer->setBarcodeWidth(2);
+        $printer->barcode($product->name);
         if($product->pivot->comments){
             $printer->setTextSize(1,1);
             $printer->setReverseColors(true);

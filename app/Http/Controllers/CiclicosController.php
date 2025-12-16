@@ -762,7 +762,7 @@ class CiclicosController extends Controller
         $inventory = CycleCountVA::find($request->_inventory);
         if($inventory){
             $status = isset($request->_status) ? $request->_status : $inventory->_status+1;
-            if($status>0 && $status<5){
+            if($status>0 && $status<4){
                 $result = $this->log($status, $inventory,$user);
                 if($result){
                     $inventory->_status= $status;
