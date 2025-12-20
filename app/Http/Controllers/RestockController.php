@@ -197,6 +197,8 @@ class RestockController extends Controller
                     $ip = env('PRINTERTEX');
                 }else if($toWorkpointId == 16){
                     $ip = env('PRINTERBRASIL');
+                }else if($toWorkpointId == 24){
+                    $ip = env('PRINTERBOL');
                 }else{
                     $ip = env('PRINTER_P3');
                 }

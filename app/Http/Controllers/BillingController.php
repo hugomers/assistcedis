@@ -41,6 +41,25 @@ class BillingController extends Controller
         }
     }
 
+    public function readRFC(Request $request){
+        // return $request->all();
+        $servfac = env('SERVER_FAC');
+        $store = Stores::find($request->store);
+        // return $store;/
+        if($store){
+            $dat = [
+                "firebird"=>$store->firebird,
+                "rfc"=>$request->rfc,
+            ];
+            $getClient = http::post($servfac.'readRFC',$dat);
+            $cliente = $getClient->json();
+            return response()->json($cliente,200);
+
+        }else{
+            return response()->json(["message"=>"No se encontro la solicitud"],404);
+        }
+    }
+
     public function readConstancy(Request $request){
         $request->validate([
             'file' => 'required|mimes:pdf'
@@ -240,6 +259,15 @@ class BillingController extends Controller
         $resources = http::post($servfac.'getFolio',$request->all());
         $folio = str_pad($resources->json()+1,10,'0',STR_PAD_LEFT);
         $clave = $request->store['prefix'].$folio;
+        return response()->json($clave,200);
+    }
+
+
+    public function crearFacturaInterna(Request $request){
+        $servfac = env('SERVER_FAC');
+        $resources = http::post($servfac.'crearFacturaInterna',$request->all());
+        return $resources;
+        $clave = $resources->json();
         return response()->json($clave,200);
     }
 

@@ -42,7 +42,7 @@ Route::prefix('billing')->group(function(){
     Route::post('/readConstancy',[BillingController::class, 'readConstancy']);
     Route::post('/validTicket',[BillingController::class, 'validTicket']);
     Route::post('/sendBilling',[BillingController::class, 'sendBilling']);
-
+    Route::post('/readRFC',[BillingController::class, 'readRFC']);
 });
 
 Route::middleware('auth')->group(function(){
@@ -497,7 +497,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/getFolio',[BillingController::class, 'getFolio']);
         Route::post('/nextState',[BillingController::class, 'nextState']);
         Route::post('/finishState',[BillingController::class, 'finishState']);
-
+        Route::post('/crearFacturaInterna',[BillingController::class, 'crearFacturaInterna']);
     });
 
 
