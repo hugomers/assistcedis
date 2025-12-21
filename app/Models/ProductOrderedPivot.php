@@ -9,6 +9,7 @@ class ProductOrderedPivot extends Pivot
 {
     protected $connection = 'vizapi';
     protected $table = "product_ordered";
+    protected $guarded = [];
 
    public function supplyBy()
    {

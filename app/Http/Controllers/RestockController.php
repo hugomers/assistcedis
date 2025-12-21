@@ -786,9 +786,9 @@ class RestockController extends Controller
         // return 'holi';
         $agrupaciones = [
             [
-                'nuevo_path' => 'BR',
-                'nuevo_nombre' => 'CDSBRASIL',
-                'ids' => [2500472,2500473,2500474,2500475,2500476,2500477,2500478,2500479,2500480,2500481,2500482,2500483,2500484,2500485,2500486], // IDs de CUARTO, ESCALERAS, MONTACARGAS que deben quedar debajo de PISO 1
+                'nuevo_path' => 'BOL',
+                'nuevo_nombre' => 'CDSBOLIVIA',
+                'ids' => [2476510,2476511,2476512,2476513,2476514,2476515,2476516,2476517,2476518], // IDs de CUARTO, ESCALERAS, MONTACARGAS que deben quedar debajo de PISO 1
             ],
             // [
             //     'nuevo_path' => 'P2',
@@ -812,7 +812,7 @@ class RestockController extends Controller
             // ],
         ];
 
-        DB::transaction(function () use ($agrupaciones) {
+        return  DB::transaction(function () use ($agrupaciones) {
             foreach ($agrupaciones as $grupo) {
                 // Crear nuevo nodo raíz
                 $nuevo = CellerSectionVA::create([
@@ -821,7 +821,7 @@ class RestockController extends Controller
                     'path'  => $grupo['nuevo_path'],
                     'root'  => 0,
                     'deep'  => 0,
-                    '_celler' => 1
+                    '_celler' => 25
                 ]);
 
                 // Buscar nodos actuales (deep = 0) por ID
@@ -838,8 +838,7 @@ class RestockController extends Controller
                     ]);
 
                     // Buscar descendientes y actualizarlos
-                    $descendientes = CellerSectionVA::where('path', 'like', $oldPath . '-%')->get();
-
+                    $descendientes = CellerSectionVA::where([['path', 'like', $oldPath . '-%'],['_celler',25]])->get();
                     foreach ($descendientes as $desc) {
                         $desc->update([
                             'deep' => $desc->deep + 1,
