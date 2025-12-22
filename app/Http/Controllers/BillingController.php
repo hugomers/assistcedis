@@ -265,10 +265,29 @@ class BillingController extends Controller
 
     public function crearFacturaInterna(Request $request){
         $servfac = env('SERVER_FAC');
-        $resources = http::post($servfac.'crearFacturaInterna',$request->all());
-        return $resources;
-        $clave = $resources->json();
-        return response()->json($clave,200);
+        $resources = http::post($servfac.'crearFacturaInterna',$request->billing);
+        if($resources->status()==201){
+            $dataresp = $resources->json();
+            $billing = Billing::find($request->billing['id']);
+            $status = $billing->_state + 1;
+            $usr = $request->user;
+            if($billing){
+                $log = $this->log($billing,$status,$usr);
+                if($log){
+                    $billing->_state = $status;
+                    $billing->invoice = $dataresp['data']['cve_doc'];
+                    $billing->save();
+                    $billing->fresh();
+                    $billing->load(['logs.user','payments','store','status','cfdi']);
+                    return response()->json($billing,200);
+                }else{
+                    return response()->json(['message'=>'No se realizo el log'],404);
+                }
+            }else{
+                return response()->json(['message'=>'No se entontro el pedido'],404);
+            }
+        }
+        return response()->json($resources->json(),$resources->status());
     }
 
     public function finishState(Request $request){
@@ -279,7 +298,7 @@ class BillingController extends Controller
             $log = $this->log($billing,$status,$usr);
             if($log){
                 $billing->_state = $status;
-                $billing->invoice = $request->billing['invoice'];
+                // $billing->invoice = $request->billing['invoice'];
                 $billing->save();
                 $billing->fresh();
                 $billing->load(['logs.user','payments','store','status','cfdi']);
