@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Facades\Http;
 use App\Models\Stores;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\Billing;
 
@@ -25,7 +26,6 @@ class BillingController extends Controller
     public function validTicket(Request $request){
         $workpoint = $request->workpoint;
         $folio = $request->folio;
-
         $store = Stores::find($workpoint);
         if($store){
             $billing = Billing::where([['ticket',$folio],['_store',$workpoint]])->first();
@@ -53,6 +53,12 @@ class BillingController extends Controller
             ];
             $getClient = http::post($servfac.'readRFC',$dat);
             $cliente = $getClient->json();
+            if (!empty($cliente['client']['REG_FISC'])) {
+                $catalogo = $this->catalogoRegimenes();
+                $cliente['client']['regimen'] = $this->regimen($catalogo[$cliente['client']['REG_FISC']]) ?? null;
+                } else {
+                $cliente['client']['regimen'] = null;
+            }
             return response()->json($cliente,200);
 
         }else{
@@ -69,6 +75,7 @@ class BillingController extends Controller
         $pdf = $parser->parseFile($request->file('file')->path());
 
         $text = $pdf->getText();
+        $regimenTexto = $this->extraerRegimen($text);
         // return $text;
         $res = [
             "rfc"=> $this->extraer($text, 'RFC:'),
@@ -81,8 +88,91 @@ class BillingController extends Controller
             "colonia"=>$this->extraer($text, 'NombredelaColonia:'),
             "municipio"=>$this->extraer($text, 'NombredelaLocalidad:'),
             "entFederativa"=>$this->extraer($text, 'NombredelaEntidadFederativa:'),
+            "regimen"=>$this->regimen($text)
         ];
         return response()->json($res);
+    }
+    private function extraerRegimen(string $texto): ?string{
+        if (!str_contains($texto, 'Regímenes')) {
+            return null;
+        }
+        if (preg_match(
+            '/Regímenes[\s\S]*?(Régimen\s*de\s*las\s*Personas[\s\S]*?)(\d{2}\/\d{2}\/\d{4})/u',
+            $texto,
+            $m
+        )) {
+            $regimen = trim($m[1]);
+            $regimen = preg_replace('/\s+/', ' ', $regimen);
+            return $regimen;
+        }
+
+        return null;
+    }
+    private function regimen(?string $regimenPdf): ?array{
+        if (!$regimenPdf) return null;
+
+        $regimenPdfNorm = $this->normalizar($regimenPdf);
+
+        foreach ($this->catalogoRegimenes() as $clave => $descripcion) {
+            if (
+                str_contains(
+                    $this->normalizar($descripcion),
+                    $regimenPdfNorm
+                ) || str_contains(
+                    $regimenPdfNorm,
+                    $this->normalizar($descripcion)
+                )
+            ) {
+                return [
+                    'clave' => $clave,
+                    'descripcion' => $descripcion
+                ];
+            }
+        }
+
+        return null;
+    }
+    private function catalogoRegimenes(): array{
+        return [
+            601 => 'REGIMEN GENERAL DE LEY PERSONAS MORALES',
+            602 => 'RÉGIMEN SIMPLIFICADO DE LEY PERSONAS MORALES',
+            603 => 'PERSONAS MORALES CON FINES NO LUCRATIVOS',
+            604 => 'RÉGIMEN DE PEQUEÑOS CONTRIBUYENTES',
+            605 => 'RÉGIMEN DE SUELDOS Y SALARIOS E INGRESOS ASIMILADOS A SALARIOS',
+            606 => 'RÉGIMEN DE ARRENDAMIENTO',
+            607 => 'RÉGIMEN DE ENAJENACIÓN O ADQUISICIÓN DE BIENES',
+            608 => 'RÉGIMEN DE LOS DEMÁS INGRESOS',
+            609 => 'RÉGIMEN DE CONSOLIDACIÓN',
+            610 => 'RÉGIMEN RESIDENTES EN EL EXTRANJERO SIN ESTABLECIMIENTO PERMANENTE EN MÉXICO',
+            611 => 'RÉGIMEN DE INGRESOS POR DIVIDENDOS (SOCIOS Y ACCIONISTAS)',
+            612 => 'RÉGIMEN DE LAS PERSONAS FÍSICAS CON ACTIVIDADES EMPRESARIALES Y PROFESIONALES',
+            613 => 'RÉGIMEN INTERMEDIO DE LAS PERSONAS FÍSICAS CON ACTIVIDADES EMPRESARIALES',
+            614 => 'RÉGIMEN DE LOS INGRESOS POR INTERESES',
+            615 => 'RÉGIMEN DE LOS INGRESOS POR OBTENCIÓN DE PREMIOS',
+            616 => 'SIN OBLIGACIONES FISCALES',
+            617 => 'PEMEX',
+            618 => 'RÉGIMEN SIMPLIFICADO DE LEY PERSONAS FÍSICAS',
+            619 => 'INGRESOS POR LA OBTENCIÓN DE PRÉSTAMOS',
+            620 => 'SOCIEDADES COOPERATIVAS DE PRODUCCIÓN QUE OPTAN POR DIFERIR SUS INGRESOS.',
+            621 => 'RÉGIMEN DE INCORPORACIÓN FISCAL',
+            622 => 'RÉGIMEN DE ACTIVIDADES AGRÍCOLAS, GANADERAS, SILVÍCOLAS Y PESQUERAS PM',
+            623 => 'RÉGIMEN DE OPCIONAL PARA GRUPOS DE SOCIEDADES',
+            624 => 'RÉGIMEN DE LOS COORDINADOS',
+            625 => 'RÉGIMEN DE LAS ACTIVIDADES EMPRESARIALES CON INGRESOS A TRAVÉS DE PLATAFORMAS TECNOLÓGICAS.',
+            626 => 'RÉGIMEN SIMPLIFICADO DE CONFIANZA',
+        ];
+    }
+    private function normalizar(string $texto): string{
+        $texto = mb_strtoupper($texto, 'UTF-8');
+
+        $texto = strtr($texto, [
+            'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ñ'=>'N'
+        ]);
+
+        $texto = preg_replace('/[^A-Z ]/', '', $texto);
+        $texto = preg_replace('/\s+/', ' ', $texto);
+
+        return trim($texto);
     }
 
     private function extraer($texto, $inicio){
@@ -107,37 +197,89 @@ class BillingController extends Controller
         return preg_replace('/([A-ZÁÉÍÓÚÑ]+)([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/', '$1 $2', $text);
     }
 
+    // public function sendBilling(Request $request){
+    //     $ins = [
+    //         "_store"=>$request->store['id'],
+    //         "ticket"=>$request->folio,
+    //         "total"=>$request->total,
+    //         "_state"=>1,
+    //         "_cfdi"=>$request->cfdi['id'],
+    //         "notes"=>isset($request->notes) ? $request->notes : null,
+    //         "name"=>$request->nombre,
+    //         "email"=>$request->email,
+    //         "celphone"=>$request->telefono,
+    //         "rfc"=>$request->rfc,
+    //         "razon_social"=>$request->razonSocial,
+    //         "address"=>json_encode($request->address),
+    //     ];
+    //     $insert = Billing::create($ins);
+    //     $insert->save();
+    //     if($insert){
+    //         $insert->fresh();
+    //         $insert->payments()->createMany($request->payments);
+    //         $log = $this->log($insert, 1, 24);
+    //         if($log){
+    //             $insert->load('payments','logs.user');
+    //             return response()->json($insert,200);
+    //         }else{
+    //             return response()->json(["message"=>"Hay un problema con el log"],500);
+    //         }
+    //     }else{
+    //         return response()->json(["message"=>"No se logro crear la factura"],500);
+    //     }
+    // }
+
     public function sendBilling(Request $request){
-        $ins = [
-            "_store"=>$request->store['id'],
-            "ticket"=>$request->folio,
-            "total"=>$request->total,
-            "_state"=>1,
-            "_cfdi"=>$request->cfdi['id'],
-            "notes"=>isset($request->notes) ? $request->notes : null,
-            "name"=>$request->nombre,
-            "email"=>$request->email,
-            "celphone"=>$request->telefono,
-            "rfc"=>$request->rfc,
-            "razon_social"=>$request->razonSocial,
-            "address"=>json_encode($request->address),
-        ];
-        $insert = Billing::create($ins);
-        $insert->save();
-        if($insert){
-            $insert->fresh();
-            $insert->payments()->createMany($request->payments);
-            $log = $this->log($insert, 1, 24);
-            if($log){
-                $insert->load('payments','logs.user');
-                return response()->json($insert,200);
-            }else{
-                return response()->json(["message"=>"Hay un problema con el log"],500);
+        DB::beginTransaction();
+
+        try {
+            $payments = json_decode($request->payments, true);
+            $address  = json_decode($request->address, true);
+            $regimen  = json_decode($request->regimen, true);
+            $insert = Billing::create([
+                "_store"        => $request->store,
+                "ticket"        => $request->folio,
+                "total"         => $request->total,
+                "_state"        => 1,
+                "_cfdi"         => $request->cfdi,
+                "notes"         => $request->notes ?? null,
+                "name"          => $request->nombre,
+                "email"         => $request->email,
+                "celphone"      => $request->telefono,
+                "rfc"           => $request->rfc,
+                "razon_social"  => $request->razonSocial,
+                "address"       => json_encode($address),
+                "regimen"       => json_encode($regimen),
+            ]);
+            if (!empty($payments)) {
+                $insert->payments()->createMany($payments);
             }
-        }else{
-            return response()->json(["message"=>"No se logro crear la factura"],500);
+
+            if ($request->hasFile('constancia')) {
+                $file = $request->file('constancia');
+                $fileName = $request->rfc . '.' . $file->getClientOriginalExtension();
+                $path = "vhelpers/Constances/{$insert->id}/{$fileName}";
+                Storage::put($path, file_get_contents($file));
+                $insert->update([
+                    'constancia' => $fileName
+                ]);
+            }
+            if (!$this->log($insert, 1, 24)) {
+                throw new \Exception('Error al generar log');
+            }
+            DB::commit();
+            $insert->load('payments', 'logs.user');
+            return response()->json($insert, 200);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error al crear la solicitud',
+                'error'   => $e->getMessage()
+            ], 500);
         }
     }
+
+
 
     private function log(Billing $billing,$status, $user ){
         switch ($status) {

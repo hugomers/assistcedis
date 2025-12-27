@@ -21,6 +21,8 @@ class Billing extends Model
             "rfc",
             "razon_social",
             "address",
+            "regimen",
+            "constancia"
     ];
     // public function log(){
     //     return $this->belongsToMany('App\Models\BillingStates', 'billing_logs', '_billing', '_state')
