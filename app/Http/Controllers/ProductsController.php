@@ -966,7 +966,7 @@ class ProductsController extends Controller
     public function getWorkpoinProduct($sid){
         $workpoint = WorkpointVA::with([
             'productSeason' => fn($q) => $q->with([
-                'stocks' => fn($q) => $q->whereIn('id',[1,2,16,$sid])]),
+                'stocks' => fn($q) => $q->whereIn('id',[1,2,24,$sid])]),
                 'productSeason.category.familia.seccion'])->find($sid);
         return response()->json($workpoint,200);
     }
