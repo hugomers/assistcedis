@@ -401,6 +401,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/deleteProductRequired',[InvoicesController::class,'deleteProductRequired']);
         Route::post('/editProductRequired',[InvoicesController::class,'editProductRequired']);
         Route::post('/addMassiveProducts',[InvoicesController::class,'addMassiveProducts']);
+        Route::post('/addMassiveProductsInvoice',[InvoicesController::class,'addMassiveProductsInvoice']);
+
 
     });
 
@@ -482,6 +484,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/reimpresionClientTicket', [OrdersController::class,'reimpresionClientTicket']);
         Route::post('/reimpresion', [OrdersController::class,'reimpresion']);
         Route::post('/getOrdersDownload', [OrdersController::class,'getOrdersDownload']);
+        Route::post('/addMassiveProducts', [OrdersController::class,'addMassiveProducts']);
+
     });
 
     Route::prefix('catalog')->group(function(){

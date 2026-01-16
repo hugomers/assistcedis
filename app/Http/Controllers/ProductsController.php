@@ -496,40 +496,21 @@ class ProductsController extends Controller
     }
 
     public function autoComplete(Request $request){
-        $workpoint = $request->_workpoint;
+        $autocomplete = $request->autocomplete;
         $query = ProductVA::with([
-            // 'units',
-            // 'status',
-            // 'variants',
             'category.familia.seccion',
             'prices'
-            ])->where('_status', '!=', 4)
-            ->orderBy('_status', 'asc');
-        $autocomplete = $request->autocomplete;
-        $search = $request->strict;
-        if ($autocomplete && strlen($autocomplete) > 1) {
-            if ($search) {
-                $query->where(function ($q) use ($autocomplete) {
-                    $q->whereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
-                    ->orWhere('name', $autocomplete)
-                    ->orWhere('barcode', $autocomplete)
-                    ->orWhere('code', $autocomplete);
-                });
-            } else {
-                $query->where(function ($q) use ($autocomplete) {
-                    $q->whereHas('variants', fn($q) => $q->where('barcode', 'like', "%{$autocomplete}%"))
-                    ->orWhere('name', 'like', "%{$autocomplete}%")
-                    ->orWhere('code', 'like', "%{$autocomplete}%")
-                    ->orWhere('barcode', $autocomplete);
-                });
-            }
-        }
-        if ($request->limit) {
-            $query->limit($request->limit);
-        }
-        $products = $search ? $query->first() : $query->get();
-        // $products = $query->orderBy('_status', 'asc')->get();
-        return response()->json($products);
+            ])
+            ->where('_status', '!=', 4)
+            // ->where(function ($q) use ($autocomplete) {
+                ->where('code', $autocomplete)
+                ->orWhereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
+                ->orWhere('name', $autocomplete)
+                ->orWhere('barcode', $autocomplete)
+
+            // })
+            ->first();
+        return response()->json($query);
     }
 
     public function genshortCode(){
