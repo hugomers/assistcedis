@@ -20,4 +20,20 @@ class ModulesApp extends Model
         return $this->hasMany(RolModule::class, '_modules', 'id');
     }
 
+    public function parent(){
+        return $this->belongsTo(ModulesApp::class, 'root', 'id');
+    }
+
+    public function children(){
+        return $this->hasMany(ModulesApp::class, 'root', 'id');
+    }
+
+    public function roles(){
+        return $this->belongsToMany(
+            UserRol::class,
+            'rol_modules',
+            '_module',
+            '_rol'
+        );
+    }
 }

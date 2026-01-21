@@ -7,13 +7,25 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User extends Authenticatable  implements JWTSubject
 {
     protected $table = "users";
 
-    public function staff(){
-        return $this->belongsTo('App\Models\Staff','_staff');
+    // public function staff(){
+    //     return $this->belongsTo('App\Models\Staff','_staff');
+    // }
+    public function getJWTIdentifier(){
+        return $this->getKey();
+    }
+    public function getJWTCustomClaims(){
+        return [
+            "uid"=> $this->id,
+            "name" => $this->name,
+            "_store" => $this->_store,
+            "rol" => $this->rol->id
+        ];
     }
     public function rol(){
         return $this->belongsTo('App\Models\UserRol','_rol');

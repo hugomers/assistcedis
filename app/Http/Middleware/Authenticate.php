@@ -6,66 +6,37 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Carbon;
 use App\Models\User;
 use App\Models\StoreSegment;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Illuminate\Support\Facades\Auth;
+
 
 
 class Authenticate
 {
-   public function handle($request, Closure $next)
-    {
-        $header = $request->header('Authorization');
-        if (!$header || !str_starts_with($header, 'Bearer ')) {
-            return response('Unauthorized.', 401);
-        }
-        $token = substr($header, 7);
+    public function handle($request, Closure $next){
         try {
-            $payload = json_decode(Crypt::decryptString($token), true);
-            if (Carbon::parse($payload['exp'])->isPast()) {
-                return response('Token expired.', 401);
-            }
-            // $request->merge(['authUser' => $payload]);
+            $user = JWTAuth::parseToken()->authenticate();
+            $payload = JWTAuth::getPayload();
 
-
-        } catch (\Exception $e) {
-            return response('Invalid token.', 401);
-        }
-        $user = $payload;
-        $listUser = User::find($user['uid']);
-        if($listUser->_active == 0){
+        } catch (JWTException $e) {
             return response()->json([
-                'error' => 'Acceso denegado',
+                'error' => 'Invalid or expired token'
             ], 401);
         }
-        // $segmentaciones = StoreSegment::all();
-        // $ips = null;
-        // switch ($user['rol']) {
-        //     case 'root':
-        //     case 'dir':
-        //     case 'des':
-        //     case 'com':
-        //     case 'adm':
-        //         $ips = '*';
-        //         break;
-        //     case 'gen':
-        //     case 'aux':
-        //     case 'aud':
-        //     case 'chf':
-        //     case 'gce':
-        //     case 'jch':
-        //     case 'audc':
-        //         $ips = $segmentaciones->pluck('segment')->toArray();
-        //         break;
-        //     default:
-        //         $ips = $segmentaciones->where('_store', $listUser->_store)->pluck('segment')->toArray();
-        //         break;
-        // }
-        // $ip = $request->ip();
 
-        // if ($ips !== '*' && !collect($ips)->first(fn($seg) => str_starts_with($ip, $seg))) {
-        //     return response()->json([
-        //         'error' => 'Acceso denegado: IP no permitida',
-        //         'ip' => $ip
-        //     ], 403);
-        // }
+        if ($user->_state == 4) {
+            return response()->json([
+                'error' => 'Acceso denegado'
+            ], 401);
+        }
+
+        $request->attributes->set('ctx', [
+            'uid'  => $payload->get('uid'),
+            'sid' => $payload->get('_store'),
+            'rid'   => $payload->get('rol'),
+        ]);
+        Auth::setUser($user);
         return $next($request);
     }
 }

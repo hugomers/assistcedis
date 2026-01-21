@@ -7,11 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class RolModule extends Model
 {
-    protected $table = "_rol_modules";
-
-
+    protected $table = "rol_modules";
         public function module(){
-        return $this->belongsTo('App\Models\ModulesApp','_modules');
+        return $this->belongsTo('App\Models\ModulesApp','_module');
     }
 
 }

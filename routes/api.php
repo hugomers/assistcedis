@@ -113,11 +113,24 @@ Route::middleware('auth')->group(function(){
 
 
     Route::prefix('/users')->group(function(){
+        //aqui empieza la nueva
+        Route::get('getAreas',[UserController::class, 'getAreas']);
+        Route::post('changeStore',[UserController::class, 'changeStore']);
+        Route::post('addArea',[UserController::class, 'addArea']);
+        Route::post('addRol',[UserController::class, 'addRol']);
+        Route::post('modifyRol',[UserController::class, 'modifyRol']);
+
+
+
+
+
+        //esta es la anterior
         Route::get('getResources/{uid}',[UserController::class, 'getResources']);
         Route::post('createUser',[UserController::class, 'createUser']);
         Route::post('createMasiveUser',[UserController::class, 'createMasiveUser']);
         // Route::post('trySignin',[UserController::class, 'trySignin']);
         Route::post('changeAvatar',[UserController::class, 'changeAvatar']);
+
     });
 
 
