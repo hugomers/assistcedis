@@ -21,15 +21,29 @@ class Authenticate
 
         } catch (JWTException $e) {
             return response()->json([
-                'error' => 'Invalid or expired token'
+                'error' => 'Token Expirado, Inicia sesion de nuevo :!'
             ], 401);
         }
 
+        if ($user->_state == 3) {
+            return response()->json([
+                'state' => 3,
+                'error' => 'Usuario Bloqueado, Favor de acercarce a un encargado :0'
+            ], 403);
+        }
         if ($user->_state == 4) {
             return response()->json([
-                'error' => 'Acceso denegado'
+                'state' => 4,
+                'error' => 'Usuario dado de Baja x_x'
+            ], 403);
+        }
+        if ($user->_state == 5) {
+            return response()->json([
+                'state' => 5,
+                'error' => 'Inicia sesion de nuevo :)'
             ], 401);
         }
+
 
         $request->attributes->set('ctx', [
             'uid'  => $payload->get('uid'),

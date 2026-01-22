@@ -46,9 +46,6 @@ Route::prefix('billing')->group(function(){
 });
 
 Route::middleware('auth')->group(function(){
-
-
-
     Route::post('/syncstaff',[StaffController::class,'replystaff']);
     Route::post('/checklistiop',[StaffController::class,'checklistiop']);
     Route::post('/webhook',[StaffController::class,'webhook']);
@@ -115,6 +112,8 @@ Route::middleware('auth')->group(function(){
     Route::prefix('/users')->group(function(){
         //aqui empieza la nueva
         Route::get('getAreas',[UserController::class, 'getAreas']);
+        Route::get('getUsers',[UserController::class, 'getUsers']);
+        Route::post('chagePassword',[UserController::class, 'chagePassword']);
         Route::post('changeStore',[UserController::class, 'changeStore']);
         Route::post('addArea',[UserController::class, 'addArea']);
         Route::post('addRol',[UserController::class, 'addRol']);

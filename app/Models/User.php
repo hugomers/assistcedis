@@ -27,6 +27,9 @@ class User extends Authenticatable  implements JWTSubject
             "rol" => $this->rol->id
         ];
     }
+    public function state(){
+        return $this->belongsTo('App\Models\UserState','_state');
+    }
     public function rol(){
         return $this->belongsTo('App\Models\UserRol','_rol');
     }

@@ -61,26 +61,6 @@ class UserController extends Controller
         return response('Usuarios Creados',200);
     }
 
-    // public function trySignin(Request $request){
-    //     $nick = $request->nick; // recibe el nick
-    //     $pass = $request->pass; // recibe el pass
-    //     $user = User::with(['rol','store'])->where('nick',$nick)->first();
-
-    //     if(($nick&&$pass)&&$user&&Hash::check($pass,$user->password)){ // comparacion de contraseña y carga de datos para la cuenta
-    //             $datafortoken = ["uid"=>$user->id, "complete_name"=>$user->staff['complete_name'], "rol" => $user->rol['alias']];
-    //             $token = $this->genToken($datafortoken);
-    //             return $token;
-    //             return response()->json([
-    //                 "id"=>$user->staff['id'],
-    //                 "name"=>$user->staff['complete_name'],
-    //                 "credentials"=>$user,
-    //                 "store"=>$user->store,
-    //                 "rol"=>$user->rol['alias']
-    //                 ,"token"=>$token
-    //             ]);
-    //     } return response("credenciales erroneas!", 404);// password incorrecto
-    // }
-
     public function trySignin(Request $request){
         $request->validate([
             'nick' => 'required|string',
@@ -99,18 +79,34 @@ class UserController extends Controller
         }
 
         $user = Auth::guard('api')->user()->load(['stores.store','store', 'rol.modules']);
+        if ($user->_state == 3) {
+            return response()->json([
+                'state' => 3,
+                'error' => 'Usuario Bloqueado, Favor de acercarce a un encargado :0'
+            ], 403);
+        }
+        if ($user->_state == 4) {
+            return response()->json([
+                'state' => 4,
+                'error' => 'Usuario dado de Baja x_x'
+            ], 403);
+        }
+        if($user->_state == 5){
+            $usr = User::find($user->id);
+            $usr->_state = 1;
+            $usr->save();
+            $user->_state =1;
+        }
+
         if($user){
-            Log::create([
-              "_module"=>15,
-              "_user"=>$user->id,
-              "_type"=>4,
-              "details"=>json_encode([
+            $details = [
                 "Nombre"=>$user->name,
                 "alias"=>$user->nick,
                 "Tipo"=>"Inicio Sesion",
                 "ip"=>$request->ip()
-              ])
-            ]);}
+            ];
+            $this->createLog(15, $user->id, 4, $details);
+        }
 
         return response()->json([
             'credentials' => $user,
@@ -119,6 +115,26 @@ class UserController extends Controller
             'stores'=>$user->stores,
             'token' => $token
         ]);
+    }
+
+    public function chagePassword(Request $request){
+        $pass =  $request->newpass;
+        $user = User::find($request->uid());
+        $user->change_password = 0;
+        $user->password = Hash::make($pass);
+        if($user->_state == 1){
+            $user->_state = 2;
+        }
+        $user->save();
+        $details = [
+            "id" => $user->id,
+            "Nombre"=>$user->name,
+            "alias"=>$user->nick,
+            "Tipo"=>"Cambio Contrasena",
+            "ip"=>$request->ip()
+        ];
+        $this->createLog(15, $request->uid(), 2, $details);
+        return response()->json(["message"=>'Contrasena Actualizada'],201);
     }
 
     public function changeStore(Request $request){
@@ -140,6 +156,19 @@ class UserController extends Controller
             'token' => $token,
             'store' => $store
         ]);
+    }
+
+    public function getUsers(Request $request){
+        $rol = $request->rid();
+        $store = $request->sid();
+        $user = $request->uid();
+        $userRol = UserRol::find($rol);
+        $users = User::with(['rol','state']);
+        if($userRol->_type == 2){//si es operativo solo mostraras los usuarios de la sucursal activa
+            $users = $users->where('_store',$store);
+        }
+        return $users->get();
+
     }
 
     private function genToken($data){
@@ -227,7 +256,6 @@ class UserController extends Controller
             return response()->json('No se creo el puesto',500);
         }
     }
-
 
     public function modifyRol(Request $request){
         $rolData = $request->rol;
