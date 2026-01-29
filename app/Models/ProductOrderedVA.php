@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductOrderedVA extends Model
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = "product_ordered";
     public $timestamps = false;
 }

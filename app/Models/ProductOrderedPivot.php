@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class ProductOrderedPivot extends Pivot
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = "product_ordered";
 
     public $incrementing = false;

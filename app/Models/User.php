@@ -12,6 +12,24 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 class User extends Authenticatable  implements JWTSubject
 {
     protected $table = "users";
+   protected $fillable  = [
+                    "nick",
+                    "name",
+                    "surnames",
+                    "dob",
+                    "celphone",
+                    "email",
+                    "gender",
+                    "_rol",
+                    "_store",
+                    "_state",
+                    "avatar",
+                    "change_password",
+                    "password",
+                    "_enterprise",
+                    "rc_id",
+
+                ];
 
     // public function staff(){
     //     return $this->belongsTo('App\Models\Staff','_staff');
@@ -36,8 +54,20 @@ class User extends Authenticatable  implements JWTSubject
     public function store(){
         return $this->belongsTo('App\Models\Stores','_store');
     }
+    public function enterprise(){
+        return $this->belongsTo('App\Models\Enterprise','_enterprise');
+    }
     public function stores(){
-        return $this->hasMany('App\Models\UserStore','_user','id');
+        return $this->belongsToMany(
+            'App\Models\Stores',
+            'user_stores',
+            '_user',
+            '_store'
+        );
+    }
+
+    public function media(){
+        return $this->hasMany('App\Models\UserMedia','_user','id');
     }
 
 }

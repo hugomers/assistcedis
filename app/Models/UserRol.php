@@ -23,6 +23,9 @@ class UserRol extends Model
     public function type(){
         return $this->belongsTo('App\Models\TypeRol','_type');
     }
+    public function area(){
+        return $this->belongsTo('App\Models\Area','_area');
+    }
 
     public function modules(){
         return $this->belongsToMany(
@@ -30,6 +33,6 @@ class UserRol extends Model
             'rol_modules',
             '_rol',
             '_module'
-        );
+        )->withPivot('_permission');
     }
 }

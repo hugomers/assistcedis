@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class MakersVA extends Model
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = 'makers';
 }

@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 
 class ProductVA extends Model
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = 'products';
     protected $fillable = [
         'code',
@@ -51,6 +51,9 @@ class ProductVA extends Model
     }
     public function variants(){
         return $this->hasMany('App\Models\ProductVariantsVA', '_product', 'id');
+    }
+    public function barcodes(){
+        return $this->hasMany('App\Models\ProductBarcodeVA', '_product', 'id');
     }
     public function locations(){
         return $this->belongsToMany('App\Models\CellerSectionVA', 'product_location', '_product', '_location');

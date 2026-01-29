@@ -113,14 +113,16 @@ Route::middleware('auth')->group(function(){
         //aqui empieza la nueva
         Route::get('getAreas',[UserController::class, 'getAreas']);
         Route::get('getUsers',[UserController::class, 'getUsers']);
+        Route::get('getUserWorkpoints',[UserController::class, 'getUserWorkpoints']);
+        Route::post('resetpass',[UserController::class, 'resetpass']);
         Route::post('chagePassword',[UserController::class, 'chagePassword']);
         Route::post('changeStore',[UserController::class, 'changeStore']);
         Route::post('addArea',[UserController::class, 'addArea']);
         Route::post('addRol',[UserController::class, 'addRol']);
         Route::post('modifyRol',[UserController::class, 'modifyRol']);
-
-
-
+        Route::post('addUsser',[UserController::class, 'addUsser']);
+        Route::post('modifyUser',[UserController::class, 'modifyUser']);
+        Route::post('changeWorkpoint',[UserController::class, 'changeWorkpoint']);
 
 
         //esta es la anterior
@@ -149,7 +151,14 @@ Route::middleware('auth')->group(function(){
         Route::get('/getWorkpoinProduct/{sid}',[ProductsController::class, 'getWorkpoinProduct']);
 
 
+
+
+
         // Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
+        Route::post('/addCategory',[ProductsController::class, 'addCategory']);
+        Route::post('/updateCategory',[ProductsController::class, 'updateCategory']);
+        Route::post('/deleteCategory',[ProductsController::class, 'deleteCategory']);
+
 
         Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
         Route::post('/transfers',[ProductsController::class, 'transferStores']);

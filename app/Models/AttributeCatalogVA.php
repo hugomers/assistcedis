@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ProvidersVA extends Model
+class AttributeCatalogVA extends Model
 {
-    // protected $connection = 'vizapi';
-    protected $table = 'providers';
+    protected $table = 'attribute_catalog';
+
 }

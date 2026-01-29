@@ -12,6 +12,9 @@ use App\Models\Area;
 use App\Models\Log;
 use App\Models\TypeRol;
 use App\Models\User;
+use App\Models\UserMedia;
+use App\Models\Enterprise;
+use App\Models\UserState;
 use App\Models\ModulesApp;
 use App\Models\UserRol;
 use App\Models\partitionRequisition;
@@ -20,45 +23,115 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Jmrashed\Zkteco\Lib\ZKTeco;
 
 
 class UserController extends Controller
 {
-    public function createUser(Request $request){
-        $nick = $request->nick;
-        $pass = $request->pass;
-        $rol = $request->_rol;
-        $staff = $request->_staff;
-        $store = $request->_store;
-        $user = new User();
-        $user->nick = $nick;
-        $user->password = Hash::make($pass);
-        $user->_staff = $staff;
-        $user->_rol = $rol;
-        $user->_store = $store;
-        $user->save();
-        return response()->json($user);
+    public function addUsser(Request $request){
+        try {
+            $res = DB::transaction(function () use ($request) {
+                $user = $request->all();
+                $createdBy = $request->uid();
+                $create = User::create([
+                    "nick"            => $user['nick'],
+                    "name"           => $user['name'],
+                    "surnames"        => $user['surnames'],
+                    "dob"             => $user['dob'],
+                    "celphone"        => $user['celphone'],
+                    "email"           => $user['email'],
+                    "gender"          => $user['gender'],
+                    "_rol"            => $user['rol'],
+                    "_store"          => $user['stores']['principal']['id'],
+                    "_state"          => 1,
+                    "avatar"          => 'avatar1.png',
+                    "change_password" => 1,
+                    "password"        => Hash::make('12345')
+                ]);
+                if (count($user['stores']['val']) > 1) {
+                    $create->stores()->sync($user['stores']['val']);
+                }
+                if ($request->hasFile('profile')) {
+                    $avatar = $request->file('profile');
+                    $fileName = $create->nick . '.' . $avatar->getClientOriginalExtension();
+
+                    $userMedia = UserMedia::create([
+                        "_user" => $create->id,
+                        "_type" => 1,
+                        "path"  => $fileName,
+                        "mime"  => $avatar->getClientOriginalExtension(),
+                    ]);
+
+                    $folderPath = 'vhelpers/users/' . $create->id . '/' . $userMedia->id . '/' . $fileName;
+                    Storage::put($folderPath, file_get_contents($avatar));
+                }
+            $details = [
+                "Usuario"=>$create,
+                "Tipo"=>"Nuevo Usuario",
+                "ip"=>$request->ip()
+            ];
+            $this->createLog(15, $createdBy, 1, $details);
+                return $create->load(['rol', 'state', 'store','media','stores','enterprise']);
+            });
+            return response()->json($res, 201);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "message" => "No se logró crear el usuario",
+                "error"   => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function createMasiveUser(Request $request){
-        $users = $request->users;
-        foreach($users as $user){
-            $nick = $user['nick'];
-            $pass = $user['pass'];
-            $rol = $user['rol'];
-            $staff = $user['_staff'];
-            $store = $user['_store'];
-            $user = new User();
-            $user->nick = $nick;
-            $user->password = Hash::make($pass);
-            $user->_staff = $staff;
-            $user->_rol = $rol;
-            $user->_store = $store;
-            $user->save();
+    public function modifyUser(Request $request){
+        $createdBy = $request->uid();
+        $user = User::findOrFail($request->user);
+        $data = $request->input('modify');
+        $status = $data['_state'] ?? null;
+        if (!array_key_exists('_state', $data)) {
+            if ($user->_state == 2 && count($data) > 0) {
+                $data['_state'] = 5; // reinicio
+            }
         }
-        return response('Usuarios Creados',200);
+        $stores = $data['stores'] ?? null;
+        unset($data['stores']);
+        $user->update($data);
+        if ($stores !== null){
+            $user->stores()->detach();
+            if(count($stores)>1) {
+                $user->stores()->sync($stores);
+            }
+        }
+        $details = [
+            "Usuario"=>$user,
+            "Tipo"=>"Actualizacion Usuario",
+            "modificacion"=>$data,
+            "ip"=>$request->ip()
+        ];
+        $this->createLog(15, $createdBy, 2, $details);
+        return response()->json([
+            'ok' => true,
+            'user' => $user->load('rol', 'state', 'store','media','stores','enterprise')
+        ]);
+    }
+
+    public function resetpass(Request $request){
+        $user = User::findOrFail($request->user);
+        $user->update([
+            "password"=>Hash::make('12345'),
+            "change_password"=>1,
+            "_state"=>5
+        ]);
+        $details = [
+            "id" => $user->id,
+            "alias"=>$user->nick,
+            "Tipo"=>"Reseteo de Contrasena",
+            "ip"=>$request->ip()
+        ];
+        $this->createLog(15, $request->uid(), 2, $details);
+        return response()->json($user);
     }
 
     public function trySignin(Request $request){
@@ -78,7 +151,7 @@ class UserController extends Controller
             ], 404);
         }
 
-        $user = Auth::guard('api')->user()->load(['stores.store','store', 'rol.modules']);
+        $user = Auth::guard('api')->user()->load(['stores','store', 'rol.modules']);
         if ($user->_state == 3) {
             return response()->json([
                 'state' => 3,
@@ -93,9 +166,9 @@ class UserController extends Controller
         }
         if($user->_state == 5){
             $usr = User::find($user->id);
-            $usr->_state = 1;
+            $usr->_state = 2;
             $usr->save();
-            $user->_state =1;
+            $user->_state =2;
         }
 
         if($user){
@@ -144,7 +217,6 @@ class UserController extends Controller
 
         $user = auth()->user();
         $store = $request->store;
-
         $token = JWTAuth::claims([
             'uid'    => $user->id,
             'name'   => $user->name,
@@ -163,12 +235,23 @@ class UserController extends Controller
         $store = $request->sid();
         $user = $request->uid();
         $userRol = UserRol::find($rol);
-        $users = User::with(['rol','state']);
+        $areas = Area::with('roles');
+        $users = User::with(['rol.area','state','store','media','stores','enterprise']);
+        $stores = Stores::where('_state',1);
         if($userRol->_type == 2){//si es operativo solo mostraras los usuarios de la sucursal activa
             $users = $users->where('_store',$store);
+            $areas = $areas->wherehas('roles', function($q)use($rol){$q->where('id',$rol);});
+            $stores = $stores->where('id',$store);
         }
-        return $users->get();
-
+        $res = [
+            "rol"=>$userRol,
+            "users"=>$users->get(),
+            "stores"=>$stores->get(),
+            "areas"=>$areas->get(),
+            "states"=>UserState::all(),
+            "enterprises"=>Enterprise::all(),
+        ];
+        return response()->json($res,200);
     }
 
     private function genToken($data){
@@ -196,11 +279,9 @@ class UserController extends Controller
                     $groupedModules[$modulId] = $module->_modul->toArray();
                     $groupedModules[$modulId]['modules'] = [];
                 }
-
                 $groupedModules[$modulId]['modules'][] = $module;
             }
         }
-
         $user->grouped_modules = array_values($groupedModules);
                 return response()->json($user);
 
@@ -247,7 +328,7 @@ class UserController extends Controller
                 "Tipo"=>"Creacion de Puesto",
                 "Permisos"=>$permissions
             ];
-            $this->createLog(91,$request->uid(),1,$details);
+            $this->createLog(92,$request->uid(),1,$details);
             return response()->json([
                 'message' => 'Rol creado correctamente',
                 'rol' => $insCreate->load('modules','type')
@@ -271,7 +352,10 @@ class UserController extends Controller
             "Tipo"     => "Cambio Puesto",
             "Permisos" => $permissions
         ];
-        $this->createLog(91, $request->uid(), 2, $details);
+        $this->createLog(92, $request->uid(), 2, $details);
+        $change = User::where([['_rol',$rol->id],['_state',2]])->update([
+            "_state"=>5
+        ]);
         return response()->json([
             'message' => 'Rol actualizado correctamente',
             'rol' => $rol->load('modules', 'type')
@@ -286,5 +370,48 @@ class UserController extends Controller
             "details"=>json_encode($details)
         ]);
         return $createLog;
+    }
+
+    public function getUserWorkpoints(){
+        return response()->json([
+            "users"=>User::with(['store','rol.area','state','stores','media'])->where('_state','!=',4)->get(),
+            "stores"=>Stores::where('_state',1)->get(),
+            "areas"=>Area::with('roles')->get(),
+            "states"=>UserState::all(),
+        ],200);
+    }
+
+    public function changeWorkpoint(Request $request){
+        $createdBy = $request->uid();
+        $user = User::findOrFail($request->user);
+        $wpori = $user->_store;
+        $data = $request->input('modify');
+        if (!array_key_exists('_state', $data)) {
+            if ($user->_state == 2 && count($data) > 0) {
+                $data['_state'] = 5; // reinicio
+            }
+        }
+        $stores = $data['stores'] ?? null;
+        unset($data['stores']);
+        $user->update($data);
+        if ($stores !== null){
+            $user->stores()->detach();
+            if(count($stores)>1) {
+                $user->stores()->sync($stores);
+            }
+        }
+        $details = [
+            "Usuario"=>$user,
+            "Tipo"=>"Cambio de Sucursal",
+            "origen"=>$wpori,
+            "destino"=>$user->_store,
+            "modificacion"=>$data,
+            "ip"=>$request->ip()
+        ];
+        $this->createLog(15, $createdBy, 2, $details);
+        return response()->json([
+            'ok' => true,
+            'user' => $user->load('rol', 'state', 'store','media','stores','enterprise')
+        ]);
     }
 }

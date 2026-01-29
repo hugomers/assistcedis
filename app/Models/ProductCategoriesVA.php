@@ -5,9 +5,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductCategoriesVA extends Model{
 
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = 'product_categories';
-    protected $fillable = ['name', 'code', 'deep', 'root'];
+    protected $fillable = ['name', 'code', 'deep', '_root','alias','num','prefix'];
     protected $hidden = ['attributes'];
     public $timestamps = false;
 
@@ -27,11 +27,11 @@ class ProductCategoriesVA extends Model{
 
     public function familia()//se quitan si hay problema va
     {
-        return $this->belongsTo(ProductCategoriesVA::class, 'root');
+        return $this->belongsTo(ProductCategoriesVA::class, '_root');
     }
 
     public function seccion()//se quitan si hay problema va
     {
-        return $this->belongsTo(ProductCategoriesVA::class, 'root');
+        return $this->belongsTo(ProductCategoriesVA::class, '_root');
     }
 }

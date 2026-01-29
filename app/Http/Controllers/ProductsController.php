@@ -13,6 +13,8 @@ use App\Models\ProductStockVA;
 use App\Models\MakersVA;
 use App\Models\ProductCategoriesVA;
 use App\Models\ProductUnitVA;
+use App\Models\ProductStatusVA;
+use App\Models\CategoryAttributeVA;
 use App\Models\Stores;
 use App\Models\WorkpointVA;
 use App\Models\ControlFigures;
@@ -42,7 +44,8 @@ class ProductsController extends Controller
         "providers" => ProvidersVA::all(),
         "makers" => MakersVA::all(),
         "units" => ProductUnitVA::all(),
-        "medPerson"=>ProductVA::whereNotNull('large')->where([['large','!=',''],['_status','!=',4]])->select('large')->distinct()->get()
+        "states" => ProductStatusVA::all(),
+        "attributes"=>CategoryAttributeVA::with('catalog')->get()
         ];
         return $res;
     }
@@ -515,14 +518,14 @@ class ProductsController extends Controller
 
     public function genshortCode(){
         do {
-            // Genera un número aleatorio de 5 dígitos (no comienza con 0)
             $shortcode = mt_rand(10000, 99999);
-
-            // Verifica si ya existe en code, name o barcode de alguna variante
             $exists = ProductVA::where('code', $shortcode)
-                ->orWhere('name', $shortcode)
+                ->orWhere('barcode',$shortcode)
+                ->orWhere('short_code', $shortcode)
                 ->orWhereHas('variants', function ($q) use ($shortcode) {
-                    $q->where('barcode', $shortcode);
+                    $q->where([['code', $shortcode],['barcode',$shortcode]]);
+                })->orWhereHas('barcodes', function ($q) use ($shortcode){
+                    $q->where('barcode',$shortcode);
                 })
                 ->exists();
 
@@ -542,11 +545,13 @@ class ProductsController extends Controller
             }
             $barcode = $y . $categoria->familia['seccion']['num'] .$categoria->familia['num'] . $categoria->num . $randomDigits;
 
-            $exists = ProductVA::where('barcode', $barcode)
-                ->orWhere('code', $barcode)
-                ->orwhere('name',$barcode)
+            $exists = ProductVA::where('code', $barcode)
+                ->orWhere('barcode',$barcode)
+                ->orWhere('short_code', $barcode)
                 ->orWhereHas('variants', function ($q) use ($barcode) {
-                    $q->where('barcode', $barcode);
+                    $q->where([['code', $barcode],['barcode',$barcode]]);
+                })->orWhereHas('barcodes', function ($q) use ($barcode){
+                    $q->where('barcode',$barcode);
                 })
                 ->exists();
         } while ($exists);
@@ -554,24 +559,31 @@ class ProductsController extends Controller
     }
 
     public function searchBarcode($barcode){
-        $exists = ProductVA::where('barcode', $barcode)
-            ->orWhere('code', $barcode)
-            ->orwhere('name',$barcode)
-            ->orWhereHas('variants', function ($q) use ($barcode) {
-                $q->where('barcode', $barcode);
-            })
+        $exists = ProductVA::where('code', $barcode)
+                ->orWhere('barcode',$barcode)
+                ->orWhere('short_code', $barcode)
+                ->orWhereHas('variants', function ($q) use ($barcode) {
+                    $q->where([['code', $barcode],['barcode',$barcode]]);
+                })->orWhereHas('barcodes', function ($q) use ($barcode){
+                    $q->where('barcode',$barcode);
+                })
             ->exists();
         return response()->json($exists,200);
 
     }
     public function searchCode($id){
         $exists = ProductVA::where('code', $id)
-        ->orWhere('name', $id)
+        ->orWhere('barcode',$id)
+        ->orWhere('short_code', $id)
         ->orWhereHas('variants', function ($q) use ($id) {
-            $q->where('barcode', $id);
+            $q->where([['code', $id],['barcode',$id]]);
+        })
+        ->orWhereHas('barcodes', function ($q) use ($id){
+            $q->where('barcode',$id);
         })
         ->exists();
         $res = [
+            "id"=>$id,
             "exist"=>$exists,
             "cco"=>$this->genshortCode()
         ];
@@ -1112,5 +1124,29 @@ class ProductsController extends Controller
             return response()->json(["success" => $result]);
         }
         return response()->json(["success" => false]);
+    }
+
+    public function addCategory(Request $request){
+        $user = $request->uid();
+        // $form = $request->all();
+        // return $form;
+        $data = $request->all();
+        if ($data['deep'] > 0 && empty($data['_root'])) {
+            return response()->json([
+                'message' => 'Debe seleccionar un padre'
+            ], 422);
+        }
+        if ($data['deep'] === 0) {
+            $data['_root'] = null;
+        }
+
+        if (!empty($data['id'])) {
+            $category = ProductCategoriesVA::findOrFail($data['id']);
+            $category->update($data);
+        } else {
+            $category = ProductCategoriesVA::create($data);
+        }
+
+        return response()->json($category);
     }
 }
