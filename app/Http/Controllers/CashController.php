@@ -24,6 +24,7 @@ use App\Models\Advances;
 use App\Models\AccountVA;
 use App\Models\OrderVA;
 use App\Models\OrderLogVA;
+use App\Models\Promotion;
 use App\Models\partitionRequisition;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,7 @@ class CashController extends Controller
         if($res && $res->cashier){
             $response = [
                 "rules"=>$rules,
+                "promotions"=>Promotion::with('products')->get(),
                 "cash"=>$res,
                 "methods"=>$methods,
                 "providers"=>$providers,
