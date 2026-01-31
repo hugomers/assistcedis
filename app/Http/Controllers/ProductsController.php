@@ -640,6 +640,7 @@ class ProductsController extends Controller
     }
 
     public function highProducts(Request $request){
+        $request->uid();
         $response=[
             "mysql"=>[
                 "insert"=>[
@@ -670,13 +671,13 @@ class ProductsController extends Controller
         if($res){
             foreach($data as $product){
                 $dataProduct = [
-                    'name'        => trim($product['short_code']),
+                    'short_code'  => trim($product['short_code']),
                     'description' => trim($product['description']),
                     'label'       => trim(substr($product["description"],0,30)),
                     'reference'   => $product['reference'],
                     'pieces'      => $product['pxc'],
                     '_category'   => $product['categoria']['id'],
-                    '_status'     => 1,
+                    '_state'      => 1,
                     '_unit'       => $product['umc']['id'],
                     '_provider'   => $product['provider']['id'],
                     'cost'        => $product['cost'],
@@ -684,37 +685,94 @@ class ProductsController extends Controller
                     'refillable'  => 1,
                     '_maker'      => $product['makers']['id'],
                     'dimensions'  => json_encode(["length"=>'',"height"=>'',"width"=>'']),
-                    'large'       => isset($product['mnp']['large']) ? $product['mnp']['large'] : ''
+                    // 'large'       => isset($product['mnp']['large']) ? $product['mnp']['large'] : ''
                 ];
 
                 $success = ProductVA::updateOrCreate(
                     ['code' => $product['code']],
                     $dataProduct
                 );
+                if (!empty($product['attributes'])) {
 
-                if($success){
-                    $insertFactusol['productos'][] = $product;
-                    $response['mysql']['insert']['goal'][] = $product['code'];
-                }else{
-                    $response['mysql']['insert']['fail'][] = $product['code'];
+                    $attributesData = [];
+
+                    foreach ($product['attributes'] as $attr) {
+                        $attributesData[$attr['id']] = [
+                            'value' => $attr['value']
+                        ];
+                    }
+                    $productModel->attributes()->sync($attributesData);
+
+                        foreach ($attributes as $attr) {
+
+                            // 1️⃣ Obtener o crear atributo en el catálogo
+                            if ($attr['is_custom']) {
+
+                                $attribute = attribute_catalog::firstOrCreate(
+                                    ['name' => $attr['name']],
+                                    ['is_custom' => true]
+                                );
+
+                            } else {
+
+                                // atributo existente
+                                $attribute = attribute_catalog::find($attr['id']);
+                            }
+
+                            if (!$attribute) {
+                                continue; // por seguridad
+                            }
+
+                            // 2️⃣ Relacionar atributo al producto con su valor
+                            $success->attributes()->syncWithoutDetaching([
+                                $attribute->id => [
+                                    'value' => $attr['value']
+                                ]
+                            ]);
+                        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 }
+
+                // if($success){
+                //     $insertFactusol['productos'][] = $product;
+                //     $response['mysql']['insert']['goal'][] = $product['code'];
+                // }else{
+                //     $response['mysql']['insert']['fail'][] = $product['code'];
+                // }
             }
-            $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,16,24])->get();
+            // $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,16,24])->get();
             // $stores = WorkpointVA::where('id',1)->get();
-            foreach($stores as $store){
-                try {
-                $createStore = Http::timeout(50)->post($store->dominio.'/storetools/public/api/Products/highProducts',$insertFactusol);
-                if($createStore->status() == 200){
-                    $response['sucursales']['insert']['goal'][] = [$store->alias=>$createStore->json()];
-                }else{
-                    $response['sucursales']['insert']['fails'][] = [$store->alias=>['Con Error']];
-                }
-            } catch (\Throwable $e) {
-                    $response['sucursales']['insert']['fails'][] = [
-                        $store->alias => ['Sin conexión', 'error' => $e->getMessage()]
-                    ];
-                }
-            }
+            // foreach($stores as $store){
+            //     try {
+            //     $createStore = Http::timeout(50)->post($store->dominio.'/storetools/public/api/Products/highProducts',$insertFactusol);
+            //     if($createStore->status() == 200){
+            //         $response['sucursales']['insert']['goal'][] = [$store->alias=>$createStore->json()];
+            //     }else{
+            //         $response['sucursales']['insert']['fails'][] = [$store->alias=>['Con Error']];
+            //     }
+            // } catch (\Throwable $e) {
+            //         $response['sucursales']['insert']['fails'][] = [
+            //             $store->alias => ['Sin conexión', 'error' => $e->getMessage()]
+            //         ];
+            //     }
+            // }
             return response()->json($response,200);
         }else{
             return response()->json('No se lograron guardar los datos',500);

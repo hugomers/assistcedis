@@ -44,6 +44,10 @@ class ProductVA extends Model
                     ->withPivot('');
     }
 
+    public function attributes(){
+        return $this->belongsToMany('App\Models\attribute_catalog', 'product_attributes','_product','_attribute')
+            ->withPivot(['value']);
+    }
 
     public function prices(){
         return $this->belongsToMany('App\Models\PriceListVA', 'product_prices', '_product', '_type')
