@@ -26,7 +26,7 @@ class Kernel extends ConsoleKernel
         $schedule->call(function () {
             $controller = new SalesController();
             $controller->generate();
-        })->dailyAt('20:00')->name("ENVIO REPORTE DE VENTAS :)");//Respaldo solo de el ejercico actual
+        })->dailyAt('19:00')->name("ENVIO REPORTE DE VENTAS :)");//Respaldo solo de el ejercico actual
 
         $schedule->call(function () {
             $controller = new InvoicesReceived();
