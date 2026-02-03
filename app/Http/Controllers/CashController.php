@@ -494,7 +494,7 @@ class CashController extends Controller
         $uid = $request->uid;
 
         $cashier = CashCashier::find($caja['cashier']['id']);
-        if($cashier){;
+        if($cashier){
             $closeCash = http::post($caja['store']['ip_address'].'/storetools/public/api/sales/closeCash',$request->all());
             if($closeCash->status() == 200){
                 $cashier->cash_close = $declarec;
