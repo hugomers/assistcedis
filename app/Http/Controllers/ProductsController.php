@@ -501,12 +501,12 @@ class ProductsController extends Controller
             'category.familia.seccion',
             'prices'
             ])
-            ->where('_status', '!=', 4)
             // ->where(function ($q) use ($autocomplete) {
                 ->where('code', $autocomplete)
                 ->orWhereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
                 ->orWhere('name', $autocomplete)
                 ->orWhere('barcode', $autocomplete)
+                ->where('_status', '!=', 4)
 
             // })
             ->first();
