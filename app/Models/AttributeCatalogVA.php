@@ -8,5 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class AttributeCatalogVA extends Model
 {
     protected $table = 'attribute_catalog';
+    protected $fillable = [
+            "_attribute",
+            'option',
+    ];
+    public $timestamps = false;
+
 
 }

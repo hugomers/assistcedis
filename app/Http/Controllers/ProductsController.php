@@ -19,6 +19,8 @@ use App\Models\Stores;
 use App\Models\WorkpointVA;
 use App\Models\ControlFigures;
 use App\Models\historyPricesVA;
+use App\Models\AttributeCatalogVA;
+
 
 
 
@@ -593,19 +595,9 @@ class ProductsController extends Controller
     public function checkCodesBatch(Request $request){
         $codes = $request->input('codes', []);
         $barcodes = $request->input('barcodes', []);
-
-        // Inicializamos los resultados
         $codeResults = [];
         $barcodeResults = [];
-
-        // Procesar los códigos
         foreach ($codes as $code) {
-            // $exists = ProductVA::where('code', $code)
-            //     ->orWhere('name', $code)
-            //     ->orWhereHas('variants', function ($q) use ($code) {
-            //         $q->where('barcode', $code);
-            //     })
-            //     ->exists();
             $exists = ProductVA::where(function ($query) use ($code) {
                     $query->where('code', $code)
                         ->orWhere('name', $code)
@@ -621,7 +613,6 @@ class ProductsController extends Controller
             ];
         }
 
-        // Procesar los códigos de barra
         foreach ($barcodes as $barcode) {
             $exists = ProductVA::where('barcode', $barcode)
                 ->orWhere('code', $barcode)
@@ -641,30 +632,14 @@ class ProductsController extends Controller
 
     public function highProducts(Request $request){
         $request->uid();
-        $response=[
-            "mysql"=>[
-                "insert"=>[
-                    "goal"=>[],
-                    "fails"=>[]
-                ]
-            ],
-            "sucursales"=>[
-                "insert"=>[
-                    "goal"=>[],
-                    "fails"=>[]
-                ]
-            ]
-        ];
-        $insertFactusol = ['productos'=>[]];
         $header = $request->head;
         $data = $request->data;
-        $type = 1;//alta de productos
-
+        $type = 1;
         $control = new ControlFigures;
         $control->name = $header['nameDoc'];
         $control->created_at = $header['date'];
         $control->_type = $type;
-        $control->_user = $header['autor']['id'];
+        $control->_user = $request->uid();
         $control->details = json_encode($data);
         $control->save();
         $res=  $control->fresh();
@@ -684,8 +659,6 @@ class ProductsController extends Controller
                     'barcode'     => isset($product['cb']) ? trim($product['cb']) : null,
                     'refillable'  => 1,
                     '_maker'      => $product['makers']['id'],
-                    'dimensions'  => json_encode(["length"=>'',"height"=>'',"width"=>'']),
-                    // 'large'       => isset($product['mnp']['large']) ? $product['mnp']['large'] : ''
                 ];
 
                 $success = ProductVA::updateOrCreate(
@@ -693,87 +666,22 @@ class ProductsController extends Controller
                     $dataProduct
                 );
                 if (!empty($product['attributes'])) {
-
                     $attributesData = [];
-
                     foreach ($product['attributes'] as $attr) {
                         $attributesData[$attr['id']] = [
                             'value' => $attr['value']
                         ];
                     }
-                    $productModel->attributes()->sync($attributesData);
-
-                        foreach ($attributes as $attr) {
-
-                            // 1️⃣ Obtener o crear atributo en el catálogo
-                            if ($attr['is_custom']) {
-
-                                $attribute = attribute_catalog::firstOrCreate(
-                                    ['name' => $attr['name']],
-                                    ['is_custom' => true]
+                    $success->attributes()->sync($attributesData);
+                        foreach ($product['attributes'] as $attr) {
+                                $attribute = AttributeCatalogVA::firstOrCreate(
+                                    ['option' => $attr['value']],
+                                    ['_attribute'=>$attr['id']]
                                 );
-
-                            } else {
-
-                                // atributo existente
-                                $attribute = attribute_catalog::find($attr['id']);
-                            }
-
-                            if (!$attribute) {
-                                continue; // por seguridad
-                            }
-
-                            // 2️⃣ Relacionar atributo al producto con su valor
-                            $success->attributes()->syncWithoutDetaching([
-                                $attribute->id => [
-                                    'value' => $attr['value']
-                                ]
-                            ]);
                         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 }
-
-                // if($success){
-                //     $insertFactusol['productos'][] = $product;
-                //     $response['mysql']['insert']['goal'][] = $product['code'];
-                // }else{
-                //     $response['mysql']['insert']['fail'][] = $product['code'];
-                // }
             }
-            // $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,16,24])->get();
-            // $stores = WorkpointVA::where('id',1)->get();
-            // foreach($stores as $store){
-            //     try {
-            //     $createStore = Http::timeout(50)->post($store->dominio.'/storetools/public/api/Products/highProducts',$insertFactusol);
-            //     if($createStore->status() == 200){
-            //         $response['sucursales']['insert']['goal'][] = [$store->alias=>$createStore->json()];
-            //     }else{
-            //         $response['sucursales']['insert']['fails'][] = [$store->alias=>['Con Error']];
-            //     }
-            // } catch (\Throwable $e) {
-            //         $response['sucursales']['insert']['fails'][] = [
-            //             $store->alias => ['Sin conexión', 'error' => $e->getMessage()]
-            //         ];
-            //     }
-            // }
-            return response()->json($response,200);
+            return response()->json(['mssg'=>'Articulos Creados'],200);
         }else{
             return response()->json('No se lograron guardar los datos',500);
         }

@@ -13,21 +13,21 @@ class ProductVA extends Model
     protected $table = 'products';
     protected $fillable = [
         'code',
-        'name' ,
+        'short_code' ,
         'description',
         'label',
         'reference',
         'pieces',
         '_category',
-        '_status',
+        '_state',
         '_unit',
         '_provider',
         'cost',
         'barcode',
         'refillable',
         '_maker',
-        'dimensions',
-        'large',
+        // 'dimensions',
+        // 'large',
     ];
 
     public function invoices(){
@@ -45,7 +45,7 @@ class ProductVA extends Model
     }
 
     public function attributes(){
-        return $this->belongsToMany('App\Models\attribute_catalog', 'product_attributes','_product','_attribute')
+        return $this->belongsToMany('App\Models\AttributeCatalogVA', 'product_attributes','_product','_attribute')
             ->withPivot(['value']);
     }
 
