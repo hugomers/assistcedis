@@ -440,7 +440,7 @@ class CiclicosController extends Controller
             return response()->json([], 404);
         }
         foreach($sections as $section){
-        $allIds[] = $section->getAllDescendantIds();
+        $allIds = $section->getAllDescendantIds();
         }
         // return $allIds;
 
