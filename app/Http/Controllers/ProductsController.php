@@ -596,29 +596,35 @@ class ProductsController extends Controller
         $codes = $request->input('codes', []);
         $barcodes = $request->input('barcodes', []);
         $codeResults = [];
+        // return $codes;
         $barcodeResults = [];
         foreach ($codes as $code) {
             $exists = ProductVA::where(function ($query) use ($code) {
                     $query->where('code', $code)
-                        ->orWhere('name', $code)
-                        ->orWhereHas('variants', function ($q) use ($code) {
-                    $q->where('barcode', $code);
+                        ->orWhere('short_code', $code)
+                ->orWhereHas('variants', function ($q) use ($code) {
+                    $q->where([['code', $code],['barcode',$code]]);
+                })->orWhereHas('barcodes', function ($q) use ($code){
+                    $q->where('barcode',$code);
                 });
             })
-            ->where('_status', '!=', 4)
+            ->where('_state', '!=', 4)
             ->exists();
             $codeResults[$code] = [
                 'exist' => $exists,
-                'cco' => $this->genshortCode()
+                'short_code' => $this->genshortCode()
             ];
         }
 
         foreach ($barcodes as $barcode) {
             $exists = ProductVA::where('barcode', $barcode)
+                ->where('_state', '!=', 4)
                 ->orWhere('code', $barcode)
-                ->orWhere('name', $barcode)
+                ->orWhere('short_code', $barcode)
                 ->orWhereHas('variants', function ($q) use ($barcode) {
-                    $q->where('barcode', $barcode);
+                    $q->where([['code', $barcode],['barcode',$barcode]]);
+                })->orWhereHas('barcodes', function ($q) use ($barcode){
+                    $q->where('barcode',$barcode);
                 })
                 ->exists();
             $barcodeResults[$barcode] = $exists;
@@ -630,61 +636,174 @@ class ProductsController extends Controller
         ]);
     }
 
+    // public function highProducts(Request $request){
+    //     $request->uid();
+    //     $header = $request->head;
+    //     $data = $request->data;
+    //     $type = 1;
+    //     $control = new ControlFigures;
+    //     $control->name = $header['nameDoc'];
+    //     $control->created_at = $header['date'];
+    //     $control->_type = $type;
+    //     $control->_user = $request->uid();
+    //     $control->details = json_encode($data);
+    //     $control->save();
+    //     $res=  $control->fresh();
+    //     if($res){
+    //         DB::transaction(function () use ($data, $request) {
+    //             foreach($data as $product){
+    //                 $dataProduct = [
+    //                     'short_code'  => trim($product['short_code']),
+    //                     'description' => trim($product['description']),
+    //                     'label'       => trim(substr($product["description"],0,30)),
+    //                     'reference'   => $product['reference'],
+    //                     'pieces'      => $product['pxc'],
+    //                     '_category'   => $product['categoria']['id'],
+    //                     '_state'      => 1,
+    //                     '_unit'       => $product['umc']['id'],
+    //                     '_provider'   => $product['provider']['id'],
+    //                     'cost'        => $product['cost'],
+    //                     'barcode'     => isset($product['cb']) ? trim($product['cb']) : null,
+    //                     'refillable'  => 1,
+    //                     '_maker'      => $product['makers']['id'],
+    //                 ];
+
+    //                 $success = ProductVA::updateOrCreate(
+    //                     ['code' => $product['code']],
+    //                     $dataProduct
+    //                 );
+    //                 if (!empty($product['attributes'])) {
+    //                     $attributesData = [];
+    //                     foreach ($product['attributes'] as $attr) {
+    //                         $attributesData[$attr['id']] = [
+    //                             'value' => $attr['value']
+    //                         ];
+    //                     }
+    //                     $success->attributes()->sync($attributesData);
+    //                         foreach ($product['attributes'] as $attr) {
+    //                                 $attribute = AttributeCatalogVA::firstOrCreate([
+    //                                     'option' => $attr['value'],
+    //                                     '_attribute' => $attr['id']
+    //                                     ]);
+    //                         }
+    //                 }
+    //             }
+    //         });
+    //         return response()->json(['mssg'=>'Articulos Creados'],200);
+    //     }else{
+    //         return response()->json('No se lograron guardar los datos',500);
+    //     }
+    // }
+
     public function highProducts(Request $request){
         $request->uid();
         $header = $request->head;
         $data = $request->data;
         $type = 1;
-        $control = new ControlFigures;
-        $control->name = $header['nameDoc'];
-        $control->created_at = $header['date'];
-        $control->_type = $type;
-        $control->_user = $request->uid();
-        $control->details = json_encode($data);
-        $control->save();
-        $res=  $control->fresh();
-        if($res){
-            foreach($data as $product){
-                $dataProduct = [
-                    'short_code'  => trim($product['short_code']),
-                    'description' => trim($product['description']),
-                    'label'       => trim(substr($product["description"],0,30)),
-                    'reference'   => $product['reference'],
-                    'pieces'      => $product['pxc'],
-                    '_category'   => $product['categoria']['id'],
-                    '_state'      => 1,
-                    '_unit'       => $product['umc']['id'],
-                    '_provider'   => $product['provider']['id'],
-                    'cost'        => $product['cost'],
-                    'barcode'     => isset($product['cb']) ? trim($product['cb']) : null,
-                    'refillable'  => 1,
-                    '_maker'      => $product['makers']['id'],
-                ];
+        $created = 0;
+        $updated = 0;
+        $errors  = 0;
 
-                $success = ProductVA::updateOrCreate(
-                    ['code' => $product['code']],
-                    $dataProduct
-                );
-                if (!empty($product['attributes'])) {
-                    $attributesData = [];
-                    foreach ($product['attributes'] as $attr) {
-                        $attributesData[$attr['id']] = [
-                            'value' => $attr['value']
-                        ];
+        $detail = [
+            'created' => [],
+            'updated' => [],
+            'errors'  => []
+        ];
+
+        DB::transaction(function () use (
+            $data,
+            $request,
+            $header,
+            $type,
+            &$created,
+            &$updated,
+            &$errors,
+            &$detail
+        ) {
+            $control = new ControlFigures;
+            $control->name = $header['nameDoc'];
+            $control->created_at = $header['date'];
+            $control->_type = $type;
+            $control->_user = $request->uid();
+            $control->details = json_encode($data);
+            $control->save();
+            foreach ($data as $product) {
+                try {
+                    $dataProduct = [
+                        'short_code'  => trim($product['short_code']),
+                        'description' => trim($product['description']),
+                        'label'       => trim(substr($product["description"], 0, 30)),
+                        'reference'   => $product['reference'],
+                        'pieces'      => $product['pxc'],
+                        '_category'   => $product['categoria']['id'],
+                        '_state'      => 1,
+                        '_unit'       => $product['umc']['id'],
+                        '_provider'   => $product['provider']['id'],
+                        'cost'        => $product['cost'],
+                        'barcode'     => isset($product['cb']) ? trim($product['cb']) : null,
+                        'refillable'  => 1,
+                        '_maker'      => $product['makers']['id'],
+                    ];
+                    $productVA = ProductVA::updateOrCreate(
+                        ['code' => $product['code']],
+                        $dataProduct
+                    );
+                    $productVA->_state = 1;
+                    $productVA->save();
+                    if ($productVA->wasRecentlyCreated) {
+                        $created++;
+                        $detail['created'][] = $product['code'];
+                    } else {
+                        $updated++;
+                        $detail['updated'][] = $product['code'];
                     }
-                    $success->attributes()->sync($attributesData);
+                    if (!empty($product['attributes'])) {
+                        $attributesData = [];
                         foreach ($product['attributes'] as $attr) {
-                                $attribute = AttributeCatalogVA::firstOrCreate(
-                                    ['option' => $attr['value']],
-                                    ['_attribute'=>$attr['id']]
-                                );
+                            $attributesData[$attr['id']] = [
+                                'value' => $attr['value']
+                            ];
+                            AttributeCatalogVA::firstOrCreate(
+                                [
+                                    'option' => $attr['value'],
+                                    '_attribute' => $attr['id']
+                                ]
+                            );
                         }
+                        $productVA->attributes()->sync($attributesData);
+                    }
+                } catch (\Throwable $e) {
+                    $errors++;
+                    $detail['errors'][] = [
+                        'code' => $product['code'] ?? null,
+                        'error' => $e->getMessage()
+                    ];
                 }
             }
-            return response()->json(['mssg'=>'Articulos Creados'],200);
-        }else{
-            return response()->json('No se lograron guardar los datos',500);
-        }
+        });
+
+        return response()->json([
+            'message' => 'Carga masiva finalizada',
+            'summary' => [
+                'created' => $created,
+                'updated' => $updated,
+                'errors'  => $errors
+            ],
+            'detail' => $detail
+        ], 200);
+    }
+
+    public function searchProd(Request $request){
+          $field = $request->field;
+          $val = $request->value;
+          $query = ProductVA::with('state','category.familia.seccion','variants','attributes','providers','makers','units');
+          if($field == 'section'){
+                $query = $query->whereHas('category.familia.seccion', function($q) use($val) { $q->where('id',$val); });
+          }else{
+                $query = $query->where($field,'like',"%".$val."%");
+          }
+          $products = $query->get();
+          return response()->json($products);
     }
 
     public function lookupProducts(Request $request){

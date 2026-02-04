@@ -45,7 +45,7 @@ class ProductVA extends Model
     }
 
     public function attributes(){
-        return $this->belongsToMany('App\Models\AttributeCatalogVA', 'product_attributes','_product','_attribute')
+        return $this->belongsToMany('App\Models\CategoryAttributeVA', 'product_attributes','_product','_attribute')
             ->withPivot(['value']);
     }
 
@@ -77,8 +77,8 @@ class ProductVA extends Model
         return $this->belongsToMany('App\Models\InvocidReceivedVA', 'product_received', '_product', '_order')
                     ->withPivot('amount', 'price', 'total');
     }
-    public function status(){
-        return $this->belongsTo('App\Models\ProductStatusVA', '_status');
+    public function state(){
+        return $this->belongsTo('App\Models\ProductStatusVA', '_state');
     }
 
     public function salesAmountByYear(){

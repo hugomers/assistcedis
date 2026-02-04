@@ -149,9 +149,7 @@ Route::middleware('auth')->group(function(){
         Route::get('/searchCode/{id}',[ProductsController::class, 'searchCode']);
         Route::get('/searchBarcode/{id}',[ProductsController::class, 'searchBarcode']);
         Route::get('/getWorkpoinProduct/{sid}',[ProductsController::class, 'getWorkpoinProduct']);
-
-
-
+        Route::post('/searchProd',[ProductsController::class, 'searchProd']);
 
 
         // Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
@@ -187,6 +185,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/updateImgProduct',[ProductsController::class, 'updateImgProduct']);
         Route::post('/massiveUpdateImg',[ProductsController::class, 'massiveUpdateImg']);
         Route::post('/updateStatusProduct',[ProductsController::class, 'updateStatusProduct']);
+        Route::post('/searchProd',[ProductsController::class, 'searchProd']);
 
     });
 
