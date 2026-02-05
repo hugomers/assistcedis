@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class PriceListVA extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'price_list';
-    protected $fillable = ['name', 'short_name'];
+    // protected $connection = 'vizapi';
+    protected $table = 'rates';
+    // protected $fillable = ['name', 'short_name'];
     public $timestamps = false;
 
     /*****************

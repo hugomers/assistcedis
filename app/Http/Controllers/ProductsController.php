@@ -796,7 +796,7 @@ class ProductsController extends Controller
     public function searchProd(Request $request){
           $field = $request->field;
           $val = $request->value;
-          $query = ProductVA::with('state','category.familia.seccion','variants','attributes','providers','makers','units');
+          $query = ProductVA::with('state','category.familia.seccion','variants.providers','attributes','providers','makers','units','prices','barcodes');
           if($field == 'section'){
                 $query = $query->whereHas('category.familia.seccion', function($q) use($val) { $q->where('id',$val); });
           }else{

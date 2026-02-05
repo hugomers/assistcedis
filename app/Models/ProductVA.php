@@ -38,20 +38,17 @@ class ProductVA extends Model
         return $this->belongsToMany('App\Models\WorkpointVA', 'product_stock', '_product', '_workpoint')
                     ->withPivot('min', 'max', 'stock', 'gen', 'exh', 'des', 'fdt', 'V23', 'LRY', 'in_transit', '_status');
     }
-
     public function salesPerWorkpoints(){
         return $this->belongsToMany('App\Models\WorkpointVA', 'cash_register', '_cash', '_workpoint')
                     ->withPivot('');
     }
-
     public function attributes(){
         return $this->belongsToMany('App\Models\CategoryAttributeVA', 'product_attributes','_product','_attribute')
             ->withPivot(['value']);
     }
-
     public function prices(){
-        return $this->belongsToMany('App\Models\PriceListVA', 'product_prices', '_product', '_type')
-                    ->withPivot(['price']);
+        return $this->belongsToMany('App\Models\PriceListVA', 'product_prices', '_product', '_rate')
+                    ->withPivot(['price','_type']);
     }
     public function variants(){
         return $this->hasMany('App\Models\ProductVariantsVA', '_product', 'id');
