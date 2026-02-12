@@ -156,6 +156,9 @@ Route::middleware('auth')->group(function(){
         Route::post('/addCategory',[ProductsController::class, 'addCategory']);
         Route::post('/updateCategory',[ProductsController::class, 'updateCategory']);
         Route::post('/deleteCategory',[ProductsController::class, 'deleteCategory']);
+        Route::post('/update',[ProductsController::class, 'update']);
+
+
 
 
         Route::post('/translate',[ProductsController::class, 'translateWarehouses']);
@@ -178,6 +181,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/highProducts',[ProductsController::class, 'highProducts']);
         Route::post('/highPrices',[ProductsController::class, 'highPrices']);
         Route::post('/lookupProducts',[ProductsController::class, 'lookupProducts']);
+
+
         Route::post('/checkLabels',[ProductsController::class, 'checkLabels']);
         Route::post('/setMin',[ProductsController::class, 'setMin']);
         Route::post('/setMax',[ProductsController::class, 'setMax']);
@@ -185,8 +190,6 @@ Route::middleware('auth')->group(function(){
         Route::post('/updateImgProduct',[ProductsController::class, 'updateImgProduct']);
         Route::post('/massiveUpdateImg',[ProductsController::class, 'massiveUpdateImg']);
         Route::post('/updateStatusProduct',[ProductsController::class, 'updateStatusProduct']);
-        Route::post('/searchProd',[ProductsController::class, 'searchProd']);
-
     });
 
     Route::prefix('/admincli')->group(function(){

@@ -8,4 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class ProductBarcodeVA extends Model
 {
     protected $table = 'product_barcodes';
+    public $timestamps = false;
+    protected $fillable = [
+        'barcode',
+    ];
 }

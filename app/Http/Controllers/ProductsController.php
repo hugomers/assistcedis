@@ -816,6 +816,106 @@ class ProductsController extends Controller
         ]);
     }
 
+    public function update(Request $request){
+        $product = ProductVA::findOrFail($request->product);
+        $changes = $request->changes ?? [];
+        // return $changes;
+        DB::transaction(function () use ($product, $changes) {
+            $data = collect($changes)->except([
+                'attributes',
+                'variants',
+                'barcodes'
+            ])->toArray();
+
+            if (isset($changes['category'])) {
+                $data['_category'] = $changes['category']['id'];
+            }
+
+            if (isset($changes['providers'])) {
+                $data['_provider'] = $changes['providers']['id'];
+            }
+            // $data = collect($changes)->except('attributes')->toArray();
+            if (!empty($data)) {
+                $product->update($data);
+            }
+            if (array_key_exists('attributes', $changes)) {
+                $attributesData = [];
+                foreach ($changes['attributes'] as $attr) {
+                    if (!$attr['_attribute'] || !$attr['value']) continue;
+
+                    $attributesData[$attr['_attribute']] = [
+                        'value' => $attr['value']
+                    ];
+                    AttributeCatalogVA::firstOrCreate([
+                        'option' => $attr['value'],
+                        '_attribute' => $attr['_attribute']
+                    ]);
+                }
+                $product->attributes()->sync($attributesData);
+            }
+
+            if (isset($changes['prices'])) {
+                $pricesData = [];
+
+                foreach ($changes['prices'] as $price) {
+
+                    $rate = $price['pivot']['_rate'];
+                    $type = $price['pivot']['_type'];
+                    $value = $price['pivot']['price'];
+
+                    // clave compuesta rate + type
+                    $key = $rate . '-' . $type;
+
+                    $pricesData[$key] = [
+                        '_rate'  => $rate,
+                        '_type'  => $type,
+                        'price'  => $value
+                    ];
+                }
+
+                // borrar actuales
+                $product->prices()->delete();
+
+                foreach ($pricesData as $p) {
+                    $product->prices()->create([
+                        '_product' => $product->id,
+                        '_rate'    => $p['_rate'],
+                        '_type'    => $p['_type'],
+                        'price'    => $p['price']
+                    ]);
+                }
+            }
+
+            if (array_key_exists('variants', $changes)) {
+                $product->variants()->delete();
+                foreach ($changes['variants'] as $variant) {
+                    if (empty($variant['code'])) continue;
+                    $product->variants()->create([
+                        'code'     => $variant['code'],
+                        'barcode'  => $variant['barcode'] ?? null,
+                        'cost'     => $variant['cost'] ?? 0,
+                        'pieces'   => $variant['pieces'] ?? 1,
+                        '_provider'=> $variant['_provider'] ?? null
+                    ]);
+                }
+            }
+            if (array_key_exists('barcodes', $changes)) {
+                $product->barcodes()->delete();
+                foreach ($changes['barcodes'] as $bc) {
+                    if (empty($bc['barcode'])) continue;
+                    $product->barcodes()->create([
+                        'barcode' => $bc['barcode']
+                    ]);
+                }
+            }
+        });
+
+        return response()->json([
+            'ok' => true
+        ]);
+    }
+
+
     public function highPrices(Request $request){
         $response=[
             "mysql"=>[
