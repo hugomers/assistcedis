@@ -20,6 +20,8 @@ use App\Models\WorkpointVA;
 use App\Models\ControlFigures;
 use App\Models\historyPricesVA;
 use App\Models\AttributeCatalogVA;
+use App\Models\ProductPriceVA;
+
 
 
 
@@ -636,65 +638,6 @@ class ProductsController extends Controller
         ]);
     }
 
-    // public function highProducts(Request $request){
-    //     $request->uid();
-    //     $header = $request->head;
-    //     $data = $request->data;
-    //     $type = 1;
-    //     $control = new ControlFigures;
-    //     $control->name = $header['nameDoc'];
-    //     $control->created_at = $header['date'];
-    //     $control->_type = $type;
-    //     $control->_user = $request->uid();
-    //     $control->details = json_encode($data);
-    //     $control->save();
-    //     $res=  $control->fresh();
-    //     if($res){
-    //         DB::transaction(function () use ($data, $request) {
-    //             foreach($data as $product){
-    //                 $dataProduct = [
-    //                     'short_code'  => trim($product['short_code']),
-    //                     'description' => trim($product['description']),
-    //                     'label'       => trim(substr($product["description"],0,30)),
-    //                     'reference'   => $product['reference'],
-    //                     'pieces'      => $product['pxc'],
-    //                     '_category'   => $product['categoria']['id'],
-    //                     '_state'      => 1,
-    //                     '_unit'       => $product['umc']['id'],
-    //                     '_provider'   => $product['provider']['id'],
-    //                     'cost'        => $product['cost'],
-    //                     'barcode'     => isset($product['cb']) ? trim($product['cb']) : null,
-    //                     'refillable'  => 1,
-    //                     '_maker'      => $product['makers']['id'],
-    //                 ];
-
-    //                 $success = ProductVA::updateOrCreate(
-    //                     ['code' => $product['code']],
-    //                     $dataProduct
-    //                 );
-    //                 if (!empty($product['attributes'])) {
-    //                     $attributesData = [];
-    //                     foreach ($product['attributes'] as $attr) {
-    //                         $attributesData[$attr['id']] = [
-    //                             'value' => $attr['value']
-    //                         ];
-    //                     }
-    //                     $success->attributes()->sync($attributesData);
-    //                         foreach ($product['attributes'] as $attr) {
-    //                                 $attribute = AttributeCatalogVA::firstOrCreate([
-    //                                     'option' => $attr['value'],
-    //                                     '_attribute' => $attr['id']
-    //                                     ]);
-    //                         }
-    //                 }
-    //             }
-    //         });
-    //         return response()->json(['mssg'=>'Articulos Creados'],200);
-    //     }else{
-    //         return response()->json('No se lograron guardar los datos',500);
-    //     }
-    // }
-
     public function highProducts(Request $request){
         $request->uid();
         $header = $request->head;
@@ -703,13 +646,11 @@ class ProductsController extends Controller
         $created = 0;
         $updated = 0;
         $errors  = 0;
-
         $detail = [
             'created' => [],
             'updated' => [],
             'errors'  => []
         ];
-
         DB::transaction(function () use (
             $data,
             $request,
@@ -719,7 +660,9 @@ class ProductsController extends Controller
             &$updated,
             &$errors,
             &$detail
-        ) {
+        )
+
+        {
             $control = new ControlFigures;
             $control->name = $header['nameDoc'];
             $control->created_at = $header['date'];
@@ -819,22 +762,21 @@ class ProductsController extends Controller
     public function update(Request $request){
         $product = ProductVA::findOrFail($request->product);
         $changes = $request->changes ?? [];
-        // return $changes;
-        DB::transaction(function () use ($product, $changes) {
+        $changDB = DB::transaction(function () use ($product, $changes) {
             $data = collect($changes)->except([
                 'attributes',
                 'variants',
                 'barcodes'
             ])->toArray();
-
             if (isset($changes['category'])) {
                 $data['_category'] = $changes['category']['id'];
             }
-
             if (isset($changes['providers'])) {
                 $data['_provider'] = $changes['providers']['id'];
             }
-            // $data = collect($changes)->except('attributes')->toArray();
+            if (isset($changes['makers'])) {
+                $data['_maker'] = $changes['makers']['id'];
+            }
             if (!empty($data)) {
                 $product->update($data);
             }
@@ -854,35 +796,14 @@ class ProductsController extends Controller
                 $product->attributes()->sync($attributesData);
             }
 
-            if (isset($changes['prices'])) {
-                $pricesData = [];
-
-                foreach ($changes['prices'] as $price) {
-
-                    $rate = $price['pivot']['_rate'];
-                    $type = $price['pivot']['_type'];
-                    $value = $price['pivot']['price'];
-
-                    // clave compuesta rate + type
-                    $key = $rate . '-' . $type;
-
-                    $pricesData[$key] = [
-                        '_rate'  => $rate,
-                        '_type'  => $type,
-                        'price'  => $value
-                    ];
-                }
-
-                // borrar actuales
-                $product->prices()->delete();
-
-                foreach ($pricesData as $p) {
-                    $product->prices()->create([
-                        '_product' => $product->id,
-                        '_rate'    => $p['_rate'],
-                        '_type'    => $p['_type'],
-                        'price'    => $p['price']
-                    ]);
+            if (array_key_exists('prices', $changes)) {
+                $incoming = collect($changes['prices']);
+                foreach ($incoming as $price) {
+                  ProductPriceVA::where([
+                    ['_product',$product->id],
+                    ['_rate',$price['pivot']['_rate']],
+                    ['_type',$price['pivot']['_type']]
+                    ])->update(['price' => $price['pivot']['price']]);
                 }
             }
 
