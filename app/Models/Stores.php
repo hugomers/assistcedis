@@ -23,5 +23,7 @@ class Stores extends Model
     public function sale(){
         return $this->hasMany('App\Models\Sale','_store');
     }
-
+    public function warehouses(){
+        return $this->hasMany('App\Models\Warehouses','_store');
+    }
 }

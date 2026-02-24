@@ -3,89 +3,126 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Stores;
-use App\Models\Transfers;
-use App\Models\Warehouses;
-use Illuminate\Support\Facades\Http;
-use App\Models\TransferBodies;
 use Illuminate\Support\Facades\DB;
+use App\Models\Staff;
+use App\Models\Opening;
+use App\Models\OpeningType;
+use App\Models\Stores;
+use Illuminate\Support\Facades\Http;
+use App\Models\ClientVA;
+use App\Models\WorkpointVA;
+use App\Models\CellerVA;
+use App\Models\CellerSectionVA;
+use App\Models\ProductVA;
+use App\Models\AccountVA;
+use App\Models\CellerLogVA;
+use App\Models\Warehouses;
+use App\Models\Transfers;
+use App\Models\TransferBodies;
+use App\Models\TransferWarehouseLog;
+use App\Models\ProductCategoriesVA;
+use Carbon\Carbon;
 
 
 class TransferController extends Controller
 {
-    public function Index($sid){
-        $now = now()->format('Y-m-d');
-        $transfer = Transfers::with(['store','origin','destiny','bodie'])->where('_store',$sid)->whereDate('created_at',$now)->get();
-        $warehouse = Warehouses::all();
+
+
+    public function addingTransfer(Request $request){
+        // return $request->all();
+        $nwtra = $request->all();
+        $nwtra['_created_by'] = $request->uid();
+        $nwtra['_state'] = 1;
+
+        $transfer = Transfers::create($nwtra);
+        if($transfer){
+            $details = [
+                "notas"=>$transfer->notes
+            ];
+            $log = $this->createLog($transfer->id,1,$request->uid(),$details);
+        return response()->json($transfer);
+
+        }else{
+            return response()->json('fALLO Algo :/',500);
+        }
+    }
+    public function getTransfer($oid){
+        $transfer = Transfers::with(['origin','destiny','bodie','created_by','state'])->find($oid);
+        return response()->json($transfer);
+    }
+    public function getTransfers(Request $request){
+        // $now = now()->format('Y-m-d');
+        $fechas = $request->date;
+
+        $sid = $request->sid();
+        // return $fechas;
+        if(isset($fechas['from'])){
+            $desde = $fechas['from']." 00:00:00";
+            $hasta = $fechas['to']." 23:59:59";
+        }else{
+            $desde = $fechas." 00:00:00";
+            $hasta = $fechas." 23:59:59";
+        }
+
+        $transfer = Transfers::with(['origin','destiny','bodie','created_by','modify_by','state'])
+        ->where(function($query) use ($sid) {
+            $query->whereHas('origin', function($q) use ($sid) {
+                $q->where('_store', $sid);
+            })
+            ->orWhereHas('destiny', function($q) use ($sid) {
+                $q->where('_store', $sid);
+            });
+        })
+        ->whereBetween('created_at',[$desde,$hasta])
+        ->get();
+        // $warehouse = Warehouses::all();
 
         $resp = [
-            'warehouses'=>$warehouse,
             'transfer'=>$transfer,
         ];
 
         return response()->json($resp,200);
     }
 
-    public function getTransfersDate(Request $request){
-        $fechas = $request->date;
-        $sid = $request->store;
-        if(isset($fechas['from'])){
-            $desde = $fechas['from'];
-            $hasta = $fechas['to'];
+    public function deleteTransfer(Request $request){
+        $tid = $request->id;
+        $transfer = Transfers::find($tid);
+        $transfer->_state = 3;
+        $transfer->save();
+        $res = $transfer->load(['origin','destiny','bodie','created_by','modify_by','state']);
+        if($res){
+            $details= ["tipo"=>'Cancelacion'];
+            $log = $this->createLog($transfer->id,3,$request->uid(),$details);
+            return response()->json($transfer);
         }else{
-            $desde = $fechas;
-            $hasta = $fechas;
-        }
-        $transfer = Transfers::with(['store','origin','destiny','bodie'])->where('_store',$sid)->whereBetween(DB::raw('DATE(created_at)'), [$desde, $hasta])->get();
-        return response()->json($transfer,200);
-
-    }
-
-    public function addTransfer(Request $request){
-        $transfer = $request->all();
-        $store = Stores::find($transfer['_store']);
-        $ip = $store->ip_address;
-        // $ip = '192.168.10.160:1619';
-        $insTraAcc = http::post($ip.'/storetools/public/api/TransferBW/addTransfer',$transfer);
-        $status = $insTraAcc->status();
-        if($status == 201){
-            $res = json_decode($insTraAcc);
-            if($res->state){
-                $nwtransfer = new Transfers;
-                $nwtransfer->_store = $transfer['_store'];
-                $nwtransfer->created_by = $transfer['created_by'];
-                $nwtransfer->_origin = $transfer['_origin']['id'];
-                $nwtransfer->_destiny = $transfer['_destiny']['id'];
-                $nwtransfer->notes = $transfer['notes'];
-                $nwtransfer->code_fs = $res->traspaso;
-                $nwtransfer->save();
-                $nwtransfer->fresh()->toArray();
-                return response()->json($nwtransfer,200);
-            }else{
-                return response()->json('Hubo un problema en la creacion de el traspaso ',500);
-            }
-        }else{
-            return response()->json('Hubo un problema en la creacion de el traspaso ',500);
+            return response()->json('Hay un problema con el cambio de status',500);
         }
     }
 
-    public function getTransfer($oid){
-        $transfer = Transfers::with(['store','origin','destiny','bodie'])->find($oid);
-        return response()->json($transfer);
+
+    public function createLog($transfer,$state,$user,$details){
+        $createLog = TransferWarehouseLog::create([
+            "_transfer"=>$transfer,
+            "_state"=>$state,
+            "_user"=>$user,
+            "details"=>json_encode($details)
+        ]);
+        return $createLog;
     }
 
     public function addProduct(Request $request){
-        $product = $request->all();
-        $add = new TransferBodies;
-        $add->_transfer = $product['_transfer'];
-        $add->product = $product['product'];
-        $add->description = $product['description'];
-        $add->amount = $product['amount'];
-        $add->save();
-        if($add){
-            return response()->json('Producto Insertado',200);
-        }else{
-            return response()->json('Hubo problema al agregar el producto',500);
+        DB::beginTransaction();
+        try {
+            $transfer = Transfers::findOrFail($request->_transfer);
+            $transfer->bodie()->attach(
+                $request->_product,
+               ['amount' => $request->amount]
+               );
+            DB::commit();
+            return response()->json('Producto Insertado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
@@ -101,45 +138,73 @@ class TransferController extends Controller
     }
 
     public function editProduct(Request $request){
-        $product = $request->all();
-        $modify = TransferBodies::where([['_transfer',$product['_transfer']],['product',$product['product']]])->update(['amount'=>$product['amount']]);
-        if($modify){
-            return response()->json('Producto Editado',200);
+        DB::beginTransaction();
+        try {
+            $transfer = Transfers::findOrFail($request->_transfer);
+            $transfer->bodie()->updateExistingPivot(
+                $request->_product,
+                ['amount' => $request->amount]
+            );
+            DB::commit();
+            return response()->json('Producto Actualizado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
     public function removeProduct(Request $request){
-        $product = $request->all();
-        $delete = TransferBodies::where([['_transfer',$product['_transfer']],['product',$product['product']]])->delete();
-        if($delete){
-            return response()->json('Producto Eliminado',200);
-        }else{
-            return response()->json('Hubo un problema al eliminar el producto',500);
+        DB::beginTransaction();
+        try {
+            $transfer = Transfers::findOrFail($request->_transfer);
+            $transfer->bodie()->detach($request->_product);
+            DB::commit();
+            return response()->json('Producto Eliminado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
     public function endTransfer(Request $request){
-        $transfer = $request->traspaso;
-        $products = $request->products;
-        $user = $request->user;
-        $data = [
-            "traspaso"=>$transfer,
-            "products"=>$products
-        ];
-
-        $store = Stores::find($transfer['_store']);
-        $ip = $store->ip_address;
-        // $ip = '192.168.10.160:1619';
-        $insTraAcc = http::post($ip.'/storetools/public/api/TransferBW/endTransfer',$data);
-        $status = $insTraAcc->status();
-        if($status == 201){
-            $traspaso = Transfers::where('id',$transfer['id'])->update(['updated_by'=>$user]);
-            if($traspaso){
-                return response()->json('Traspaso Finalizado',200);
+         DB::beginTransaction();
+        try {
+            $transfer = Transfers::findOrFail($request->id);
+            if ($transfer->_state != 1) {
+                throw new \Exception("Transferencia ya procesada");
             }
+            $transfer->_state = 2;
+            $transfer->save();
+            $details= ["tipo"=>'Termino'];
+            $log = $this->createLog($transfer->id,2,$request->uid(),$details);
+            //actualizacion de stock
 
-        }else{
-            return response()->json(json_decode($insTraAcc),200);
+            $origin = $request->origin['id'];
+            $destiny = $request->destiny['id'];
+            $products = $request->bodie;
+            foreach($products as $product){
+                $productId = $product['id'];
+                $amount    = $product['pivot']['amount'];
+                $product = ProductVA::findOrFail($productId);
+                $product->stocks()
+                    ->where('_warehouse', $origin)
+                    ->decrement('_current', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $origin)
+                    ->decrement('available', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $destiny)
+                    ->increment('_current', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $destiny)
+                    ->increment('available', $amount);
+            }
+            $transfer->load(['origin','destiny','bodie','created_by','modify_by','state']);
+            DB::commit();
+            return response()->json($transfer, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 

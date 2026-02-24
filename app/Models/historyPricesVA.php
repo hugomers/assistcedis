@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class historyPricesVA extends Model
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = 'history_prices';
     public $timestamps = false;
     protected $fillable = [
         '_product',
+        '_type',
         'created_at',
         'details'
     ];

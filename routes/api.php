@@ -30,6 +30,8 @@ use App\Http\Controllers\CiclicosController;
 use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\WarehousesController;
+
 
 Route::prefix('/users')->group(function(){
     Route::post('trySignin',[UserController::class, 'trySignin']);
@@ -143,7 +145,14 @@ Route::middleware('auth')->group(function(){
         Route::get('/report',[AssistController::class, 'report']);
     });
 
+    // Route::prefix('/product')->group(function(){
+    //     Route::post('/',[CiclicosController::class, 'getProducts']);
+    //     Route::post('/getMassive',[CiclicosController::class, 'getMassiveProducts']);
+    // });;
+
+
     Route::prefix('/Products')->group(function(){
+
         Route::get('/index',[ProductsController::class, 'index']);
         Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
         Route::get('/searchCode/{id}',[ProductsController::class, 'searchCode']);
@@ -153,11 +162,12 @@ Route::middleware('auth')->group(function(){
 
 
         // Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
+        Route::post('/',[ProductsController::class, 'getProducts']);
         Route::post('/addCategory',[ProductsController::class, 'addCategory']);
         Route::post('/updateCategory',[ProductsController::class, 'updateCategory']);
         Route::post('/deleteCategory',[ProductsController::class, 'deleteCategory']);
         Route::post('/update',[ProductsController::class, 'update']);
-
+        Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
 
 
 
@@ -169,7 +179,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/reportDepure',[ProductsController::class, 'reportDepure']);
         Route::post('/replacecode',[ProductsController::class, 'replacecode']);
         Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
-        Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
+
         Route::post('/autoCompleteProduct',[ProductsController::class,'autoCompleteProduct']);
         Route::post('/exactSearch',[ProductsController::class,'exactSearch']);
         Route::post('/scanSearch',[ProductsController::class,'scanSearch']);
@@ -179,8 +189,11 @@ Route::middleware('auth')->group(function(){
         Route::post('/genBarcode',[ProductsController::class, 'genBarcode']);
         Route::post('/checkCodesBatch',[ProductsController::class, 'checkCodesBatch']);
         Route::post('/highProducts',[ProductsController::class, 'highProducts']);
+
         Route::post('/highPrices',[ProductsController::class, 'highPrices']);
         Route::post('/lookupProducts',[ProductsController::class, 'lookupProducts']);
+        Route::post('/syncStores',[ProductsController::class, 'syncStores']);
+
 
 
         Route::post('/checkLabels',[ProductsController::class, 'checkLabels']);
@@ -255,7 +268,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/saveReceipt',[RestockController::class, 'saveReceipt']);
         Route::post('/saveCheck',[RestockController::class, 'saveCheck']);
         Route::post('/getSalida',[RestockController::class, 'getSalida']);
-        Route::post('/getTransfer',[RestockController::class, 'getTransfer']);
+
         Route::post('/getSupplier',[RestockController::class, 'getSupplier']);
         Route::post('/changeStatus',[RestockController::class, 'changeStatus']);
         Route::post('/sendMessage',[RestockController::class, 'sendMessages']);
@@ -312,18 +325,6 @@ Route::middleware('auth')->group(function(){
         Route::post('/finishRequisition',[RequisitionController::class, 'finishRequisition']);
     });
 
-    Route::prefix('/transfer')->group(function(){
-        Route::get('/getTransfers/{sid}',[TransferController::class, 'Index']);
-        Route::get('/getTransfer/{oid}',[TransferController::class, 'getTransfer']);
-        Route::post('/getTransfersDate',[TransferController::class, 'getTransfersDate']);
-        Route::post('/addTransfer',[TransferController::class, 'addTransfer']);
-        Route::post('/addProduct',[TransferController::class, 'addProduct']);
-        Route::post('/addProductMasive',[TransferController::class, 'addProductMasive']);
-        Route::post('/editProduct',[TransferController::class, 'editProduct']);
-        Route::post('/removeProduct',[TransferController::class, 'removeProduct']);
-        Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
-        Route::post('/transferPreventa',[TransferController::class, 'transferPreventa']);
-    });
 
     Route::prefix('/output')->group(function(){
         Route::get('/getOutputs/{sid}',[OutputsController::class, 'Index']);
@@ -465,10 +466,6 @@ Route::middleware('auth')->group(function(){
         Route::post('/getProducts/{sid}',[CiclicosController::class, 'getProductsCompare']);
     });
 
-    Route::prefix('/product')->group(function(){
-        Route::post('/',[CiclicosController::class, 'getProducts']);
-        Route::post('/getMassive',[CiclicosController::class, 'getMassiveProducts']);
-    });;
 
     Route::prefix('/resources')->group(function(){
         Route::get('/getCedis',[RestockController::class, 'getCedis']);
@@ -526,6 +523,27 @@ Route::middleware('auth')->group(function(){
         Route::post('/finishState',[BillingController::class, 'finishState']);
         Route::post('/crearFacturaInterna',[BillingController::class, 'crearFacturaInterna']);
     });
+
+    Route::prefix('/warehouses')->group(function(){
+        Route::get('/',[WarehousesController::class, 'Index']);
+
+        Route::prefix('/transfers')->group(function(){//traspasos entre almacenes
+            Route::get('/getTransfer/{oid}',[TransferController::class, 'getTransfer']);
+            Route::post('/addingTransfer',[TransferController::class, 'addingTransfer']);
+            Route::post('/getTransfers',[TransferController::class, 'getTransfers']);
+            Route::post('/deleteTransfer',[TransferController::class, 'deleteTransfer']);
+            Route::post('/addProduct',[TransferController::class, 'addProduct']);
+            Route::post('/editProduct',[TransferController::class, 'editProduct']);
+            Route::post('/removeProduct',[TransferController::class, 'removeProduct']);
+            Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
+        });
+    });
+
+    // Route::prefix('/transfer')->group(function(){
+    //     Route::post('/addProductMasive',[TransferController::class, 'addProductMasive']);
+    //     Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
+    //     Route::post('/transferPreventa',[TransferController::class, 'transferPreventa']);
+    // });
 
 
 });

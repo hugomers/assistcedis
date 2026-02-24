@@ -9,4 +9,10 @@ class TransferBodies extends Model
 {
     protected $table = "transfer_bw_bodies";
     public $timestamps = false;
+    protected $fillable = [
+        '_transfer',
+        '_product',
+        'amount',
+    ];
+    protected $primaryKey = null;
 }

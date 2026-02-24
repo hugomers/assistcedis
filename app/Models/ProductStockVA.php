@@ -4,16 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class ProductStockVA extends Model
+class ProductStockVA extends Pivot
+
 {
-    // protected $connection = 'vizapi';
     protected $table = 'product_stock';
-    // protected $fillable = ['_product', 'amount', 'price', 'total'];
     public $timestamps = false;
+    protected $appends = ['state_data'];
 
-    public function workpoint(){
-      return $this->hasOne('App\Models\WorkpointVA', 'id', '_workpoint');
+    public function state(){
+        return $this->belongsTo('App\Models\ProductStatusVA', '_state');
     }
-
+    public function getStateDataAttribute(){
+        return $this->state()->first();
+    }
 }

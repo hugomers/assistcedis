@@ -26,6 +26,7 @@ use App\Models\ProductPriceVA;
 
 
 
+
 class ProductsController extends Controller
 {
     public function getProduct($id){
@@ -41,6 +42,135 @@ class ProductsController extends Controller
         $product->details = $product->combinedAmountByYear();
         return $product;
     }
+    public function getProducts(Request $request){ // Función autocomplete 2.0
+        $workpoint = $request->sid();
+        $codes = $request->target; // elemento que se envio
+        $query = ProductVA::with(['category.familia.seccion','units', 'state', 'variants']);
+        $typePrices = StoreS::find($workpoint)->_price_type;
+
+        // return $request->all();
+
+
+        if($request->autocomplete){ //se ocupara para exacto o para autocompletado
+            if(strlen($request->target)>1){
+                $query = $query->whereHas('variants', function(Builder $query) use ($request){
+                    $query->where('barcode', 'like', '%'.$request->target.'%');
+                })
+                ->orWhere(function($query) use($request){
+                    $query->orWhere('short_code', $request->target)
+                    ->orWhere('barcode', $request->target)
+                    ->orWhere('code', $request->target)
+                    ->orWhere('short_code', 'like','%'.$request->target.'%')
+                    ->orWhere('code', 'like','%'.$request->target.'%');
+                });
+            }
+        }else{ //La busqueda se realizara por similitud
+            if(strlen($request->target)>1){
+                $query =
+                $query->where('id',$request->target)
+                ->whereHas('variants', function(Builder $query) use ($request){
+                    $query->where('barcode', $request->target);
+                })
+
+                ->orWhere(function($query) use($request){
+                    $query->orWhere('short_code', $request->target)
+                    ->orWhere('barcode', $request->target)
+                    ->orWhere('code', $request->target)
+                    ->orWhere('id',$request->target);
+                });
+            }
+        }
+        $query = $query->where("_state", "!=", 4);
+        if(isset($request->withHistoric)){
+            $query->with(['historicPrices' => function($q) {
+                $q->latest('created_at')->limit(1);
+            }]);
+        }
+
+        if(isset($request->_workpoint_status) && $request->_workpoint_status){ // Se obtiene el stock de la tienda se se aplica el filtro
+
+            if($request->_workpoint_status == "all"){
+                $query = $query->with(['stocks'  => function($query){ $query->where('active',1);} ]);
+            }else{
+                $workpoints = $request->_workpoint_status;
+                $workpoints[] = 1; // Siempre se agrega el status de la sucursal
+                $query = $query->with(['stocks' => function($query) use($workpoints){ //Se obtienen los stocks de todas las sucursales que se pasa el arreglo
+                    $query->whereIn('_store', $workpoints)->distinct();
+                }]);
+            }
+        }else{
+            if(isset($request->with_stock_cedis) && $request->with_stock_cedis){
+                $query = $query->with(['stocks' => function($query) use($request){
+                    $query->whereIn('_store',[$request->with_stock_cedis,$request->_workpoint]); //Con stock
+                }]);
+            }else{
+                $query = $query->with(['stocks' => function($query) use($workpoint){ //Se obtiene el stock de la sucursal
+                    $query->where('_store', $workpoint)->distinct();
+                }]);
+            }
+
+        }
+    //hay que respetar la busqueda que si es de un sitio o de otro
+        if(isset($request->with_locations) && $request->with_locations){ //Se puede agregar todas las ubicaciones de la sucursal
+            $data = [
+                "workpoint"=>$workpoint,
+                "rol"=>$request->with_locations_loc
+            ];
+            $query = $query->with(['locations' => function($query) use ($data) {
+                $query->with('celler')
+                ->where('deleted_at',null)
+                ->whereHas('celler', function($query) use ($data) {
+                    $rol = $data['rol'];
+                    $query->where([['_workpoint', $data['workpoint']]]);
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        $query = $query;
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        $query = $query->where('_type',1);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        $query = $query->where('_type',2);
+                    }
+                    ;
+                });
+            }]);
+        }
+        if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
+            if($request->with_stock){
+                $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
+                    $query->where('_workpoint', $workpoint)->where('stock', '>', 0); //Con stock
+                });
+            }else{
+                $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
+                    $query->where('_workpoint', $workpoint)->where('stock', '<=', 0); //Sin stock
+                });
+            }
+        }
+        if(isset($request->with_prices_label) && $request->with_prices_label){ //Solo para generar Etiquetas
+            $query = $query->with(['prices' => function($query){
+                $query->whereIn('_type', [1, 2, 3, 4])->wherePivot('_type', $typePrices)->orderBy('id'); //Solo se envian los precios de Menudeo, Mayoreo, Docena o Media caja y caja
+            }]);
+        }
+        if(isset($request->with_prices_Invoice) && $request->with_prices_Invoice){// solo para crear las salidas
+            $query = $query->with(['prices' => function($q) use ($typePrices) { $q->where('id',7)->wherePivot('_type', $typePrices); } ]);
+        }
+        if(isset($request->with_prices) && $request->with_prices){// para recibir todos los precios para venta y preventa
+            $query = $query->with([
+                'prices' => function($q) use ($typePrices) {
+                    $q->wherePivot('_type', $typePrices);
+                }
+            ]);
+        }
+        if(isset($request->limit) && $request->limit){ //Se puede agregar un limite de los resultados mostrados
+            $query = $query->limit($request->limit);
+        }
+        $query = $request->autocomplete ?$query->get() :$query->first();
+        // if(isset($request->paginate) && $request->paginate){
+        //     $products = $query->orderBy('_status', 'asc')->paginate($request->paginate);
+        // }else{
+        //     $products = $query->orderBy('_status', 'asc')->get();
+        // }
+        return response()->json($query);
+    }
+
 
     public function index(){
         $res = [
@@ -49,7 +179,8 @@ class ProductsController extends Controller
         "makers" => MakersVA::all(),
         "units" => ProductUnitVA::all(),
         "states" => ProductStatusVA::all(),
-        "attributes"=>CategoryAttributeVA::with('catalog')->get()
+        "attributes"=>CategoryAttributeVA::with('catalog')->get(),
+        "stores"=>Stores::where('_state',1)->get()
         ];
         return $res;
     }
@@ -512,7 +643,7 @@ class ProductsController extends Controller
             // ->where(function ($q) use ($autocomplete) {
                 ->where('code', $autocomplete)
                 ->orWhereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
-                ->orWhere('name', $autocomplete)
+                ->orWhere('short_code', $autocomplete)
                 ->orWhere('barcode', $autocomplete)
 
             // })
@@ -836,26 +967,12 @@ class ProductsController extends Controller
         ]);
     }
 
-
     public function highPrices(Request $request){
-        $response=[
-            "mysql"=>[
-                "update"=>[
-                    "goal"=>[],
-                    "fails"=>[]
-                ]
-            ],
-            "sucursales"=>[
-                "update"=>[
-                    "goal"=>[],
-                    "fails"=>[]
-                ]
-            ]
-        ];
-        $insertFactusol = ['prices'=>[]];
         $header = $request->head;
+        // return $header;
         $data = $request->data;
-        $type = 2;//cambio de precios
+        // return $data;
+        $type = 2;
         $control = new ControlFigures;
         $control->name = $header['nameDoc'];
         $control->created_at = $header['date'];
@@ -870,6 +987,7 @@ class ProductsController extends Controller
                 if($product){
                     $resProduct = historyPricesVA::create([
                         "_product"=>$price['_product'],
+                        "_type"=>$price['_type'],
                         "created_at"=>now(),
                         "details"=>json_encode(["cost"=>$product->cost, "prices"=>$product->prices]),
                     ]);
@@ -878,81 +996,18 @@ class ProductsController extends Controller
                         $product->save();
                         $updateProduct = $product->fresh();
                         if($updateProduct){
-                            $pivotData = [];
-                            foreach ($price['prices'] as $type => $valor) {
-                                    $pivotData[$type] = ['price' => $valor];
-                            }
-                            $pdtPrices = $product->prices()->sync($pivotData);
-                            if($pdtPrices){
-                                $insertFactusol['prices'][] = $price;
+                            foreach($price['prices'] as $key =>  $pric){
+                                ProductPriceVA::where([
+                                    ['_product',$price['_product']],
+                                    ['_rate',$key],
+                                    ['_type',$price['_type']]
+                                ])->update(['price' => $pric]);
                             }
                         }
                     }
                 }
             }
-            $stores = WorkpointVA::where('active',1)->whereNotIn('id',[2,18,16,24])->get();
-            // $stores = WorkpointVA::where('id',1)->get();
-            foreach($stores as $store){
-                try {
-                    // return $store;
-                    $createStore = Http::timeout(50)->post($store->dominio.'/storetools/public/api/Products/highPrices',$insertFactusol);
-                    // return $createStore;
-                    if($createStore->status() == 200){
-                        $response['sucursales']['update']['goal'][] = [$store->alias=>$createStore->json()];
-                    }else{
-                        $response['sucursales']['update']['fails'][] = [$store->alias=>['Con Error']];
-                    }
-                } catch (\Throwable $e) {
-                    $response['sucursales']['update']['fails'][] = [
-                        $store->alias => ['Sin conexión', 'error' => $e->getMessage()]
-                    ];
-                }
-            }
-
-            $dionisio = [
-                [
-                    "dominio"=>'ipwasabd-ntgkpkdcrv.dynamic-m.com:1619',
-                    "alias"=>"GR2",
-                ],
-                [
-                    "dominio"=>'novedadesdio-tkkhkmjbrv.dynamic-m.com:1619',
-                    "alias"=>"GR1",
-
-                ]
-            ];
-            foreach($dionisio as $st){
-                 try {
-                $createStoreDio = Http::timeout(50)->post($st['dominio'].'/storetools/public/api/Products/highPrices',$insertFactusol);
-                // $createStoreDio = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/highPrices',$insertFactusol);
-                    if($createStoreDio->status() == 200){
-                        $response['sucursales']['update']['goal'][] = [$st['alias']=>$createStoreDio->json()];
-                    }else{
-                        $response['sucursales']['update']['fails'][] = [$st['alias']=>['Con Error']];
-                    }
-                } catch (\Throwable $e) {
-                    $response['sucursales']['update']['fails'][] = [
-                        $st['alias'] => ['Sin conexión', 'error' => $e->getMessage()]
-                    ];
-                }
-            }
-
-
-            $foraneo = WorkpointVA::find(18);
-            try {
-                $createStoreFor = Http::timeout(50)->post($foraneo->dominio.'/storetools/public/api/Products/regispricefor',$insertFactusol);
-                // $createStoreFor = Http::post('192.168.10.160:1619'.'/storetools/public/api/Products/regispricefor',$insertFactusol);
-                // return $createStoreFor;
-                if($createStoreFor->status() == 200){
-                    $response['sucursales']['update']['goal'][] = [$foraneo->alias=>$createStoreFor->json()];
-                }else{
-                    $response['sucursales']['update']['fails'][] = [$foraneo->alias=>['Con Error']];
-                }
-            } catch (\Throwable $e) {
-                $response['sucursales']['update']['fails'][] = [
-                $foraneo->alias => ['Sin conexión', 'error' => $e->getMessage()]
-                ];
-            }
-            return response()->json($response);
+            return response()->json($request->all());
         }else{
             return response()->json('No se lograron guardar los datos',500);
         }
@@ -1254,5 +1309,47 @@ class ProductsController extends Controller
         }
 
         return response()->json($category);
+    }
+
+    public function syncStores(Request $request){
+        $res = [
+            "goals"=>[],
+            "fails"=>[],
+        ];
+        $products = ProductVA::with('prices',   'attributes',
+                'units',
+                'makers',
+                'providers',
+                'variants',
+                'barcodes',
+                'category.familia.seccion')->where('updated_at','>=',$request->date)->get();
+        if(count($request->stores) == 0){
+            $stores = Stores::where('_state',1)->get();
+        }else{
+            $stores = Stores::whereIn('id',$request->stores)->get();
+        }
+        foreach($stores as $store){
+            try {
+                $reply= Http::post($store['local_domain'].':'.$store['local_port'].'/storetools/public/api/Products/highProducts',["products"=>$products,"store"=>$store]);
+                if($reply->status() == 200){
+                    $res['goals'][] = [
+                        "sucursal"=>$store['name'],
+                        "response"=>$reply->json(),
+                    ];
+                }else{
+                    $res['fails'][] = [
+                        "sucursal"=>$store['name'],
+                        "response"=>$reply->json(),
+                    ];
+                }
+            } catch (\Exception $e) {
+                $res['fails'][] = [
+                    "sucursal" => $store['name'],
+                    "response" => "Sin conexión",
+                    "error"    => $e->getMessage(),
+                ];
+            }
+        }
+        return response()->json($res,200);
     }
 }

@@ -34,9 +34,14 @@ class ProductVA extends Model
         return $this->belongsToMany('App\Models\Invoice', 'product_required', '_product', '_requisition')
                     ->withPivot('units', 'comments', 'stock');
     }
+    // public function stocks(){
+    //     return $this->belongsToMany('App\Models\StoresVA', 'product_stock', '_product', '_workpoint')
+    //                 ->withPivot('min', 'max', 'stock', 'gen', 'exh', 'des', 'fdt', 'V23', 'LRY', 'in_transit', '_status');
+    // }
     public function stocks(){
-        return $this->belongsToMany('App\Models\WorkpointVA', 'product_stock', '_product', '_workpoint')
-                    ->withPivot('min', 'max', 'stock', 'gen', 'exh', 'des', 'fdt', 'V23', 'LRY', 'in_transit', '_status');
+        return $this->belongsToMany('App\Models\Warehouses', 'product_stock', '_product', '_warehouse')
+                    ->using('App\Models\ProductStockVA')
+                    ->withPivot('_min', '_max', '_current', 'available', 'in_coming', 'reserved', '_state');
     }
     public function salesPerWorkpoints(){
         return $this->belongsToMany('App\Models\WorkpointVA', 'cash_register', '_cash', '_workpoint')
