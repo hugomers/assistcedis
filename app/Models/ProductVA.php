@@ -29,6 +29,7 @@ class ProductVA extends Model
         // 'dimensions',
         // 'large',
     ];
+    // protected $appends = ['stock_by_store'];
 
     public function invoices(){
         return $this->belongsToMany('App\Models\Invoice', 'product_required', '_product', '_requisition')
@@ -62,7 +63,7 @@ class ProductVA extends Model
         return $this->hasMany('App\Models\ProductBarcodeVA', '_product', 'id');
     }
     public function locations(){
-        return $this->belongsToMany('App\Models\CellerSectionVA', 'product_location', '_product', '_location');
+        return $this->belongsToMany('App\Models\CellerSectionVA', 'product_locations', '_product', '_location');
     }
     public function units(){
         return $this->belongsTo('App\Models\ProductUnitVA', '_unit');
@@ -131,7 +132,7 @@ class ProductVA extends Model
     }
 
     public function historicPrices(){
-        return $this->hasMany('App\Models\HistoryPriceVA', '_product', 'id');
+        return $this->hasMany('App\Models\historyPricesVA', '_product', 'id');
     }
 
     public function salesByWorkpointArray() {
@@ -169,4 +170,24 @@ class ProductVA extends Model
                             $q->whereYear('created_at', now()->year); // solo workpoints activos
                 });
     }
+
+
+
+    public function getStockByStoreAttribute(){
+        $result = [];
+        foreach ($this->stockWarehouses as $stock) {
+            $storeName = $stock->warehouse->store->name;
+            $warehouseName = $stock->warehouse->name;
+            if (!isset($result[$storeName])) {
+                $result[$storeName] = [];
+            }
+            $result[$storeName][$warehouseName] = $stock->_current;
+        }
+        return $result;
+    }
+
+
+
+
+
 }

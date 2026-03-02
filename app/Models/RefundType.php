@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class RefundType extends Model
 {
-    protected $table = "refund_type";
+    protected $table = "transfer_store_types";
     public $timestamps = false;
 }

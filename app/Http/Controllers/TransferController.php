@@ -127,14 +127,20 @@ class TransferController extends Controller
     }
 
     public function addProductMasive(Request $request){
-        $products = $request->all();
-        $add = TransferBodies::insert($products);
-        if($add){
-            return response()->json('Producto Insertado',200);
-        }else{
-            return response()->json('Hubo problema al agregar el producto',500);
+        DB::beginTransaction();
+        try {
+            $products = $request->all();
+            TransferBodies::insert($products);
+            DB::commit();
+            return response()->json([
+                'message' => 'Productos insertados correctamente'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
         }
-
     }
 
     public function editProduct(Request $request){

@@ -16,6 +16,7 @@ use App\Models\CellerSectionVA;
 use App\Models\ProductVA;
 use App\Models\AccountVA;
 use App\Models\CellerLogVA;
+use App\Models\Warehouses;
 use App\Models\ProductCategoriesVA;
 use Carbon\Carbon;
 
@@ -27,15 +28,15 @@ class locationController extends Controller
 {
     public function index(Request $request){
         $rol = $request->_rol;
-        $sid = $request->_workpoint;
-        $cellers = CellerVA::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('_workpoint',$sid);
-        if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-            $cellers = $cellers->get();
-        }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
-            $cellers = $cellers->where('_type',1)->get();
-        }else if(in_array($rol, [8,9,27,28])){//ventas
-            $cellers = $cellers->where('_type',2)->get();
-        }
+        $sid = $request->_warehouse;
+        $cellers = Warehouses::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('id',$sid)->get();
+        // if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+        //     $cellers = $cellers->get();
+        // }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+        //     $cellers = $cellers->where('_type',1)->get();
+        // }else if(in_array($rol, [8,9,27,28])){//ventas
+        //     $cellers = $cellers->where('_type',2)->get();
+        // }
         return response()->json($cellers,200);
     }
 
@@ -78,7 +79,7 @@ class locationController extends Controller
         return response()->json($section,200);
     }
 
-    public function insertSection(Request $request){
+    public function insertSection(Request $request){//este ya esta
         $sections = $request->sections;
         $create = [];
         foreach($sections as &$section){
@@ -90,12 +91,10 @@ class locationController extends Controller
 
     public function addLocations(Request $request){
         $ip = $request->ip();
-        $user = AccountVA::find($request->id_viz);
         $product = ProductVA::find($request->_product);
         if($product && !is_null($request->_location)){
             $changes = $product->locations()->toggle($request->_location);
             $details = [
-                "user"=>$user,
                 "ip"=>$ip,
                 "type"=>null,
                 "product"=>$request->_product,
@@ -105,17 +104,14 @@ class locationController extends Controller
             ];
             if (count($changes['attached'])>0) {
                 $details['section']=$request->_location;
-                $details['type']='Add';
+                $details['type']='created';
             }
             if (count($changes['detached'])>0) {
                 $details['section']=$request->_location;
-                $details['type']='delete';
+                $details['type']='deleted';
             }
             $celler = CellerSectionVA::where('id',$request->_location)->first();
-            $log = new CellerLogVA;
-            $log->details = json_encode($details);
-            $log->_celler = $celler->_celler;
-            $log->save();
+            $log = $this->createLog($details['section'],$request->uid(),$details['type'],$details);
             return response()->json([
                 'success' => $changes
             ]);
@@ -128,7 +124,7 @@ class locationController extends Controller
 
     public function deleteSection(Request $request){//ok
         $ip = $request->ip();
-        $user = AccountVA::find($request->id_viz);
+
         $section = CellerSectionVA::findOrFail($request->id);
         $ids = $section->getAllDescendantIds();
         CellerSectionVA::whereIn('id', $ids)
@@ -138,7 +134,7 @@ class locationController extends Controller
 
         foreach ($sections as $sec) {
             $details = [
-                "user" => $user,
+                "user" => $request->uid(),
                 "ip"   => $ip,
                 "type" => "delete-section",
                 "section" => $sec->id,
@@ -146,21 +142,16 @@ class locationController extends Controller
                 "hora"    => Carbon::now()->format('H:i:s'),
             ];
 
-            CellerLogVA::create([
-                'details' => json_encode($details),
-                '_celler' => $sec->_celler
-            ]);
+            $log = $this->createLog($sec->id,$request->uid(),'deleted',$details);
         }
-
-
         return response()->json([
             'message' => 'Secciones eliminadas correctamente',
             'ids' => $ids
         ]);
-    }//falta log
+    }//ysata
 
     public function getInit($sid){
-        $cellers = CellerVA::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('_workpoint',$sid)->get();
+        $cellers = Warehouses::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('id',$sid)->get();
         $categories = ProductCategoriesVA::whereNotNull('alias')->get();
         return response()->json([
             "celler"=>$cellers,
@@ -168,8 +159,8 @@ class locationController extends Controller
         ],200);
     }
 
-    public function obtProduct(Request $request){
-        $workpoint = $request->workpoint;
+    public function obtProduct(Request $request){//yuasata
+        $warehouse= $request->_warehouse;
         $sectionId = $request->section;
         $celler = $request->celler;
         if($sectionId != null){
@@ -180,42 +171,28 @@ class locationController extends Controller
             $allIds = $section->getAllDescendantIds();
 
             $products = ProductVA::with([
-                'locations' => function($query) use ($workpoint) {
-                    $query->whereNull('deleted_at');
-                    $query->whereHas('celler', function($query) use ($workpoint) {
-                        $query->where([['_workpoint', $workpoint]]);
+                'locations' => function($query) use ($warehouse) {
+                    // $query->with('warehouse')
+                    $query->whereNull('deleted_at')
+                    ->whereHas('warehouse', function($q2) use ($warehouse) {
+                        $q2->where([['id', $warehouse]]);
                 });},
-            ])->where('_status','!=',4)
-            ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
+            ])->where('_state','!=',4)
+            ->whereHas('locations', function($q) use($allIds){ $q->whereIn('_location',$allIds);})
             ->get();
         }else{
             $products = ProductVA::with([
-                'locations' => function($query) use ($workpoint) {
-                    $query->whereNull('deleted_at');
-                    $query->whereHas('celler', function($query) use ($workpoint) {
-                        $query->where([['_workpoint', $workpoint]]);
+                'locations' => function($query) use ($warehouse) {
+                    // $query->with('warehouse')
+                    $query->whereNull('deleted_at')
+                    ->whereHas('warehouse', function($q2) use ($warehouse) {
+                        $q2->where([['id', $warehouse]]);
                 });},
             ])
-            ->where('_status','!=',4)
-            ->whereHas('locations', function($q) use($celler){ $q->whereIn('id',$celler);})
+            ->where('_state','!=',4)
+            ->whereHas('locations', function($q) use($celler){ $q->whereIn('_location',$celler);})
             ->get();
         }
-
-        // if (!$section) {
-        //     return response()->json([], 404);
-        // }
-        // $allIds = $section->getAllDescendantIds();
-
-        // $products = ProductVA::with([
-        //     'locations' => function($query) use ($workpoint) {
-        //         $query->whereNull('deleted_at');
-        //         $query->whereHas('celler', function($query) use ($workpoint) {
-        //             $query->where([['_workpoint', $workpoint]]);
-        //     });},
-        // ])
-        // ->where('_status','!=',4)
-        // ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
-        // ->get();
         return response()->json($products);
     }
 
@@ -223,9 +200,10 @@ class locationController extends Controller
         $filters = $request->all();
         $products = ProductVA::with([
             'locations' => function($query) use ($filters) {
-                $query->whereNull('deleted_at');
-                $query->whereHas('celler', function($query) use ($filters) {
-                    $query->where([['_workpoint', $filters['workpoint']]]);
+                    // $query->with('warehouse')
+                    $query->whereNull('deleted_at')
+                    ->whereHas('warehouse', function($q2) use ($filters) {
+                        $q2->where([['id', $filters['_warehouse']]]);
             });},
             ])
             ->when(count($filters['categories']) > 0, fn($q) =>
@@ -239,16 +217,15 @@ class locationController extends Controller
                 $q2->whereIn('id', $filters['sections'])))
             ->whereHas('locations', function($query) use ($filters) {
                 $query->whereNull('deleted_at');
-                $query->whereHas('celler', function($query) use ($filters) {
-                    $query->where([['_workpoint', $filters['workpoint']]]);
+                $query->whereHas('warehouse', function($query) use ($filters) {
+                    $query->where([['id', $filters['_warehouse']]]);
             });})
-            ->where('_status','!=',4)->get();
+            ->where('_state','!=',4)->get();
         return response()->json($products);
     }
 
     public function deleteSectionProducts(Request $request){//ok
         $ip = $request->ip();
-        $user = AccountVA::find($request->id_viz);
         $productsIds = $request->products;
         $sectionId = $request->section;
         $section = CellerSectionVA::with(['children' => fn($q) => $q->whereNull('deleted_at')])->find($sectionId);
@@ -262,7 +239,7 @@ class locationController extends Controller
             $deleted = $product->locations()->wherePivotIn('_location', $allIds)->detach();
             if ($deleted > 0) {
                 $details = [
-                    "user" => $user,
+                    "user" => $request->uid(),
                     "ip"   => $ip,
                     "type" => "delete",
                     "product" => $product->id,
@@ -271,10 +248,7 @@ class locationController extends Controller
                     "hora"    => Carbon::now()->format('H:i:s'),
                 ];
 
-                $log = new CellerLogVA;
-                $log->details = json_encode($details);
-                $log->_celler = $section->_celler;
-                $log->save();
+                $log = $this->createLog($request->section,$request->uid(),'deleted',$details);
             }
         }
         return response()->json([
@@ -286,14 +260,14 @@ class locationController extends Controller
     public function deleteCategoriesLocations(Request $request){
         $ip = $request->ip();
         $products = $request->products;
-        $user = AccountVA::find($request->id_viz);
+        // $user = AccountVA::find($request->id_viz);
         foreach ($products as $product) {
             $delProd = ProductVA::find($product['product']);
             $deleted = $delProd->locations()->wherePivotIn('_location', $product['locations'])->detach();
             if ($deleted > 0) {
                 $celler = CellerSectionVA::whereIn('id',$product['locations'])->first();
                 $details = [
-                    "user" => $user,
+                    "user" => $request->uid(),
                     "ip"   => $ip,
                     "type" => "delete",
                     "product" => $delProd->id,
@@ -301,11 +275,7 @@ class locationController extends Controller
                     "created" => Carbon::now()->format('Y-m-d'),
                     "hora"    => Carbon::now()->format('H:i:s'),
                 ];
-
-                $log = new CellerLogVA;
-                $log->details = json_encode($details);
-                $log->_celler = $celler->_celler; // si existe en RF
-                $log->save();
+                $log = $this->createLog($product['locations'],$request->uid(),'deleted',$details);
             }
         }
         return response()->json([
@@ -320,43 +290,35 @@ class locationController extends Controller
             "goals"=>[],
             "fails"=>[]
         ];
-        $products = $request->products;
-        $user = AccountVA::find($request->id_viz);
+        $products = $request->all();
         foreach ($products as $product) {
             $addLocation = ProductVA::where('code',$product['_product'])->first();
             if($addLocation){
                 $validLocations = CellerSectionVA::whereIn('id', $product['_location'])
-                    ->whereHas('celler', function($query) use ($product) {
-                        $query->where('_workpoint', $product['_workpoint']);
+                    ->whereHas('warehouse', function($query) use ($product,$request) {
+                        $query->where('_store',$request->sid());
                     })
                     ->pluck('id');
-                    // return $validLocations;
-
                 if ($validLocations->isNotEmpty()) {
 
                     $product['_location'] = $validLocations->toArray();
                     $addLocation->locations()->syncWithoutDetaching($product['_location']);
                     $locations = CellerSectionVA::whereIn('id', $product['_location'])
-                        ->select('id','name','alias','path','_celler')
+                        ->select('id','name','alias','path','_warehouse')
                         ->get();
 
-
                     $details = [
-                        "user" => $user,
+                        "user" => $request->uid(),
                         "ip"   => $ip,
-                        "type" => "Add",
+                        "type" => "create",
                         "product" => $addLocation->id,
                         "section" => $validLocations,
                         "created" => Carbon::now()->format('Y-m-d'),
                         "hora"    => Carbon::now()->format('H:i:s'),
                     ];
-
-                    $log = new CellerLogVA;
-                    $log->details = json_encode($details);
-                    $log->_celler = $locations->first()->_celler ?? null;
-                    $log->save();
-
-
+                    foreach($product['_location'] as $loc){
+                        $log = $this->createLog($loc,$request->uid(),'created',$details);
+                    }
 
                     $res['goals'][] = [
                         "product" => $product['_product'],
@@ -383,8 +345,7 @@ class locationController extends Controller
 
     public function deleteMassiveLocation(Request $request){
         $ip = $request->ip();
-        $products = $request->products;
-        $user = AccountVA::find($request->id_viz);
+        $products = $request->all();
         $res = [];
 
         foreach ($products as $product) {
@@ -392,15 +353,15 @@ class locationController extends Controller
 
             if ($delProd) {
                 $locationIds = $delProd->locations()
-                    ->whereHas('celler', function($query) use ($product) {
-                        $query->where('_workpoint', $product['_workpoint']);
+                    ->whereHas('warehouse', function($query) use ($product) {
+                        $query->where('id', $product['_warehouse']);
                     })
                     ->pluck('id');
                 if ($locationIds->isNotEmpty()) {
                     $delProd->locations()->detach($locationIds);
                     $celler = CellerSectionVA::whereIn('id',$locationIds)->first();
                     $details = [
-                        "user" => $user,
+                        "user" => $request->uid(),
                         "ip"   => $ip,
                         "type" => "delete",
                         "product" => $delProd->id,
@@ -409,10 +370,7 @@ class locationController extends Controller
                         "hora"    => Carbon::now()->format('H:i:s'),
                     ];
 
-                    $log = new CellerLogVA;
-                    $log->details = json_encode($details);
-                    $log->_celler = $celler->_celler;
-                    $log->save();
+                    $log = $this->createLog($celler->id,$request->uid(),'deleted',$details);
 
                     $res[] = [
                         'Producto' => $product['_product'],
@@ -710,6 +668,16 @@ class locationController extends Controller
             })->get();
         }
         return response()->json($productos,200);
+    }
+
+    public function createLog($section,$user,$type,$details){
+        $log = CellerLogVA::create([
+            '_section' => $section,
+            '_user' => $user,
+            'type'=>$type,
+            'details'=>json_encode($details)
+        ]);
+        return $log;
     }
 
 }

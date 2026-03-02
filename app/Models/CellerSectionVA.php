@@ -7,25 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class CellerSectionVA extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'celler_section';
+    // protected $connection = 'vizapi';
+    protected $table = 'warehouse_sections';
     public $timestamps = false;
 
     private $rootCache = null;
     protected $fillable = ['name',
                     'alias',
                     'path' ,
-                    'root',
+                    '_root',
                     'deep',
                     'details',
-                    '_celler'];
+                    '_warehouse'];
 
-    public function celler(){
-        return $this->belongsTo('App\Models\CellerVA', '_celler');
+    public function warehouse(){
+        return $this->belongsTo('App\Models\Warehouses', '_warehouse');
     }
 
     public function parent(){
-        return $this->belongsTo(CellerSectionVA::class, 'root');
+        return $this->belongsTo(CellerSectionVA::class, '_root');
     }
 
     public function getRootNode(){
@@ -42,7 +42,7 @@ class CellerSectionVA extends Model
     }
 
     public function children(){
-        return $this->hasMany(CellerSectionVA::class, 'root', 'id');
+        return $this->hasMany(CellerSectionVA::class, '_root', 'id');
     }
 
     public function getAllDescendantIds(){

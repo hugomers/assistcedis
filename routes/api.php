@@ -145,11 +145,6 @@ Route::middleware('auth')->group(function(){
         Route::get('/report',[AssistController::class, 'report']);
     });
 
-    // Route::prefix('/product')->group(function(){
-    //     Route::post('/',[CiclicosController::class, 'getProducts']);
-    //     Route::post('/getMassive',[CiclicosController::class, 'getMassiveProducts']);
-    // });;
-
 
     Route::prefix('/Products')->group(function(){
 
@@ -158,11 +153,12 @@ Route::middleware('auth')->group(function(){
         Route::get('/searchCode/{id}',[ProductsController::class, 'searchCode']);
         Route::get('/searchBarcode/{id}',[ProductsController::class, 'searchBarcode']);
         Route::get('/getWorkpoinProduct/{sid}',[ProductsController::class, 'getWorkpoinProduct']);
+        Route::post('/',[ProductsController::class, 'getProducts']);
+        Route::post('/getMassiveProducts',[ProductsController::class, 'getMassiveProducts']);
         Route::post('/searchProd',[ProductsController::class, 'searchProd']);
 
 
         // Route::get('/getProduct/{id}',[ProductsController::class, 'getProduct']);
-        Route::post('/',[ProductsController::class, 'getProducts']);
         Route::post('/addCategory',[ProductsController::class, 'addCategory']);
         Route::post('/updateCategory',[ProductsController::class, 'updateCategory']);
         Route::post('/deleteCategory',[ProductsController::class, 'deleteCategory']);
@@ -197,12 +193,9 @@ Route::middleware('auth')->group(function(){
 
 
         Route::post('/checkLabels',[ProductsController::class, 'checkLabels']);
-        Route::post('/setMin',[ProductsController::class, 'setMin']);
-        Route::post('/setMax',[ProductsController::class, 'setMax']);
-        Route::post('/setMassisveMinMax',[ProductsController::class, 'setMassisveMinMax']);
+
         Route::post('/updateImgProduct',[ProductsController::class, 'updateImgProduct']);
         Route::post('/massiveUpdateImg',[ProductsController::class, 'massiveUpdateImg']);
-        Route::post('/updateStatusProduct',[ProductsController::class, 'updateStatusProduct']);
     });
 
     Route::prefix('/admincli')->group(function(){
@@ -326,18 +319,7 @@ Route::middleware('auth')->group(function(){
     });
 
 
-    Route::prefix('/output')->group(function(){
-        Route::get('/getOutputs/{sid}',[OutputsController::class, 'Index']);
-        Route::get('/getOutput/{oid}',[OutputsController::class, 'getOutput']);
-        Route::post('/getOutsDate',[OutputsController::class, 'getOutsDate']);
-        Route::post('/addOutputs',[OutputsController::class, 'addOuts']);
-        Route::post('/addProductMasive',[OutputsController::class, 'addProductMasive']);
-        Route::post('/addProduct',[OutputsController::class, 'addProduct']);
-        Route::post('/editProduct',[OutputsController::class, 'editProduct']);
-        Route::post('/removeProduct',[OutputsController::class, 'removeProduct']);
-        Route::post('/endOutput',[OutputsController::class, 'endOutput']);
-        Route::post('/outputPreventa',[OutputsController::class, 'outputPreventa']);
-    });
+
 
 
     Route::prefix('/deposits')->group(function(){
@@ -348,21 +330,6 @@ Route::middleware('auth')->group(function(){
         Route::post('/changeTicket',[DepositsController::class, 'changeTicket']);
     });
 
-    Route::prefix('/refunds')->group(function(){
-        Route::get('/getRefunds/{sid}',[RefundController::class,'Index']);
-        Route::get('/getRefundDirerences/{sid}',[RefundController::class,'getRefundDirerences']);
-        Route::get('/getRefund/{sid}/{rid}',[RefundController::class,'getRefund']);
-        Route::get('/getRefundto/{sid}/{rid}',[RefundController::class,'getRefundTo']);
-        Route::post('/addRefund',[RefundController::class,'addRefund']);
-        Route::post('/addProduct',[RefundController::class,'addProduct']);
-        Route::post('/editProduct',[RefundController::class,'editProduct']);
-        Route::post('/editProductReceipt',[RefundController::class,'editProductReceipt']);
-        Route::post('/deleteProduct',[RefundController::class,'deleteProduct']);
-        Route::post('/endRefund',[RefundController::class,'endRefund']);
-        Route::post('/nexState',[RefundController::class,'nexState']);
-        Route::post('/finallyRefund',[RefundController::class,'finallyRefund']);
-        Route::post('/correction',[RefundController::class,'correction']);
-    });
 
     Route::prefix('/cashs')->group(function(){
         Route::post('/getWithdrawals',[CashController::class,'getWithdrawals']);
@@ -440,24 +407,7 @@ Route::middleware('auth')->group(function(){
         Route::get('/{sid}',[WithdrawalsController::class, 'getWithdrawalsStore']);
     });
 
-    Route::prefix('/locations')->group(function(){
 
-        Route::get('/getInit/{sid}',[locationController::class, 'getInit']);
-        Route::post('/',[locationController::class, 'index']);
-        Route::post('/obtProductSections',[locationController::class, 'obtProductSections']);
-        Route::post('/obtProduct',[locationController::class, 'obtProduct']);
-        Route::post('/obtProductCategories',[locationController::class, 'obtProductCategories']);
-        Route::post('/obtSections',[locationController::class, 'obtSections']);
-        Route::post('/insertSection',[locationController::class, 'insertSection']);
-        Route::post('/addLocations',[locationController::class, 'addLocations']);
-        Route::post('/deleteSection',[locationController::class, 'deleteSection']);
-        Route::post('/deleteSectionProducts',[locationController::class, 'deleteSectionProducts']);
-        Route::post('/deleteCategoriesLocations',[locationController::class, 'deleteCategoriesLocations']);
-        Route::post('/addMassiveLocation',[locationController::class, 'addMassiveLocation']);
-        Route::post('/deleteMassiveLocation',[locationController::class, 'deleteMassiveLocation']);
-        Route::post('/reportLocations',[locationController::class, 'reportLocations']);
-        Route::post('/reportMinMax',[locationController::class, 'reportMinMax']);
-    });
 
     Route::prefix('/compare')->group(function(){
         Route::get('/',[CiclicosController::class, 'secciones']);
@@ -526,7 +476,6 @@ Route::middleware('auth')->group(function(){
 
     Route::prefix('/warehouses')->group(function(){
         Route::get('/',[WarehousesController::class, 'Index']);
-
         Route::prefix('/transfers')->group(function(){//traspasos entre almacenes
             Route::get('/getTransfer/{oid}',[TransferController::class, 'getTransfer']);
             Route::post('/addingTransfer',[TransferController::class, 'addingTransfer']);
@@ -536,14 +485,60 @@ Route::middleware('auth')->group(function(){
             Route::post('/editProduct',[TransferController::class, 'editProduct']);
             Route::post('/removeProduct',[TransferController::class, 'removeProduct']);
             Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
+            // Route::post('/transferPreventa',[TransferController::class, 'transferPreventa']);//este falta
+            Route::post('/addProductMasive',[TransferController::class, 'addProductMasive']);
         });
+        Route::prefix('/refunds')->group(function(){//traspasosentre sucursales y devoluciones a cedis
+            Route::get('/getRefunds',[RefundController::class,'Index']);
+            Route::get('/getRefund/{rid}',[RefundController::class,'getRefund']);
+            Route::get('/getRefundto/{rid}',[RefundController::class,'getRefundTo']);
+            Route::post('/addRefund',[RefundController::class,'addRefund']);
+            Route::post('/addProduct',[RefundController::class,'addProduct']);
+            Route::post('/editProduct',[RefundController::class,'editProduct']);
+            Route::post('/editProductReceipt',[RefundController::class,'editProductReceipt']);
+            Route::post('/deleteProduct',[RefundController::class,'deleteProduct']);
+            Route::post('/endRefund',[RefundController::class,'endRefund']);
+            Route::post('/nexState',[RefundController::class,'nexState']);
+            Route::post('/nexStateValid',[RefundController::class,'nexStateValid']);
+            Route::post('/nexStateUpdate',[RefundController::class,'nexStateUpdate']);
+            Route::post('/finallyRefund',[RefundController::class,'finallyRefund']);
+            Route::post('/finishUpdate',[RefundController::class,'finishUpdate']);
+        });
+        Route::prefix('/output')->group(function(){
+            Route::get('/getOutputs',[OutputsController::class, 'Index']);
+            Route::get('/getOutput/{oid}',[OutputsController::class, 'getOutput']);
+            Route::post('/addOutputs',[OutputsController::class, 'addOuts']);
+            // Route::post('/addProductMasive',[OutputsController::class, 'addProductMasive']);//falta
+            Route::post('/addProduct',[OutputsController::class, 'addProduct']);
+            Route::post('/editProduct',[OutputsController::class, 'editProduct']);
+            Route::post('/removeProduct',[OutputsController::class, 'removeProduct']);
+            Route::post('/endOutput',[OutputsController::class, 'endOutput']);
+            // Route::post('/outputPreventa',[OutputsController::class, 'outputPreventa']);//falta
+        });
+        Route::prefix('/locations')->group(function(){
+            Route::get('/getInit/{sid}',[locationController::class, 'getInit']);
+            Route::post('/',[locationController::class, 'index']);
+            // Route::post('/obtProductSections',[locationController::class, 'obtProductSections']);
+            Route::post('/obtProduct',[locationController::class, 'obtProduct']);
+            Route::post('/obtProductCategories',[locationController::class, 'obtProductCategories']);
+            // Route::post('/obtSections',[locationController::class, 'obtSections']);
+            Route::post('/insertSection',[locationController::class, 'insertSection']);
+            Route::post('/addLocations',[locationController::class, 'addLocations']);
+            Route::post('/deleteSection',[locationController::class, 'deleteSection']);
+            Route::post('/deleteSectionProducts',[locationController::class, 'deleteSectionProducts']);
+            Route::post('/deleteCategoriesLocations',[locationController::class, 'deleteCategoriesLocations']);
+            Route::post('/addMassiveLocation',[locationController::class, 'addMassiveLocation']);
+            Route::post('/deleteMassiveLocation',[locationController::class, 'deleteMassiveLocation']);
+            // Route::post('/reportLocations',[locationController::class, 'reportLocations']);
+            // Route::post('/reportMinMax',[locationController::class, 'reportMinMax']);
+        });
+
+        Route::post('/setMin',[WarehousesController::class, 'setMin']);
+        Route::post('/setMax',[WarehousesController::class, 'setMax']);
+        Route::post('/setMassisveMinMax',[WarehousesController::class, 'setMassisveMinMax']);
+        Route::post('/updateStatusProduct',[WarehousesController::class, 'updateStatusProduct']);
+
+
     });
-
-    // Route::prefix('/transfer')->group(function(){
-    //     Route::post('/addProductMasive',[TransferController::class, 'addProductMasive']);
-    //     Route::post('/endTransfer',[TransferController::class, 'endTransfer']);
-    //     Route::post('/transferPreventa',[TransferController::class, 'transferPreventa']);
-    // });
-
 
 });

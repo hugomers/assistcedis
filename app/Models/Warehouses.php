@@ -19,4 +19,7 @@ class Warehouses extends Model
     public function state() {
     return $this->belongsTo('App\Models\WarehouseState', '_state');
     }
+    public function sections(){
+        return $this->hasMany('App\Models\CellerSectionVA','_warehouse','id');
+    }
 }

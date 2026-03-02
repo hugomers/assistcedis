@@ -42,11 +42,11 @@ class ProductsController extends Controller
         $product->details = $product->combinedAmountByYear();
         return $product;
     }
-    public function getProducts(Request $request){ // Función autocomplete 2.0
+    public function getProducts(Request $request){ // Función autocomplete 3.0
         $workpoint = $request->sid();
         $codes = $request->target; // elemento que se envio
         $query = ProductVA::with(['category.familia.seccion','units', 'state', 'variants']);
-        $typePrices = StoreS::find($workpoint)->_price_type;
+        $typePrices = Stores::find($workpoint)->_price_type;
 
         // return $request->all();
 
@@ -90,7 +90,7 @@ class ProductsController extends Controller
         if(isset($request->_workpoint_status) && $request->_workpoint_status){ // Se obtiene el stock de la tienda se se aplica el filtro
 
             if($request->_workpoint_status == "all"){
-                $query = $query->with(['stocks'  => function($query){ $query->where('active',1);} ]);
+                $query = $query->with(['stocks'  => function($query){ $query->with('store')->whereHas('store', function($q) {$q->where('_state',1);} );} ]);
             }else{
                 $workpoints = $request->_workpoint_status;
                 $workpoints[] = 1; // Siempre se agrega el status de la sucursal
@@ -110,28 +110,21 @@ class ProductsController extends Controller
             }
 
         }
-    //hay que respetar la busqueda que si es de un sitio o de otro
+        //hay que respetar la busqueda que si es de un sitio o de otro
         if(isset($request->with_locations) && $request->with_locations){ //Se puede agregar todas las ubicaciones de la sucursal
-            $data = [
-                "workpoint"=>$workpoint,
-                "rol"=>$request->with_locations_loc
-            ];
-            $query = $query->with(['locations' => function($query) use ($data) {
-                $query->with('celler')
-                ->where('deleted_at',null)
-                ->whereHas('celler', function($query) use ($data) {
-                    $rol = $data['rol'];
-                    $query->where([['_workpoint', $data['workpoint']]]);
-                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
-                        $query = $query;
-                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
-                        $query = $query->where('_type',1);
-                    }else if(in_array($rol, [8,9,27,28])){//ventas
-                        $query = $query->where('_type',2);
-                    }
-                    ;
+            $query = $query->with(['locations' => function($q) use ($request){
+                $q->with('warehouse')->whereNull('deleted_at')->whereHas('warehouse',function($q2) use($request) {
+                    $q2->where('id',$request->with_locations_loc);
                 });
             }]);
+            //            $query = $query->with(['locations' => function($query) use ($request) {
+            //     $query->with('warehouse')
+            //     ->where('deleted_at',null)
+            //     ->whereHas('warehouse', function($query) use ($data) {
+            //         $query->where([['_workpoint', $data['workpoint']]]);
+
+            //     });
+            // }]);
         }
         if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
             if($request->with_stock){
@@ -163,14 +156,57 @@ class ProductsController extends Controller
             $query = $query->limit($request->limit);
         }
         $query = $request->autocomplete ?$query->get() :$query->first();
-        // if(isset($request->paginate) && $request->paginate){
-        //     $products = $query->orderBy('_status', 'asc')->paginate($request->paginate);
-        // }else{
-        //     $products = $query->orderBy('_status', 'asc')->get();
-        // }
+
         return response()->json($query);
     }
+    public function getMassiveProducts(Request $request){
+        // Función para obtener los productos y obtener la lista de los que se encontraron y no
+        $codes = $request->codes;
+        $workpoint = $request->sid();
+        $products = [];
+        $notFound = [];
+        $uniques = array_unique($codes);
+        $repeat = array_values(array_diff_assoc($codes, $uniques));
+        foreach($uniques as $code){
+            $product = ProductVA::with([
+            'prices' => function($query){
+                $query->whereIn('_type', [1,2,3,4])->orderBy('_type');
+            },
+            'units',
+            'variants',
+            'state',
+            // 'locations' => function($query) use ($workpoint) {
+            //     $query->whereHas('celler', function($query) use ($workpoint) {
+            //         $query->where([['_store', $workpoint],['_type',2]]);
+            //     });},
+            'historicPrices' => function($q) {$q->latest('created_at')->limit(1);}
+            ])
+            ->whereHas('variants', function(Builder $query) use ($code){
+                $query->where('barcode', $code);
+            })
+            ->orWhere(function($query) use($code){
+                $query->where('short_code', $code);
+            })
+            ->orWhere(function($query) use($code){
+                $query->where('code', $code);
+            })
+            ->where('_state','!=',4)
+            ->first();
+            if($product){
+                array_push($products, $product);
+            }else{
+                array_push($notFound, $code);
+            }
+        }
 
+        return response()->json([
+            "products" => $products,
+            "fails" => [
+                "notFound" => $notFound,
+                "repeat" => $repeat
+            ]
+        ]);
+    }
 
     public function index(){
         $res = [
@@ -1059,63 +1095,6 @@ class ProductsController extends Controller
         return response()->json($results);
     }
 
-    public function setMin(Request $request){
-        // return $request->product;
-        $updated = ProductStockVA::where('_product', $request->product)
-            ->where('_workpoint', $request->_workpoint)
-            ->update(['min' => $request->min]);
-
-        if ($updated) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Mínimo actualizado correctamente'
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontró el registro para actualizar'
-            ]);
-        }
-    }
-
-    public function setMax(Request $request){
-        $updated = ProductStockVA::where('_product', $request->product)
-            ->where('_workpoint', $request->_workpoint)
-            ->update(['max' => $request->max]);
-
-        if ($updated) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Maximo actualizado correctamente'
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontró el registro para actualizar'
-            ]);
-        }
-    }
-
-    public function setMassisveMinMax(Request $request){
-        $actualizados = [
-            "goals"=>0,
-            "fails"=>0
-        ];
-        $products = $request->products;
-        $workpoint = $request->workpoint;
-        foreach($products as $product){
-            $updated = ProductStockVA::where('_product', $product['id'])
-                ->where('_workpoint', $workpoint)
-                ->update(['max' => $product['max'], 'min' => $product['min'] ]);
-            if ($updated) {
-                $actualizados['goals']++;
-            } else {
-                $actualizados['fails']++;
-            }
-        }
-        return response()->json($actualizados,200);
-
-    }
 
     public function getWorkpoinProduct($sid){
         $workpoint = WorkpointVA::with([
@@ -1276,15 +1255,6 @@ class ProductsController extends Controller
             }
 
         return response()->json($res,200);
-    }
-
-    public function updateStatusProduct(Request $request){
-        $product = ProductVA::find($request->_product);
-        if($product){
-            $result =  $product->stocks()->updateExistingPivot($request->wid, ['_status' => $request->_status]);
-            return response()->json(["success" => $result]);
-        }
-        return response()->json(["success" => false]);
     }
 
     public function addCategory(Request $request){

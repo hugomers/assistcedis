@@ -8,132 +8,125 @@ use App\Models\OuputInternal;
 use App\Models\Warehouses;
 use Illuminate\Support\Facades\Http;
 use App\Models\OuputBodie;
+use App\Models\OutputLog;
+use App\Models\OutputState;
 use Illuminate\Support\Facades\DB;
+use App\Models\ProductVA;
+
 
 
 class OutputsController extends Controller
 {
-    public function Index($sid){
-        $now = now()->format('Y-m-d');
-        $output = OuputInternal::with(['store','warehouse','bodie'])->where('_store',$sid)->whereDate('created_at',$now)->get();
-        $warehouse = Warehouses::all();
-
-        $resp = [
-            'warehouses'=>$warehouse,
-            'output'=>$output,
+    public function Index(Request $request){
+        $output = OuputInternal::with(['warehouse','bodie','createdby','modifyby','state'])->get();
+        $states = OutputState::all();
+        $res = [
+            "outs"=>$output,
+            "states"=>$states,
         ];
-
-        return response()->json($resp,200);
+        return response()->json($res,200);
     }
 
-    public function getOutsDate(Request $request){
-        $fechas = $request->date;
-        $sid = $request->store;
-        if(isset($fechas['from'])){
-            $desde = $fechas['from'];
-            $hasta = $fechas['to'];
+    public function addOuts(Request $request){//yasta
+        $output = $request->all();
+        $output['_created_by'] = $request->uid();
+        $transfer = OuputInternal::create($output);
+        if($transfer){
+            $details = [
+                "notas"=>$transfer->notes
+            ];
+            $log = $this->createLog($transfer->id,1,$request->uid(),$details);
+        return response()->json($transfer);
         }else{
-            $desde = $fechas;
-            $hasta = $fechas;
+            return response()->json('No se realizo la devolucion',500);
         }
-        $transfer = OuputInternal::with(['store','warehouse','bodie'])->where('_store',$sid)->whereBetween(DB::raw('DATE(created_at)'), [$desde, $hasta])->get();
-        return response()->json($transfer,200);
-
     }
 
-
-
-    public function addOuts(Request $request){
-        $outs = $request->all();
-
-        $store = Stores::find($outs['_store']);
-        $ip = $store->ip_address;
-        // $ip = '192.168.10.160:1619';
-        $insOuts = http::post($ip.'/storetools/public/api/outsInternal/addOuts',$outs);
-        $status = $insOuts->status();
-        if($status == 201){
-            $res = json_decode($insOuts);
-            if($res->state){
-                $nwtransfer = new OuputInternal;
-                $nwtransfer->_store = $outs['_store'];
-                $nwtransfer->created_by = $outs['created_by'];
-                $nwtransfer->_warehouse = $outs['warehouse']['id'];
-                $nwtransfer->notes = $outs['notes'];
-                $nwtransfer->code_fs = $res->salida;
-                $nwtransfer->save();
-                $nwtransfer->fresh()->toArray();
-                return response()->json($nwtransfer,200);
-            }else{
-                return response()->json('Hubo un problema en la creacion de el traspaso ',500);
-            }
-        }
-        return $insOuts;
-    }
-
-
-    public function getOutput($oid){
-        $transfer = OuputInternal::with(['store','warehouse','bodie'])->find($oid);
+    public function getOutput($oid){//yasata
+        $transfer = OuputInternal::with(['warehouse','bodie','createdby','modifyby','state'])->find($oid);
         return response()->json($transfer);
     }
 
-    public function addProduct(Request $request){
-        $product = $request->all();
-        $add = new OuputBodie;
-        $add->_output = $product['_transfer'];
-        $add->product = $product['product'];
-        $add->description = $product['description'];
-        $add->amount = $product['amount'];
-        $add->save();
-        if($add){
-            return response()->json('Producto Insertado',200);
-        }else{
-            return response()->json('Hubo problema al agregar el producto',500);
+    public function addProduct(Request $request){//yasta
+        DB::beginTransaction();
+        try{
+            $transfer = OuputInternal::findOrFail($request->_transfer);
+            $transfer->bodie()->attach(
+                $request->_product,
+               ['amount' => $request->amount]
+               );
+            DB::commit();
+            return response()->json('Producto Insertado', 200);
+        }catch( \Exception $e){
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
-    public function editProduct(Request $request){
-        $product = $request->all();
-        $modify = OuputBodie::where([['_output',$product['_output']],['product',$product['product']]])->update(['amount'=>$product['amount']]);
-        if($modify){
-            return response()->json('Producto Editado',200);
+    public function editProduct(Request $request){//yasta
+        DB::beginTransaction();
+        try {
+            $transfer = OuputInternal::findOrFail($request->_transfer);
+            $transfer->bodie()->updateExistingPivot(
+                $request->_product,
+                ['amount' => $request->amount]
+            );
+            DB::commit();
+            return response()->json('Producto Actualizado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
-    public function removeProduct(Request $request){
-        $product = $request->all();
-        $delete = OuputBodie::where([['_output',$product['_output']],['product',$product['product']]])->delete();
-        if($delete){
-            return response()->json('Producto Eliminado',200);
-        }else{
-            return response()->json('Hubo un problema al eliminar el producto',500);
+    public function removeProduct(Request $request){//yasta
+        DB::beginTransaction();
+        try {
+            $transfer = OuputInternal::findOrFail($request->_transfer);
+            $transfer->bodie()->detach($request->_product);
+            DB::commit();
+            return response()->json('Producto Eliminado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
-    public function endOutput(Request $request){
-        $output = $request->output;
-        $products = $request->products;
-        $user = $request->user;
-        $data = [
-            "output"=>$output,
-            "products"=>$products
-        ];
-        $store = Stores::find($output['_store']);
-        $ip = $store->ip_address;
-        // $ip = '192.168.10.160:1619';
-        $insTraAcc = http::post($ip.'/storetools/public/api/outsInternal/endOuts',$data);
-        $status = $insTraAcc->status();
-        if($status == 201){
-            $traspaso = OuputInternal::where('id',$output['id'])->update(['updated_by'=>$user]);
-            if($traspaso){
-                return response()->json('Salida Finalizada',200);
+    public function endOutput(Request $request){//yasta
+     DB::beginTransaction();
+        try {
+            $transfer = OuputInternal::findOrFail($request->id);
+            if ($transfer->_state != 1) {
+                throw new \Exception("Salida ya procesada");
             }
-
-        }else{
-            return response()->json(json_decode($insTraAcc),200);
+            $transfer->_state = 2;
+            $transfer->save();
+            $details= ["tipo"=>'Termino Salida',"salida"=>$request->all()];
+            $log = $this->createLog($transfer->id,2,$request->uid(),$details);
+            //actualizacion de stock
+            $warehouse = $request->warehouse['id'];
+            $products = $request->bodie;
+            foreach($products as $product){
+                $productId = $product['id'];
+                $amount    = $product['pivot']['amount'];
+                $product = ProductVA::findOrFail($productId);
+                $product->stocks()
+                    ->where('_warehouse', $warehouse)
+                    ->decrement('_current', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $warehouse)
+                    ->decrement('available', $amount);
+            }
+            $transfer->load(['warehouse','bodie','createdby','modifyby','state']);
+            DB::commit();
+            return response()->json($transfer, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
-    public function outputPreventa(Request $request){
+    public function outputPreventa(Request $request){//falta
         $notfound = [];
         $ok = [];
         $pedidos = $request->codes;
@@ -160,7 +153,7 @@ class OutputsController extends Controller
         }
     }
 
-    public function addProductMasive(Request $request){
+    public function addProductMasive(Request $request){//falta
         $products = $request->all();
         $add = OuputBodie::insert($products);
         if($add){
@@ -169,6 +162,16 @@ class OutputsController extends Controller
             return response()->json('Hubo problema al agregar el producto',500);
         }
 
+    }
+
+    public function createLog($transfer,$state,$user,$details){
+        $createLog = OutputLog::create([
+            "_output"=>$transfer,
+            "_state"=>$state,
+            "_user"=>$user,
+            "details"=>json_encode($details)
+        ]);
+        return $createLog;
     }
 
 }

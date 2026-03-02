@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class RefundState extends Model
 {
-    protected $table = "refund_status";
+    protected $table = "transfer_store_status";
     public $timestamps = false;
 
-    public function refunds(){return $this->hasMany('\App\Models\Refund','_status','id'); }
+    public function refunds(){return $this->hasMany('\App\Models\Refund','_state','id'); }
 }

@@ -48,7 +48,7 @@ class Transfers extends Model
         return $this->belongsTo('App\Models\TransferWarehouseState','_state');
     }
     public function log(){
-        return $this->belongsTo('App\Models\TransferWarehouseState','_state');
+        return $this->belongsTo('App\Models\TransferWarehouseLog','_transfer');
     }
 
 }

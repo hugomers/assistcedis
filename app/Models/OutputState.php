@@ -5,11 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class RefundBodie extends Model
+class OutputState extends Model
 {
-    protected $table = "transfer_bw_store_bodies";
-    public $timestamps = false;
-
-
+    protected $table = 'output_states';
 
 }

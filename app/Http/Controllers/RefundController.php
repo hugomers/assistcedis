@@ -3,191 +3,338 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Stores;
 use App\Models\Refund;
 use App\Models\RefundType;
 use App\Models\RefundBodie;
 use App\Models\RefundState;
 use App\Models\RefundProvider;
+use App\Models\ProductVA;
+use App\Models\RefundLog;
 use Illuminate\Support\Facades\Http;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 
 class RefundController extends Controller
 {
-    public function Index($sid){
+    public function Index(Request $request){//yasta
+        $sid = $request->sid();
         $refunds = [
             'to'=>[],
             'from'=>[],
         ];
-        $refunds['to']= Refund::with(['storefrom','storeto','status','type','createdby','bodie'])
-                ->where('_store_to',$sid)
+        $refunds['to']= Refund::with(['origin.store','destiny.store','status','type','createdby','receiptby','bodie'])//de
+                ->whereHas('origin', function($q) use($sid) {
+                    $q->where('_store',$sid);
+                })
                 ->get();
-        $refunds['from']= Refund::with(['storefrom','storeto','status','type','createdby','bodie'])
-                ->where('_store_from',$sid)
+        $refunds['from']= Refund::with(['origin.store','destiny.store','status','type','createdby','receiptby' ,'bodie'])//para
+                ->whereHas('destiny', function($q) use($sid) {
+                    $q->where('_store',$sid);
+                })
                 ->get();
 
         return response()->json([
             'refunds' => $refunds,
             'types' => RefundType::all(),
-            'provider' => RefundProvider::all(),
+            // 'provider' => RefundProvider::all(),
             'status'=> RefundState::all()
         ]);
     }
 
-    public function getRefund($sid,$rid){
-        $refund = Refund::with(['storefrom','storeto','status','type','createdby','bodie'])->where([['id',$rid],['_store_from',$sid]])->first();
-        return response()->json($refund,200);
+    public function getRefund($rid){//yasta
+        $refund = Refund::with(['origin.store','destiny.store','status','type','createdby','receiptby','bodie'])->find($rid);
+        if($refund){
+            return response()->json($refund,200);
+        }else{
+            return response()->json('No se encuentra',500);
+        }
     }
 
-    public function getRefundTo($sid,$rid){
-        $refund = Refund::with(['storefrom','storeto','status','type','createdby','bodie'])->where([['id',$rid],['_store_to',$sid]])->first();
-        return response()->json($refund,200);
+    public function getRefundTo($rid){//yasta
+        $refund = Refund::with(['origin.store','destiny.store','status','type','createdby','receiptby','bodie'])->find($rid);
+        if($refund){
+            return response()->json($refund,200);
+        }else{
+            return response()->json('No se encuentra',500);
+        }
     }
 
-    public function addRefund(Request $request){
+    public function addRefund(Request $request){//yasta
         $refund = $request->all();
-        $nwRefund = new Refund;
-        $nwRefund->reference = $refund['reference'];
-        $nwRefund->_provider = $refund['provider']['id'];
-        $nwRefund->_warehouse = $refund['_warehouse'];
-        $nwRefund->_type = $refund['type']['id'];
-        $nwRefund->_status = $refund['_status'];
-        $nwRefund->_store_from = $refund['_store_from'];
-        $nwRefund->_store_to = $refund['store_to'];
-        $nwRefund->_created_by = $refund['_created_by'];
-        $nwRefund->save();
-        $res = $nwRefund->load(['storefrom','storeto','status','type']);
-        if($res){
-            return response()->json($res,200);
+        $refund['_created_by'] = $request->uid();
+        $transfer = Refund::create($refund);
+        if($transfer){
+            $details = [
+                "notas"=>$transfer->notes
+            ];
+            $log = $this->createLog($transfer->id,1,$request->uid(),$details);
+        return response()->json($transfer);
         }else{
             return response()->json('No se realizo la devolucion',500);
         }
     }
 
     public function addProduct(Request $request){
-        $product = $request->all();
-        $nwProduct = new RefundBodie;
-        $nwProduct->_refund = $product['_refund'];
-        $nwProduct->product = $product['product'];
-        $nwProduct->description = $product['description'];
-        $nwProduct->to_delivered = $product['to_delivered'];
-        $nwProduct->to_received = 0;
-        $nwProduct->price = $product['price'];
-        $nwProduct->save();
-        if($nwProduct){
-            return response()->json($nwProduct,200);
-        }else{
-            return response()->json('No se logro insertar el producto',500);
+        DB::beginTransaction();
+        try{
+            $transfer = Refund::findOrFail($request->_transfer);
+            $transfer->bodie()->attach(
+                $request->_product,
+               ['to_delivered' => $request->to_delivered]
+               );
+            DB::commit();
+            return response()->json('Producto Insertado', 200);
+        }catch( \Exception $e){
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
     public function editProduct(Request $request){
-        $product = $request->all();
-        $update = RefundBodie::where([['_refund',$product['_refund']],['product',$product['product']]])->update(['to_delivered'=>$product['to_delivered']]);
-        if($update){
-            return response()->json('Producto Editado',200);
+        DB::beginTransaction();
+        try {
+            $transfer = Refund::findOrFail($request->_transfer);
+            $transfer->bodie()->updateExistingPivot(
+                $request->_product,
+                ['to_delivered' => $request->to_delivered]
+            );
+            DB::commit();
+            return response()->json('Producto Actualizado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
     public function deleteProduct(Request $request){
-        $product = $request->all();
-        $delete = RefundBodie::where([['_refund',$product['_refund']],['product',$product['product']]])->delete();
-        if($delete){
-            return response()->json('Producto Eliminado',200);
-        }else{
-            return response()->json('Hubo un problema al eliminar el producto',500);
+        DB::beginTransaction();
+        try {
+            $transfer = Refund::findOrFail($request->_transfer);
+            $transfer->bodie()->detach($request->_product);
+            DB::commit();
+            return response()->json('Producto Eliminado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
     public function endRefund(Request $request){
-        $id = $request->id;
-        $refund = Refund::with(['storefrom','storeto','status','type','createdby','bodie'])->where([['id',$id]])->first();
-        $insRefund = http::post($refund->storefrom['ip_address'].'/storetools/public/api/refunds/addRefund',$refund);
-        // $insRefund = http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/addRefund',$refund);
-        if($insRefund->status() == 200){
-            $update = Refund::find($id);
-            $update->_status = 2;
-            $update->fs_id = $insRefund->body();
-            $update->save();
-            $res = $update->load(['storefrom','storeto','status','type','createdby','bodie']);
-            return response()->json($res,200);
-        }else{
-            return response('No se logro generar la devolucion en la sucursal',500);
+     DB::beginTransaction();
+        try {
+            $transfer = Refund::findOrFail($request->id);
+            if ($transfer->_state != 1) {
+                throw new \Exception("Transferencia ya procesada");
+            }
+            $transfer->_state = 2;
+            $transfer->save();
+            $details= ["tipo"=>'Termino Origen',"transfer"=>$request->all()];
+            $log = $this->createLog($transfer->id,2,$request->uid(),$details);
+            //actualizacion de stock
+            $origin = $request->origin['id'];
+            $destiny = $request->destiny['id'];
+            $products = $request->bodie;
+            foreach($products as $product){
+                $productId = $product['id'];
+                $amount    = $product['pivot']['to_delivered'];
+                $product = ProductVA::findOrFail($productId);
+                $product->stocks()
+                    ->where('_warehouse', $origin)
+                    ->decrement('_current', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $origin)
+                    ->decrement('available', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $destiny)
+                    ->increment('in_coming', $amount);
+            }
+            $transfer->load(['origin.store','destiny.store','status','type','createdby','bodie']);
+            DB::commit();
+            return response()->json($transfer, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
+
     }
 
-    public function nexState(Request $request){
-        $id = $request->id;
-        $uid = $request->uid;
-        $update = Refund::find($id);
-        $update->_status = 3;
-        $update->_receipt_by = $uid;
-        $update->save();
-        if($update){
-            return response()->json('Se cambio el status');
-        }else{
-            return response()->json('no se logro cambiar el status');
+    public function nexState(Request $request){//para recepcion
+        DB::beginTransaction();
+            try {
+                $transfer = Refund::findOrFail($request->id);
+
+                if ($transfer->_state != 2) {
+                    throw new \Exception("Transferencia ya Recibida");
+                }
+                $transfer->_state = 3;
+                $transfer->_receipt_by = $request->uid();
+                $transfer->date_receipt = now();
+                $transfer->save();
+                $details= ["tipo"=>'Recibido'];
+                $log = $this->createLog($transfer->id,3,$request->uid(),$details);
+                $transfer->load(['origin.store','destiny.store','status','type','createdby','bodie']);
+                DB::commit();
+                return response()->json($transfer, 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json($e->getMessage(), 500);
         }
     }
-
+    public function nexStateValid(Request $request){//para recepcion comenzar a validar
+        DB::beginTransaction();
+            try {
+                $transfer = Refund::findOrFail($request->id);
+                if ($transfer->_state != 3) {
+                    throw new \Exception("Transferencia ya Recibida");
+                }
+                $transfer->_state = 4;
+                $transfer->_receipt_by = $request->uid();
+                $transfer->date_receipt = now();
+                $transfer->save();
+                $details= ["tipo"=>'Comienza A validar'];
+                $log = $this->createLog($transfer->id,4,$request->uid(),$details);
+                $transfer->load(['origin.store','destiny.store','status','type','createdby','bodie']);
+                DB::commit();
+                return response()->json($transfer, 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json($e->getMessage(), 500);
+        }
+    }
 
     public function editProductReceipt(Request $request){
-        $product = $request->all();
-        $update = RefundBodie::where([['_refund',$product['_refund']],['product',$product['product']]])->update(['to_received'=>$product['to_received']]);
-        if($update){
-            return response()->json('Producto Editado',200);
+        DB::beginTransaction();
+        try {
+            $transfer = Refund::findOrFail($request->_transfer);
+            $transfer->bodie()->updateExistingPivot(
+                $request->_product,
+                ['to_received' => $request->to_received]
+            );
+            DB::commit();
+            return response()->json('Producto Actualizado', 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
 
     public function finallyRefund(Request $request){
-        $id = $request->id;
-        $refund = Refund::with(['storefrom','storeto','status','type','createdby','bodie'])->where([['id',$id]])->first();
-        $cedis = Stores::find(1);
-        if($refund->_type == 1){// se genera el abono con articulos en cedis,
-            $addSeason = http::post($cedis->ip_address.'/storetools/public/api/refunds/genAbono',$refund);
-            // $addSeason = http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/genAbono',$refund);
-            if($addSeason->status() == 200){
-                $update = Refund::find($id);
-                $update->_status = 4;
-                $update->season_ticket = $addSeason->body();
-                $update->save();
-                $res = $update->load(['storefrom','storeto','status','type','createdby','bodie']);
-                return response()->json($res,200);
-            }else{
-                return response('No se logro generar el abono en cedis',500);
+        DB::beginTransaction();
+        try {
+            $transfer = Refund::findOrFail($request->id);
+            if ($transfer->_state != 4) {
+                throw new \Exception("Transferencia ya procesada");
             }
-        }else if($refund->_type == 2){// se genera abono factura y entrada en sucursal receptora
-            $addSeason = http::post($cedis->ip_address.'/storetools/public/api/refunds/genAbonoTras',$refund);
-            // $addSeason = http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/genAbonoTras',$refund);
-            if($addSeason->status() == 200){
-                $update = Refund::find($id);
-                $update->invoice = $addSeason['salida'];
-                $update->season_ticket = $addSeason['abono'];
-                $update->save();
-                $res = $update->load(['storefrom','storeto','status','type','createdby','bodie']);
-                if($res){
-                    $addEntry = http::post($refund->storeto['ip_address'].'/storetools/public/api/refunds/genEntry',$refund);
-                    // $addEntry = http::post('192.168.10.160:1619'.'/storetools/public/api/refunds/genEntry',$refund);
-                    if($addEntry->status() == 200){
-                        $updateentr = Refund::find($id);
-                        $update->_status = 4;
-                        $update->entry = $addEntry->body();
-                        $update->save();
-                        $res = $update->load(['storefrom','storeto','status','type','createdby','bodie']);
-                        return response()->json($res,200);
-                    }else{
-                        return response()->json('No se logro realizar la entrada',500);
-                    }
-                }else{
-                    return response()->json('No se logro actualizar la devolucion',500);
-                }
-            }else{
-                return response('No se logro generar el abono y la salida en cedis',500);
-            }
+            $transfer->_state = 5;
+            $transfer->save();
+            $details= ["tipo"=>'Termino Origen',"transfer"=>$request->all()];
+            $log = $this->createLog($transfer->id,5,$request->uid(),$details);
+            // $origin = $request->origin['id'];
+            $destiny = $request->destiny['id'];
+            $products = $request->bodie;
+            foreach($products as $product){
+                $productId = $product['id'];
+                $amount = $product['pivot']['to_received'];
+                $amountDelivered = $product['pivot']['to_delivered'];
 
+                $product = ProductVA::findOrFail($productId);
+                $product->stocks()
+                    ->where('_warehouse', $destiny)
+                    ->increment('_current', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $destiny)
+                    ->increment('available', $amount);
+                $product->stocks()
+                    ->where('_warehouse', $destiny)
+                    ->decrement('in_coming', $amountDelivered);
+            }
+            $transfer->load(['origin.store','destiny.store','status','type','createdby','bodie']);
+            DB::commit();
+            return response()->json($transfer, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
         }
     }
+
+    public function nexStateUpdate(Request $request){//para recepcion comenzar a validar
+        DB::beginTransaction();
+            try {
+                $transfer = Refund::findOrFail($request->id);
+                if ($transfer->_state != 5) {
+                    throw new \Exception("Transferencia ya Recibida");
+                }
+                $transfer->_state = 6;
+                $transfer->save();
+                $details= ["tipo"=>'Comienza a editar'];
+                $log = $this->createLog($transfer->id,6,$request->uid(),$details);
+                $transfer->load(['origin.store','destiny.store','status','type','createdby','bodie']);
+                DB::commit();
+                return response()->json($transfer, 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json($e->getMessage(), 500);
+        }
+    }
+
+    public function finishUpdate(Request $request){
+        DB::beginTransaction();
+        try {
+            $transfer = Refund::findOrFail($request->transfer['id']);
+            if ($transfer->_state != 6) {
+                throw new \Exception("Transferencia ya procesada");
+            }
+            $transfer->_state = 5;
+            $transfer->save();
+            $details= ["tipo"=>'Termino Actualizacion',"transfer"=>$request->all()];
+            $log = $this->createLog($transfer->id,5,$request->uid(),$details);
+            $origin = $request->transfer['origin']['id'];
+            $destiny = $request->transfer['destiny']['id'];
+            $products = $request->cambios;
+            foreach($products as $product){
+                $productId = $product['id'];
+                $diffDelivered = $product['to_delivered']['diferencia'];
+                $diffReceived  = $product['to_received']['diferencia'];
+                $newDelivered = $product['to_delivered']['ahora'];
+                $newReceived  = $product['to_received']['ahora'];
+                $transfer->bodie()->updateExistingPivot(
+                $productId,
+                    [
+                        'to_delivered' => $newDelivered,
+                        'to_received'  => $newReceived
+                    ]
+                );
+                $productModel = ProductVA::findOrFail($productId);
+                if($diffDelivered != 0){
+                    $productModel->stocks()
+                        ->where('_warehouse', $origin)
+                        ->decrement('_current', $diffDelivered);
+
+                    $productModel->stocks()
+                        ->where('_warehouse', $origin)
+                        ->decrement('available', $diffDelivered);
+                }
+                if($diffReceived != 0){
+                    $productModel->stocks()
+                        ->where('_warehouse', $destiny)
+                        ->increment('_current', $diffReceived);
+
+                    $productModel->stocks()
+                        ->where('_warehouse', $destiny)
+                        ->increment('available', $diffReceived);
+                }
+            }
+            $transfer->load(['origin.store','destiny.store','status','type','createdby','bodie']);
+            DB::commit();
+            return response()->json($transfer, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json($e->getMessage(), 500);
+        }
+    }
+
 
     public function getRefundDirerences($sid){
         $devs = Refund::with([
@@ -315,6 +462,16 @@ class RefundController extends Controller
 
             return response()->json($result);
         }
+    }
+
+    public function createLog($transfer,$state,$user,$details){
+        $createLog = RefundLog::create([
+            "_transfer"=>$transfer,
+            "_state"=>$state,
+            "_user"=>$user,
+            "details"=>json_encode($details)
+        ]);
+        return $createLog;
     }
 
 

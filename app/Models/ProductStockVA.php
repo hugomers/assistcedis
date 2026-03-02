@@ -16,6 +16,9 @@ class ProductStockVA extends Pivot
     public function state(){
         return $this->belongsTo('App\Models\ProductStatusVA', '_state');
     }
+    public function store(){
+        return $this->belongsTo('App\Models\Warehouse', '_warehouse');
+    }
     public function getStateDataAttribute(){
         return $this->state()->first();
     }
