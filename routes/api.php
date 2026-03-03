@@ -257,6 +257,8 @@ Route::middleware('auth')->group(function(){
         Route::get('/generate',[SalesController::class, 'generate']);
         Route::get('/GetReportVhelp/{month}',[SalesController::class, 'GetReportVhelp']);
         Route::post('/getSale',[SalesController::class, 'getSale']);
+        Route::post('/getMonthSale',[SalesController::class, 'getMonthSale']);
+
     });
 
 

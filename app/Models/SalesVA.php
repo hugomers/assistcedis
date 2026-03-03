@@ -14,7 +14,7 @@ class SalesVA extends Model
     public $timestamps = false;
 
     public function products(){
-        return $this->belongsToMany('App\Models\ProductVA', 'product_sold', '_order', '_product')
+        return $this->belongsToMany('App\Models\ProductVA', 'product_sold', '_sale', '_product')
         ->withPivot('amount', 'price', 'total');
     }
 
@@ -29,7 +29,9 @@ class SalesVA extends Model
             ->groupBy(DB::raw('YEAR(sales.created_at), PS._product'));
             // ->orderBy('year');
     }
-
+    public function client(){
+        return $this->belongsTo('App\Models\ClientVA', '_client');
+    }
 }
 
 
