@@ -589,7 +589,7 @@ class ReportsController extends Controller
         $filters = $request->filters;
         $store = $request->store;
 
-        $workpoint = WorkpointVA::with('productSeason')->find($store);
+        // $workpoint = WorkpointVA::with('productSeason')->find($store);
 
         $products = ProductVA::with([
             'providers',
@@ -611,9 +611,9 @@ class ReportsController extends Controller
         ->when(count($filters['sections'])> 0, fn($q) =>
             $q->whereHas('category.familia.seccion', fn($q2) =>
             $q2->whereIn('id', $filters['sections'])))
-        ->when($workpoint && $workpoint->productSeason && $workpoint->productSeason->isNotEmpty(),
-            fn($q) => $q->whereIn('id', $workpoint->productSeason->pluck('id'))
-        )
+        // ->when($workpoint && $workpoint->productSeason && $workpoint->productSeason->isNotEmpty(),
+        //     fn($q) => $q->whereIn('id', $workpoint->productSeason->pluck('id'))
+        // )
         ->where('_status', '!=', 4)->get();
         return response()->json($products);
     }
