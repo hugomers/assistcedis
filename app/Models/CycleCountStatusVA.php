@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class CycleCountStatusVA extends Model
 {
-protected $connection = 'vizapi';
-  protected $table = 'cyclecount_status';
+// protected $connection = 'vizapi';
+  protected $table = 'cyclecount_states';
   protected $fillable = ['name'];
 
 
   public function cyclecounts(){
-    return $this->hasMany('App\Models\CycleCount', '_status', 'id');
+    return $this->hasMany('App\Models\CycleCount', '_state', 'id');
   }
 }

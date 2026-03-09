@@ -186,6 +186,11 @@ class ProductVA extends Model
         return $result;
     }
 
+    public function cyclecounts(){
+        return $this->belongsToMany('App\Models\CycleCountVA', 'cyclecount_bodies', '_product', '_cyclecount')
+            ->withPivot(['stock','stock_end','stock_acc','details']);
+            // ->withTimestamps();
+    }
 
 
 

@@ -54,13 +54,15 @@ class ProductsController extends Controller
         if($request->autocomplete){ //se ocupara para exacto o para autocompletado
             if(strlen($request->target)>1){
                 $query = $query->whereHas('variants', function(Builder $query) use ($request){
-                    $query->where('barcode', 'like', '%'.$request->target.'%');
+                    $query->where('code', 'like', '%'.$request->target.'%')
+                    ->orWhere('barcode', 'like', '%'.$request->target.'%');
+                })
+                ->orWhereHas('barcodes', function ($q) use ($request){
+                    $q->where('barcode',$request->target);
                 })
                 ->orWhere(function($query) use($request){
-                    $query->orWhere('short_code', $request->target)
+                    $query->orWhere('short_code', 'like','%'.$request->target.'%')
                     ->orWhere('barcode', $request->target)
-                    ->orWhere('code', $request->target)
-                    ->orWhere('short_code', 'like','%'.$request->target.'%')
                     ->orWhere('code', 'like','%'.$request->target.'%');
                 });
             }
@@ -69,9 +71,12 @@ class ProductsController extends Controller
                 $query =
                 $query->where('id',$request->target)
                 ->whereHas('variants', function(Builder $query) use ($request){
-                    $query->where('barcode', $request->target);
+                    $query->where('code',$request->target)
+                    ->orWhere('barcode',$request->target);
                 })
-
+                ->orWhereHas('barcodes', function ($q) use ($request){
+                    $q->where('barcode',$request->target);
+                })
                 ->orWhere(function($query) use($request){
                     $query->orWhere('short_code', $request->target)
                     ->orWhere('barcode', $request->target)
@@ -117,14 +122,6 @@ class ProductsController extends Controller
                     $q2->where('id',$request->with_locations_loc);
                 });
             }]);
-            //            $query = $query->with(['locations' => function($query) use ($request) {
-            //     $query->with('warehouse')
-            //     ->where('deleted_at',null)
-            //     ->whereHas('warehouse', function($query) use ($data) {
-            //         $query->where([['_workpoint', $data['workpoint']]]);
-
-            //     });
-            // }]);
         }
         if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
             if($request->with_stock){
@@ -175,14 +172,14 @@ class ProductsController extends Controller
             'units',
             'variants',
             'state',
-            // 'locations' => function($query) use ($workpoint) {
-            //     $query->whereHas('celler', function($query) use ($workpoint) {
-            //         $query->where([['_store', $workpoint],['_type',2]]);
-            //     });},
             'historicPrices' => function($q) {$q->latest('created_at')->limit(1);}
             ])
-            ->whereHas('variants', function(Builder $query) use ($code){
-                $query->where('barcode', $code);
+            ->orWhereHas('variants', function ($q) use ($id) {
+                        $query->where('code', $id)
+                        ->orWhere('barcode', $id);
+            })
+            ->orWhereHas('barcodes', function ($q) use ($id){
+                $q->where('barcode',$id);
             })
             ->orWhere(function($query) use($code){
                 $query->where('short_code', $code);

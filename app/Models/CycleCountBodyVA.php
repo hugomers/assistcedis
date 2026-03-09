@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CycleCountBodyVA extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'cyclecount_body';
+    // protected $connection = 'vizapi';
+    protected $table = 'cyclecount_bodies';
 
     public function cyclecount(){
         return $this->belongsTo('App\Models\CycleCountVA', '_cyclecount');

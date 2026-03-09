@@ -294,19 +294,7 @@ Route::middleware('auth')->group(function(){
     });
 
 
-    Route::prefix('/ciclicos')->group(function(){
-        Route::get('/{folio}',[CiclicosController::class, 'find']);
-        Route::post('/',[CiclicosController::class, 'index']);
-        Route::post('/obtProductSections',[CiclicosController::class, 'obtProductSections']);
-        Route::post('/obtProductSLocation',[CiclicosController::class, 'obtProductSLocation']);
-        Route::post('/addCyclecount',[CiclicosController::class, 'addCyclecount']);
-        Route::post('/getCyclecount',[CiclicosController::class, 'getCyclecount']);
-        Route::post('/saveValue',[CiclicosController::class, 'saveValue']);
-        Route::post('/nextStep',[CiclicosController::class, 'nextStep']);
-        Route::post('/productCyclecount',[CiclicosController::class, 'productCyclecount']);
-        Route::post('/addMassiveProductCyclecount',[CiclicosController::class, 'addMassiveProductCyclecount']);
 
-    });
 
     Route::prefix('/requisition')->group(function(){
         Route::get('/getRequisitionsStore',[RequisitionController::class, 'getRequisitionsStore']);
@@ -531,6 +519,19 @@ Route::middleware('auth')->group(function(){
             Route::post('/deleteMassiveLocation',[locationController::class, 'deleteMassiveLocation']);
             // Route::post('/reportLocations',[locationController::class, 'reportLocations']);
             // Route::post('/reportMinMax',[locationController::class, 'reportMinMax']);
+        });
+        Route::prefix('/ciclicos')->group(function(){
+            Route::get('/{folio}',[CiclicosController::class, 'find']);
+            Route::post('/',[CiclicosController::class, 'index']);
+            Route::post('/obtProductSections',[CiclicosController::class, 'obtProductSections']);
+            Route::post('/obtProductSLocation',[CiclicosController::class, 'obtProductSLocation']);
+            Route::post('/addCyclecount',[CiclicosController::class, 'addCyclecount']);
+            Route::post('/getCyclecount',[CiclicosController::class, 'getCyclecount']);
+            Route::post('/saveValue',[CiclicosController::class, 'saveValue']);
+            Route::post('/nextStep',[CiclicosController::class, 'nextStep']);
+            Route::post('/productCyclecount',[CiclicosController::class, 'productCyclecount']);
+            Route::post('/addMassiveProductCyclecount',[CiclicosController::class, 'addMassiveProductCyclecount']);
+            Route::post('/presitionInventory',[CiclicosController::class, 'presitionInventory']);
         });
 
         Route::post('/setMin',[WarehousesController::class, 'setMin']);

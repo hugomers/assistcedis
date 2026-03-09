@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CycleCountTypeVA extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'cyclecount_type';
+    // protected $connection = 'vizapi';
+    protected $table = 'cyclecount_types';
     protected $fillable = ['name'];
     public $timestamps = false;
 
