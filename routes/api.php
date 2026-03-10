@@ -30,6 +30,9 @@ use App\Http\Controllers\CiclicosController;
 use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\OperationController;
+
+
 
 Route::prefix('/users')->group(function(){
     Route::post('trySignin',[UserController::class, 'trySignin']);
@@ -504,6 +507,13 @@ Route::middleware('auth')->group(function(){
         Route::post('/nextState',[BillingController::class, 'nextState']);
         Route::post('/finishState',[BillingController::class, 'finishState']);
         Route::post('/crearFacturaInterna',[BillingController::class, 'crearFacturaInterna']);
+    });
+    Route::prefix('/operations')->group(function(){
+        Route::post('/index',[OperationController::class, 'index']);
+        Route::post('/getSalesMonth',[OperationController::class, 'getSalesMonth']);
+        Route::post('/getCashStatus',[OperationController::class, 'getCashStatus']);
+
+
     });
 
 

@@ -25,4 +25,7 @@ class CashRegister extends Model
     public function tpv(){
         return $this->belongsTo('App\Models\CashTPV','_tpv');
     }
+    public function cashers(){
+        return $this->hasMany('App\Models\CashCashier', '_cash');
+    }
 }

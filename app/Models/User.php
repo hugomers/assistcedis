@@ -24,5 +24,8 @@ class User extends Authenticatable
     public function stores(){
         return $this->hasMany('App\Models\UserStore','_user','id');
     }
+    public function zone(){
+        return $this->belongsTo('App\Models\Zone','id','_responsable');
+    }
 
 }
