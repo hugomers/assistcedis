@@ -84,6 +84,26 @@ return [
             ]) : [],
             // 'timezone'  => env('DBV_TIMEZONE', '-06:00'),
         ],
+        'eva' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URLE'),
+            'host' => env('DBE_HOST', '127.0.0.1'),
+            'port' => env('DBE_PORT', '3306'),
+            'database' => env('DBE_DATABASE', 'forge'),
+            'username' => env('DBE_USERNAME', 'forge'),
+            'password' => env('DBE_PASSWORD', ''),
+            'unix_socket' => env('DBE_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+            // 'timezone'  => env('DBV_TIMEZONE', '-06:00'),
+        ],
 
         'pgsql' => [
             'driver' => 'pgsql',

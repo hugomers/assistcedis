@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Stores;
+use App\Models\StoresEva;
+use App\Models\StoresTemplateEva;
+use App\Models\WorkpointVA;
 use App\Models\ProductVA;
 use App\Models\Zone;
 use App\Models\ZoneStore;
@@ -22,65 +25,16 @@ class OperationController extends Controller
 {
     public function index(Request $request){
         $stores = null;
-        $sales = null;
-        if($request->zone == "all"){
-            $stores = Stores::where('_active',1)->get();
-        }else{
-            $zoneStore = ZoneStore::where('zone_id',$request->zone)->get()->pluck('store_id');
-            $stores = Stores::whereIn('id',$zoneStore)->get();
-        }
-        $sales = $this->getSales($stores,$request->_month);
-        return $sales;
+        $zoneStore = Zone::with('stores')->get();
+        return response()->json($zoneStore);
     }
 
-    private function getSales($stores,$month){
-        $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
-        $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
-        $lastYearFrom = $from->copy()->subYear();
-        $lastYearTo   = $to->copy()->subYear();
-        $workpoints = $stores->pluck('id_viz');
-        // foreach($stores as &$store){
-            $sales = SalesVA::with([
-                'cashRegister' => function($q) use ($workpoints)  {$q->whereIn('_workpoint',$workpoints);},
-                'products.providers',
-                'products.makers',
-                'products.category.familia.seccion',
-                'client'
-            ])
-            ->whereHas('cashRegister', function($q) use ($workpoints)  {$q->whereIn('_workpoint',$workpoints);})
-            ->whereBetween('created_at',[$from,$to])
-            ->get();
-            $staffIds = $sales->pluck('_seller')->unique();
-            $staff = Staff::whereIn('id_tpv', $staffIds)
-            ->get()
-            ->keyBy('id_tpv');
-            $sales->transform(function ($sale) use ($staff) {
-                $sale->staff = $staff[$sale->_seller] ?? null;
-                return $sale;
-            });
-
-           $lastSales =   SalesVA::with([
-                'cashRegister' => function($q) use ($workpoints)  {$q->whereIn('_workpoint',$workpoints);},
-                'products.providers',
-                'products.makers',
-                'products.category.familia.seccion',
-                'client'
-            ])
-            ->whereHas('cashRegister', function($q) use ($workpoints)  {$q->whereIn('_workpoint',$workpoints);})
-            ->whereBetween('created_at',[$lastYearFrom,$lastYearTo])
-            ->get();
-            $res = [
-            "current_sales"=>$sales,
-            "last_sales"=>$lastSales,
-            ];
-            return $res;
-    }
 
     public function getSalesMonth(Request $request){
         $month = $request->_month;
 
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1],['id','!=',1]])->get();
+            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore)->get();
@@ -189,8 +143,129 @@ class OperationController extends Controller
     }
 
     public function getStatusInventory(Request $request){
+         $month = $request->_month;
+        if($request->zone == "all"){
+            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+        }else{
+            $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
+            $stores = Stores::whereIn('id',$zoneStore)->get();
+        }
 
+        $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
+        $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
 
+        $workpoints = WorkpointVA::whereIn('id',$stores->pluck('id_viz'))
+        ->with(['cyclecounts' => function($q) use($from,$to){
+            $q->where('_status',3)
+            ->whereBetween('created_at',[$from,$to])
+            ->with('products');
+        }])->get();
+
+        $report = $workpoints->map(function($wp){
+
+            $warehouses = $wp->cyclecounts->groupBy(function($cc){
+
+                $settings = is_array($cc->settings)
+                    ? $cc->settings
+                    : json_decode($cc->settings,true);
+
+                return $settings['warehouse']['id'] ?? 'UNK';
+
+            });
+
+            $cyclecounts = $warehouses->map(function($cycles,$warehouse){
+
+                // obtener todos los productos con fecha de conteo
+                $products = $cycles->flatMap(function($c){
+
+                    return $c->products->map(function($p) use ($c){
+
+                        $p->cycle_date = $c->created_at;
+
+                        return $p;
+
+                    });
+
+                });
+
+                // quedarnos solo con el ultimo conteo por producto
+                $latestProducts = $products
+                    ->sortByDesc('cycle_date')
+                    ->unique('id')
+                    ->values();
+
+                $total = $latestProducts->count();
+
+                $correct = $latestProducts->filter(function($p){
+                    return $p->pivot->stock_acc == $p->pivot->stock_end;
+                })->count();
+
+                // precision
+                $precisionTotal = 0;
+                $precisionCount = 0;
+
+                foreach($latestProducts as $p){
+
+                    $acc = $p->pivot->stock_acc;
+                    $end = $p->pivot->stock_end;
+
+                    if($end > 0){
+
+                        $precision = 1 - (abs($acc - $end) / $end);
+
+                        $precisionTotal += $precision;
+                        $precisionCount++;
+
+                    }
+
+                }
+
+                $precision = $precisionCount > 0
+                    ? round(($precisionTotal / $precisionCount) * 100,2)
+                    : 0;
+
+                return [
+                    'id'=>$warehouse,
+                    'count'=>$cycles->count(),
+                    'products'=>$total,
+                    'correctos'=>$correct,
+                    'accuracy'=>$total > 0
+                        ? round(($correct/$total)*100,2)
+                        : 0,
+                    'precision'=>$precision
+                ];
+
+            })->values();
+
+            return [
+                'id'=>$wp->id,
+                'name'=>$wp->name,
+                'cyclecounts'=>$cyclecounts
+            ];
+
+        });
+
+        return response()->json($report,200);
+    }
+
+    public function getStatusPerson(Request $request){
+        $month = $request->_month;
+        if($request->zone == "all"){
+            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+        }else{
+            $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
+            $stores = Stores::whereIn('id',$zoneStore)->get();
+        }
+        $workpoints = $stores->pluck('id_eva');
+        $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
+        $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
+
+        $evastore = StoresEva::with(['template'])
+        ->withCount([
+            'users as plantilla' => function ($q) {$q->where('_state','!=',4);} ,
+            'users as bajas'=> function ($q) use($from,$to) {$q->where('_state',4)->whereBetween('updated_at',[$from,$to]);} ])
+        ->whereIn('id',$workpoints)->get();
+        return $evastore;
     }
 
 }

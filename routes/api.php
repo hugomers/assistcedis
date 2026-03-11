@@ -512,6 +512,10 @@ Route::middleware('auth')->group(function(){
         Route::post('/index',[OperationController::class, 'index']);
         Route::post('/getSalesMonth',[OperationController::class, 'getSalesMonth']);
         Route::post('/getCashStatus',[OperationController::class, 'getCashStatus']);
+        Route::post('/getStatusInventory',[OperationController::class, 'getStatusInventory']);
+        Route::post('/getStatusPerson',[OperationController::class, 'getStatusPerson']);
+
+
 
 
     });

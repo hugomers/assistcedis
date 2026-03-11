@@ -29,16 +29,15 @@ class Stores extends Model
     public function cashs(){
         return $this->hasMany('App\Models\CashRegister','_store');
     }
-    public function cashers()
-{
-    return $this->hasManyThrough(
-        CashCashier::class,
-        CashRegister::class,
-        '_store',
-        '_cash',
-        'id',
-        'id'
-    );
-}
+    public function cashers(){
+        return $this->hasManyThrough(
+            CashCashier::class,
+            CashRegister::class,
+            '_store',
+            '_cash',
+            'id',
+            'id'
+        );
+    }
 
 }
