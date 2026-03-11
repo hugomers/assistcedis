@@ -19,6 +19,6 @@ class WorkpointVA extends Model
         return $this->belongsToMany('App\Models\ProductVA', 'product_store', '_workpoint', '_product');
     }
     public function cyclecounts(){
-        return $this->hasMany('App\Models\CyclecountVA', '_workpoint', 'id');
+        return $this->hasMany('App\Models\CycleCountVA', '_workpoint', 'id');
     }
 }
