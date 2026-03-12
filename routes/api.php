@@ -31,7 +31,7 @@ use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\OperationController;
-
+use App\Http\Controllers\QuizController;
 
 
 Route::prefix('/users')->group(function(){
@@ -46,6 +46,9 @@ Route::prefix('billing')->group(function(){
     Route::post('/validTicket',[BillingController::class, 'validTicket']);
     Route::post('/sendBilling',[BillingController::class, 'sendBilling']);
     Route::post('/readRFC',[BillingController::class, 'readRFC']);
+});
+Route::prefix('quizResponse')->group(function(){
+    Route::post('/addQuiz',[QuizController::class, 'addQuiz']);
 });
 
 Route::middleware('auth')->group(function(){
@@ -514,11 +517,13 @@ Route::middleware('auth')->group(function(){
         Route::post('/getCashStatus',[OperationController::class, 'getCashStatus']);
         Route::post('/getStatusInventory',[OperationController::class, 'getStatusInventory']);
         Route::post('/getStatusPerson',[OperationController::class, 'getStatusPerson']);
-
-
-
+        Route::post('/getSatisfactionClient',[OperationController::class, 'getSatisfactionClient']);
 
     });
+    Route::prefix('/quiz')->group(function(){
+        Route::post('/getStats',[QuizController::class, 'getStats']);
+    });
+
 
 
 });

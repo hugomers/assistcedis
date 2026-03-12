@@ -12,6 +12,7 @@ use App\Models\Zone;
 use App\Models\ZoneStore;
 use App\Models\Staff;
 use App\Models\Position;
+use App\Models\Quiz;
 use App\Models\Restock;
 use App\Models\partitionRequisition;
 use App\Models\SalesVA;
@@ -174,8 +175,6 @@ class OperationController extends Controller
             });
 
             $cyclecounts = $warehouses->map(function($cycles,$warehouse){
-
-                // obtener todos los productos con fecha de conteo
                 $products = $cycles->flatMap(function($c){
 
                     return $c->products->map(function($p) use ($c){
@@ -187,8 +186,6 @@ class OperationController extends Controller
                     });
 
                 });
-
-                // quedarnos solo con el ultimo conteo por producto
                 $latestProducts = $products
                     ->sortByDesc('cycle_date')
                     ->unique('id')
@@ -199,8 +196,6 @@ class OperationController extends Controller
                 $correct = $latestProducts->filter(function($p){
                     return $p->pivot->stock_acc == $p->pivot->stock_end;
                 })->count();
-
-                // precision
                 $precisionTotal = 0;
                 $precisionCount = 0;
 
@@ -265,7 +260,23 @@ class OperationController extends Controller
             'users as plantilla' => function ($q) {$q->where('_state','!=',4);} ,
             'users as bajas'=> function ($q) use($from,$to) {$q->where('_state',4)->whereBetween('updated_at',[$from,$to]);} ])
         ->whereIn('id',$workpoints)->get();
-        return $evastore;
+        return response()->json($evastore);
+    }
+    public function getSatisfactionClient(Request $request){
+        $month = $request->_month;
+        if($request->zone == "all"){
+            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22]);
+        }else{
+            $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
+            $stores = Stores::whereIn('id',$zoneStore);
+        }
+        $workpoints = $stores->pluck('id');
+        $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
+        $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
+
+        $quiz = $stores->with(['quiz' => function($q) use($from,$to) {$q->whereBetween('created_at',[[$from,$to]]);}])->get();
+
+        return response()->json($quiz);
     }
 
 }

@@ -29,6 +29,9 @@ class Stores extends Model
     public function cashs(){
         return $this->hasMany('App\Models\CashRegister','_store');
     }
+    public function quiz(){
+        return $this->hasMany('App\Models\Quiz','_store');
+    }
     public function cashers(){
         return $this->hasManyThrough(
             CashCashier::class,
