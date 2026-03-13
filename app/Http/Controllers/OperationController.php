@@ -196,38 +196,45 @@ class OperationController extends Controller
                 $correct = $latestProducts->filter(function($p){
                     return $p->pivot->stock_acc == $p->pivot->stock_end;
                 })->count();
-                $precisionTotal = 0;
-                $precisionCount = 0;
+                $incorrect = $latestProducts->filter(function($p){
+                    return $p->pivot->stock_acc != $p->pivot->stock_end;
+                })->count();
+                // $precisionTotal = 0;
+                // $precisionCount = 0;
 
-                foreach($latestProducts as $p){
+                // foreach($latestProducts as $p){
 
-                    $acc = $p->pivot->stock_acc;
-                    $end = $p->pivot->stock_end;
+                //     $acc = $p->pivot->stock_acc;
+                //     $end = $p->pivot->stock_end;
 
-                    if($end > 0){
+                //     if($end > 0){
 
-                        $precision = 1 - (abs($acc - $end) / $end);
+                //         $precision = 1 - (abs($acc - $end) / $end);
 
-                        $precisionTotal += $precision;
-                        $precisionCount++;
+                //         $precisionTotal += $precision;
+                //         $precisionCount++;
 
-                    }
+                //     }
 
-                }
+                // }
 
-                $precision = $precisionCount > 0
-                    ? round(($precisionTotal / $precisionCount) * 100,2)
-                    : 0;
+                // $precision = $precisionCount > 0
+                //     ? round(($precisionTotal / $precisionCount) * 100,2)
+                //     : 0;
 
                 return [
                     'id'=>$warehouse,
                     'count'=>$cycles->count(),
                     'products'=>$total,
                     'correctos'=>$correct,
+                    'incorrect'=>$incorrect,
                     'accuracy'=>$total > 0
                         ? round(($correct/$total)*100,2)
                         : 0,
-                    'precision'=>$precision
+                    'diff'=>$total > 0
+                        ? round(($incorrect/$total)*100,2)
+                        : 0,
+                    // 'precision'=>$precision
                 ];
 
             })->values();
