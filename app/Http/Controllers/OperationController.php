@@ -42,6 +42,7 @@ class OperationController extends Controller
         }
 
         $workpoints = $stores->pluck('id_viz');
+        $increments = $stores->pluck('increment','id_viz');
 
         $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
         $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
@@ -84,22 +85,41 @@ class OperationController extends Controller
         ->groupBy('cash_registers._workpoint')
         ->get();
 
-        $sales->transform(function ($s) {
+        // $sales->transform(function ($s) {
 
-            $s->growth = $s->last_total > 0
-                ? (($s->current_total - $s->last_total) / $s->last_total) * 100
-                : 100;
+        //     $s->growth = $s->last_total > 0
+        //         ? (($s->current_total - $s->last_total) / $s->last_total) * 100
+        //         : 100;
 
-            $s->ticket_avg_current = $s->tickets > 0
-                ? $s->current_total / $s->tickets
-                : 0;
+        //     $s->ticket_avg_current = $s->tickets > 0
+        //         ? $s->current_total / $s->tickets
+        //         : 0;
 
-            $s->ticket_avg_last = $s->last_tickets > 0
-                ? $s->last_total / $s->last_tickets
-                : 0;
+        //     $s->ticket_avg_last = $s->last_tickets > 0
+        //         ? $s->last_total / $s->last_tickets
+        //         : 0;
 
-            return $s;
-        });
+        //     return $s;
+        // });
+        $sales->transform(function ($s) use ($increments) {
+
+        $increment = $increments[$s->id_store] ?? 1;
+
+        $s->last_total   = round($s->last_total * $increment,2);
+        $s->last_tickets = round($s->last_tickets * $increment,0);
+
+        $s->growth = $s->last_total > 0
+            ? (($s->current_total - $s->last_total) / $s->last_total) * 100
+            : 100;
+        $s->ticket_avg_current = $s->tickets > 0
+            ? $s->current_total / $s->tickets
+            : 0;
+        $s->ticket_avg_last = $s->last_tickets > 0
+            ? $s->last_total / $s->last_tickets
+            : 0;
+
+        return $s;
+    });
 
         return response()->json($sales,200);
     }
