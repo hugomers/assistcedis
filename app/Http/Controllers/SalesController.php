@@ -245,45 +245,124 @@ class SalesController extends Controller
         return response()->json($sales,200);
     }
 
+    // public function getMonthSale(Request $request){
+    //     $from = Carbon::parse($request->from)->startOfDay();
+    //     $to   = Carbon::parse($request->to)->endOfDay();
+    //     $lastYearFrom = $from->copy()->subYear();
+    //     $lastYearTo   = $to->copy()->subYear();
+    //     $sales = SalesVA::with([
+    //         'cashRegister' => function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);},
+    //         'products.providers',
+    //         'products.makers',
+    //         'products.category.familia.seccion',
+    //         'client'
+    //     ])
+    //     ->whereHas('cashRegister', function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);})
+    //     ->whereBetween('created_at',[$from,$to])
+    //     ->get();
+    //     $staffIds = $sales->pluck('_seller')->unique();
+    //     $staff = Staff::whereIn('id_tpv', $staffIds)
+    //     ->get()
+    //     ->keyBy('id_tpv');
+    //     $sales->transform(function ($sale) use ($staff) {
+    //         $sale->staff = $staff[$sale->_seller] ?? null;
+    //         return $sale;
+    //     });
+
+    //     $lastSales =   SalesVA::with([
+    //         'cashRegister' => function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);},
+    //         'products.providers',
+    //         'products.makers',
+    //         'products.category.familia.seccion',
+    //         'client'
+    //     ])
+    //     ->whereHas('cashRegister', function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);})
+    //     ->whereBetween('created_at',[$lastYearFrom,$lastYearTo])
+    //     ->get();
+
+    //     $res = [
+    //         "current_sales"=>$sales,
+    //         "last_sales"=>$lastSales,
+    //     ];
+    //     return response()->json($res);
+    // }
+
     public function getMonthSale(Request $request){
-        $from = Carbon::parse($request->from)->startOfDay();
-        $to   = Carbon::parse($request->to)->endOfDay();
-        $lastYearFrom = $from->copy()->subYear();
-        $lastYearTo   = $to->copy()->subYear();
+
+        $week = Carbon::now()->isoWeek();
+
+        $from = Carbon::now()
+            ->isoWeek($week)
+            ->startOfWeek(Carbon::MONDAY)
+            ->startOfDay();
+
+        $to = Carbon::now()
+            ->isoWeek($week)
+            ->endOfWeek(Carbon::SUNDAY)
+            ->endOfDay();
+
+        $lastYearFrom = Carbon::now()
+            ->subYear()
+            ->isoWeek($week)
+            ->startOfWeek(Carbon::MONDAY)
+            ->startOfDay();
+
+        $lastYearTo = Carbon::now()
+            ->subYear()
+            ->isoWeek($week)
+            ->endOfWeek(Carbon::SUNDAY)
+            ->endOfDay();
+
         $sales = SalesVA::with([
-            'cashRegister' => function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);},
+            'cashRegister' => function($q) use ($request){
+                $q->where('_workpoint',$request->id_viz);
+            },
             'products.providers',
             'products.makers',
             'products.category.familia.seccion',
             'client'
         ])
-        ->whereHas('cashRegister', function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);})
+        ->whereHas('cashRegister', function($q) use ($request){
+            $q->where('_workpoint',$request->id_viz);
+        })
         ->whereBetween('created_at',[$from,$to])
         ->get();
         $staffIds = $sales->pluck('_seller')->unique();
+
         $staff = Staff::whereIn('id_tpv', $staffIds)
-        ->get()
-        ->keyBy('id_tpv');
+            ->get()
+            ->keyBy('id_tpv');
+
         $sales->transform(function ($sale) use ($staff) {
             $sale->staff = $staff[$sale->_seller] ?? null;
             return $sale;
         });
-
-        $lastSales =   SalesVA::with([
-            'cashRegister' => function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);},
+        $lastSales = SalesVA::with([
+            'cashRegister' => function($q) use ($request){
+                $q->where('_workpoint',$request->id_viz);
+            },
             'products.providers',
             'products.makers',
             'products.category.familia.seccion',
             'client'
         ])
-        ->whereHas('cashRegister', function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);})
+        ->whereHas('cashRegister', function($q) use ($request){
+            $q->where('_workpoint',$request->id_viz);
+        })
         ->whereBetween('created_at',[$lastYearFrom,$lastYearTo])
         ->get();
 
-        $res = [
+        return response()->json([
+            "week_range"=>[
+                "from"=>$from,
+                "to"=>$to
+            ],
+            "last_year_range"=>[
+                "from"=>$lastYearFrom,
+                "to"=>$lastYearTo
+            ],
             "current_sales"=>$sales,
             "last_sales"=>$lastSales,
-        ];
-        return response()->json($res);
+        ]);
     }
 }

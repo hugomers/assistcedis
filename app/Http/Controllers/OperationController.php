@@ -149,14 +149,15 @@ class OperationController extends Controller
         foreach($workpoints as &$workpoint){
             try {
                 $response = Http::timeout(5)->post("http://{$workpoint->ip_address}/storetools/public/api/reports/getCutsReport",["_month"=>$month]);
+                // $response = Http::timeout(5)->post("http://192.168.10.160:1619/storetools/public/api/reports/getCutsReport",["_month"=>$month]);
                 if ($response->ok()) {
                     $data = $response->json();
-                    $workpoint->descuadre = floatval($data['DESCUADRE']);
+                    $workpoint->cuts = $data;
                 } else {
-                    $workpoint->descuadre = 0;
+                    $workpoint->cuts = [];
                 }
             } catch (\Exception $e) {
-                $workpoint->descuadre = 0;
+                $workpoint->cuts = [];
             }
         }
 
@@ -304,6 +305,10 @@ class OperationController extends Controller
         $quiz = $stores->with(['quiz' => function($q) use($from,$to) {$q->whereBetween('created_at',[[$from,$to]]);}])->get();
 
         return response()->json($quiz);
+    }
+
+    public function statusAdm(Request $request){
+
     }
 
 }
