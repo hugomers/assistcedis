@@ -518,8 +518,11 @@ Route::middleware('auth')->group(function(){
         Route::post('/getStatusInventory',[OperationController::class, 'getStatusInventory']);
         Route::post('/getStatusPerson',[OperationController::class, 'getStatusPerson']);
         Route::post('/getSatisfactionClient',[OperationController::class, 'getSatisfactionClient']);
+        Route::post('/statusAdm',[OperationController::class, 'statusAdm']);
+
 
     });
+
     Route::prefix('/quiz')->group(function(){
         Route::post('/getStats',[QuizController::class, 'getStats']);
     });

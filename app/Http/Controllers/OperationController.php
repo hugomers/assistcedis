@@ -20,6 +20,8 @@ use Carbon\Carbon;
 use App\Models\Opening;
 use App\Models\OpeningType;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 
 class OperationController extends Controller
@@ -308,7 +310,20 @@ class OperationController extends Controller
     }
 
     public function statusAdm(Request $request){
+        $month = $request->_month;
+        if($request->zone == "all"){
+            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+        }else{
+            $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
+            $stores = Stores::whereIn('id',$zoneStore)->get();
+        }
+        $workpoints = $stores->pluck('id_eva');
+        $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
+        $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
+        $report = DB::connection('eva')->select("CALL ReportOperation(?, ?)", [ $from,  $to]);
+        $res = collect($report)->whereIn('IDSUCURSAL', $workpoints);
 
+        return $res->values();
     }
 
 }
