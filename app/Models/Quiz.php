@@ -10,11 +10,13 @@ class Quiz extends Model
     protected $table = "quiz";
     protected $fillable = [
         "fifth",
-        "fifthno",
         "first",
         "fourth",
         "second",
         "sixth",
+        "seventh",
+        "eightth",
+        "eightthno",
         "third",
         "ticket",
         "_cashier",

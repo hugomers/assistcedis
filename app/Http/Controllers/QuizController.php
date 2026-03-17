@@ -17,54 +17,53 @@ class QuizController extends Controller
     public function getStats(Request $request){
         $month = $request->month ?? now()->month;
         $year  = $request->year ?? now()->year;
+
         $quiz = Quiz::with(['seller','cashier.staff'])
             ->where('_store',$request->store)
             ->whereYear('created_at',$year)
             ->whereMonth('created_at',$month)
             ->get();
+
         if($quiz->isEmpty()){
             return response()->json([
                 'average'=>0,
                 'recommend'=>['si'=>0,'no'=>0],
-                'questions'=>[
-                    'service'=>0,
-                    'speed'=>0,
-                    'info'=>0
-                ],
-                'comments'=>[],
+                'questions'=>[],
                 'sellers'=>[],
-                'cashiers'=>[]
+                'cashiers'=>[],
+                'total'=>0
             ]);
         }
-        $average = $quiz->avg(function($q){
-            return ($q->second + $q->third + $q->fourth) / 3;
-        });
-        $si = $quiz->where('fifth','Si')->count();
-        $no = $quiz->where('fifth','No')->count();
         $total = $quiz->count();
-        $service = $quiz->avg('second');
-        $speed   = $quiz->avg('third');
-        $info    = $quiz->avg('fourth');
-        $comments = $quiz
-            ->whereNotNull('sixth')
-            ->sortByDesc('created_at')
-            ->take(10)
-            ->values()
-            ->map(fn($q)=>[
-                'id'=>$q->id,
-                'sixth'=>$q->sixth
+        $scoreQuestions = [
+            'first',
+            'second',
+            'third',
+            'fourth',
+            'fifth',
+            'sixth',
+            'seventh'
+        ];
+        $average = $quiz->avg(function($q) use ($scoreQuestions){
+            return collect($scoreQuestions)->avg(fn($field) => $q->$field);
+        });
+        $si = $quiz->where('eightth','Si')->count();
+        $no = $quiz->where('eightth','No')->count();
+        $questions = collect($scoreQuestions)
+            ->mapWithKeys(fn($q)=>[
+                $q => round($quiz->avg($q),2)
             ]);
         $sellers = $quiz
             ->groupBy('_seller')
-            ->map(function($items){
+            ->map(function($items) use ($scoreQuestions){
 
-                $avg = $items->avg(function($q){
-                    return ($q->second + $q->third + $q->fourth) / 3;
+                $avg = $items->avg(function($q) use ($scoreQuestions){
+                    return collect($scoreQuestions)->avg(fn($f)=>$q->$f);
                 });
 
                 return [
                     'id'=>$items->first()->seller?->id,
-                    'name'=>$items->first()->seller?->complete_name ?? 'N/A',
+                    'name'=>$items->first()->seller?->complete_name ?? 'Sin Nombre',
                     'score'=>round($avg,2)
                 ];
             })
@@ -72,38 +71,40 @@ class QuizController extends Controller
             ->values();
         $cashiers = $quiz
             ->groupBy('_cashier')
-            ->map(function($items){
+            ->map(function($items) use ($scoreQuestions){
 
-                $avg = $items->avg(function($q){
-                    return ($q->second + $q->third + $q->fourth) / 3;
+                $avg = $items->avg(function($q) use ($scoreQuestions){
+                    return collect($scoreQuestions)->avg(fn($f)=>$q->$f);
                 });
-
                 return [
                     'id'=>$items->first()->cashier?->id,
-                    'name'=>$items->first()->cashier?->staff?->complete_name ?? 'N/A',
+                    'name'=>$items->first()->cashier?->staff?->complete_name ?? 'Sin Nombre',
                     'score'=>round($avg,2)
                 ];
             })
             ->sortByDesc('score')
             ->values();
+            $comments = $quiz
+            ->where('eightth','No')
+            ->whereNotNull('eightthno')
+            ->where('eightthno','!=','')
+            ->take(10)
+            ->values()
+            ->map(fn($q)=>[
+                'id' => $q->id,
+                'comment' => $q->eightthno
+            ]);
         return response()->json([
             'average'=>round($average,2),
-
             'recommend'=>[
-                'si'=>round(($si/$total)*100),
-                'no'=>round(($no/$total)*100)
+                'si'=> $total ? round(($si/$total)*100) : 0,
+                'no'=> $total ? round(($no/$total)*100) : 0
             ],
-
-            'questions'=>[
-                'service'=>round($service,2),
-                'speed'=>round($speed,2),
-                'info'=>round($info,2)
-            ],
-
-            'comments'=>$comments,
+            'questions'=>$questions,
             'sellers'=>$sellers,
             'cashiers'=>$cashiers,
-            'total'=>$quiz->count()
+            'comments'=>$comments,
+            'total'=>$total
         ]);
     }
 }

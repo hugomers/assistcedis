@@ -292,8 +292,24 @@ class OperationController extends Controller
         ->whereIn('id',$workpoints)->get();
         return response()->json($evastore);
     }
+    // public function getSatisfactionClient(Request $request){
+    //     $month = $request->_month;
+    //     if($request->zone == "all"){
+    //         $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22]);
+    //     }else{
+    //         $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
+    //         $stores = Stores::whereIn('id',$zoneStore);
+    //     }
+    //     $workpoints = $stores->pluck('id');
+    //     $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
+    //     $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
+
+    //     $quiz = $stores->with(['quiz' => function($q) use($from,$to) {$q->whereBetween('created_at',[[$from,$to]]);}])->get();
+
+    //     return response()->json($quiz);
+    // }
     public function getSatisfactionClient(Request $request){
-        $month = $request->_month;
+       $month = $request->_month;
         if($request->zone == "all"){
             $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22]);
         }else{
@@ -303,10 +319,37 @@ class OperationController extends Controller
         $workpoints = $stores->pluck('id');
         $from = Carbon::create(now()->year, $month, 1)->startOfMonth();
         $to   = Carbon::create(now()->year, $month, 1)->endOfMonth();
-
-        $quiz = $stores->with(['quiz' => function($q) use($from,$to) {$q->whereBetween('created_at',[[$from,$to]]);}])->get();
-
-        return response()->json($quiz);
+        $stores = $stores->with(['quiz' => function($q) use ($from, $to) {
+            $q->whereBetween('created_at', [$from, $to]);
+        }])->get();
+        $scoreFields = [
+            'first','second','third','fourth','fifth','sixth','seventh'
+        ];
+        $stores = $stores->map(function($store) use ($scoreFields){
+            $quiz = $store->quiz;
+            $total = $quiz->count();
+            if ($total == 0) {
+                return [
+                    'id' => $store->id,
+                    'name' => $store->name,
+                    'total' => 0,
+                    'average' => 0,
+                    'recommend_si' => 0
+                ];
+            }
+            $average = $quiz->avg(function($q) use ($scoreFields){
+                return collect($scoreFields)->avg(fn($f)=>$q->$f);
+            });
+            $si = $quiz->where('eightth','Si')->count();
+            return [
+                'id' => $store->id,
+                'name' => $store->name,
+                'total' => $total,
+                'average' => round($average,2),
+                'recommend_si' => round(($si/$total)*100)
+            ];
+        });
+        return response()->json($stores);
     }
 
     public function statusAdm(Request $request){
