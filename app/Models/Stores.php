@@ -23,5 +23,24 @@ class Stores extends Model
     public function sale(){
         return $this->hasMany('App\Models\Sale','_store');
     }
+    public function opens(){
+        return $this->hasMany('App\Models\Opening','_store');
+    }
+    public function cashs(){
+        return $this->hasMany('App\Models\CashRegister','_store');
+    }
+    public function quiz(){
+        return $this->hasMany('App\Models\Quiz','_store');
+    }
+    public function cashers(){
+        return $this->hasManyThrough(
+            CashCashier::class,
+            CashRegister::class,
+            '_store',
+            '_cash',
+            'id',
+            'id'
+        );
+    }
 
 }

@@ -436,13 +436,16 @@ class CiclicosController extends Controller
         // return $sectionId;
         $allIds = [];
         $sections = CellerSectionVA::with(['children' => fn($q) => $q->whereNull('deleted_at')])->whereIn('id',$sectionId)->get();
-        if (!$sections) {
+        if ($sections->isEmpty()) {
             return response()->json([], 404);
         }
         foreach($sections as $section){
-        $allIds[] = $section->getAllDescendantIds();
+            $allIds = collect($sections)
+            ->flatMap(fn ($section) => $section->getAllDescendantIds())
+            ->unique()
+            ->values()
+            ->toArray();
         }
-        // return $allIds;
 
         $products = ProductVA::with([
             'units',

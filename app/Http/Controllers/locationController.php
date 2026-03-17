@@ -171,22 +171,51 @@ class locationController extends Controller
     public function obtProduct(Request $request){
         $workpoint = $request->workpoint;
         $sectionId = $request->section;
-        $section = CellerSectionVA::with(['children' => fn($q) => $q->whereNull('deleted_at')])->find($sectionId);
-        if (!$section) {
-            return response()->json([], 404);
-        }
-        $allIds = $section->getAllDescendantIds();
+        $celler = $request->celler;
+        if($sectionId != null){
+            $section = CellerSectionVA::with(['children' => fn($q) => $q->whereNull('deleted_at')])->find($sectionId);
+            if (!$section) {
+                return response()->json([], 404);
+            }
+            $allIds = $section->getAllDescendantIds();
 
-        $products = ProductVA::with([
-            'locations' => function($query) use ($workpoint) {
-                $query->whereNull('deleted_at');
-                $query->whereHas('celler', function($query) use ($workpoint) {
-                    $query->where([['_workpoint', $workpoint]]);
-            });},
-        ])
-        ->where('_status','!=',4)
-        ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
-        ->get();
+            $products = ProductVA::with([
+                'locations' => function($query) use ($workpoint) {
+                    $query->whereNull('deleted_at');
+                    $query->whereHas('celler', function($query) use ($workpoint) {
+                        $query->where([['_workpoint', $workpoint]]);
+                });},
+            ])->where('_status','!=',4)
+            ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
+            ->get();
+        }else{
+            $products = ProductVA::with([
+                'locations' => function($query) use ($workpoint) {
+                    $query->whereNull('deleted_at');
+                    $query->whereHas('celler', function($query) use ($workpoint) {
+                        $query->where([['_workpoint', $workpoint]]);
+                });},
+            ])
+            ->where('_status','!=',4)
+            ->whereHas('locations', function($q) use($celler){ $q->whereIn('id',$celler);})
+            ->get();
+        }
+
+        // if (!$section) {
+        //     return response()->json([], 404);
+        // }
+        // $allIds = $section->getAllDescendantIds();
+
+        // $products = ProductVA::with([
+        //     'locations' => function($query) use ($workpoint) {
+        //         $query->whereNull('deleted_at');
+        //         $query->whereHas('celler', function($query) use ($workpoint) {
+        //             $query->where([['_workpoint', $workpoint]]);
+        //     });},
+        // ])
+        // ->where('_status','!=',4)
+        // ->whereHas('locations', function($q) use($allIds){ $q->whereIn('id',$allIds);})
+        // ->get();
         return response()->json($products);
     }
 

@@ -15,6 +15,7 @@ use App\Models\PrinterVA;
 use App\Models\OrderLogVA;
 use App\Models\ProductOrderedVA;
 use App\Models\ProductUnitVA;
+use App\Models\ProductVA;
 use App\Models\Invoice;
 use App\Models\InvoiceBodies;
 use App\Models\partitionRequisition;
@@ -965,4 +966,46 @@ class OrdersController extends Controller
         });
         return response()->json($orders,200);
     }
+
+    public function addMassiveProducts(Request $request){
+        $added = [];
+        $notFound = [];
+        $order = OrderVA::find($request->order);
+        $products = isset($request->codes) ? $request->codes : [];
+        $toSupply = [];
+        foreach($products as $row){
+            $product = ProductVA::with(['stocks' => function($query) use ($order){
+                $query->where('id', $order->_workpoint_to);
+            }])->where([['code', $row['codigo'],['_status','!=',4]]])->first();
+            if($product){
+                $required = $row['cantidad'];
+                $toSupply[$product->id] = [
+                    'kit' => '',
+                    'amount' => $required,
+                    'amountDelivered' => $required,
+                    'price' => 0,
+                    'toDelivered' => $required,
+                    'total' => 0,
+                    'units' => $required,
+                    '_price_list' => 1,
+                    '_supply_by' => 1,
+                ];
+
+            }else{
+                $notFound[] = $row['codigo'];
+            }
+        }
+        if(count($toSupply) > 0){ $order->products()->attach($toSupply); }
+        $simon = $order->load([
+            'products.category.familia.seccion','products.prices','products.units','client',
+            'products.stocks' => fn($q) => $q->where('id', $order->_workpoint_to)
+        ]);
+        $res = [
+            "products"=>$simon->products,
+            "notFound"=>$notFound,
+            "order"=>$simon,
+        ];
+        return response()->json($res,200);
+    }
+
 }

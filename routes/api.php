@@ -30,6 +30,9 @@ use App\Http\Controllers\CiclicosController;
 use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\OperationController;
+use App\Http\Controllers\QuizController;
+
 
 Route::prefix('/users')->group(function(){
     Route::post('trySignin',[UserController::class, 'trySignin']);
@@ -43,6 +46,9 @@ Route::prefix('billing')->group(function(){
     Route::post('/validTicket',[BillingController::class, 'validTicket']);
     Route::post('/sendBilling',[BillingController::class, 'sendBilling']);
     Route::post('/readRFC',[BillingController::class, 'readRFC']);
+});
+Route::prefix('quizResponse')->group(function(){
+    Route::post('/addQuiz',[QuizController::class, 'addQuiz']);
 });
 
 Route::middleware('auth')->group(function(){
@@ -257,6 +263,8 @@ Route::middleware('auth')->group(function(){
         Route::get('/generate',[SalesController::class, 'generate']);
         Route::get('/GetReportVhelp/{month}',[SalesController::class, 'GetReportVhelp']);
         Route::post('/getSale',[SalesController::class, 'getSale']);
+        Route::post('/getMonthSale',[SalesController::class, 'getMonthSale']);
+
     });
 
 
@@ -401,6 +409,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/deleteProductRequired',[InvoicesController::class,'deleteProductRequired']);
         Route::post('/editProductRequired',[InvoicesController::class,'editProductRequired']);
         Route::post('/addMassiveProducts',[InvoicesController::class,'addMassiveProducts']);
+        Route::post('/addMassiveProductsInvoice',[InvoicesController::class,'addMassiveProductsInvoice']);
+
 
     });
 
@@ -482,6 +492,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/reimpresionClientTicket', [OrdersController::class,'reimpresionClientTicket']);
         Route::post('/reimpresion', [OrdersController::class,'reimpresion']);
         Route::post('/getOrdersDownload', [OrdersController::class,'getOrdersDownload']);
+        Route::post('/addMassiveProducts', [OrdersController::class,'addMassiveProducts']);
+
     });
 
     Route::prefix('catalog')->group(function(){
@@ -499,6 +511,22 @@ Route::middleware('auth')->group(function(){
         Route::post('/finishState',[BillingController::class, 'finishState']);
         Route::post('/crearFacturaInterna',[BillingController::class, 'crearFacturaInterna']);
     });
+    Route::prefix('/operations')->group(function(){
+        Route::post('/index',[OperationController::class, 'index']);
+        Route::post('/getSalesMonth',[OperationController::class, 'getSalesMonth']);
+        Route::post('/getCashStatus',[OperationController::class, 'getCashStatus']);
+        Route::post('/getStatusInventory',[OperationController::class, 'getStatusInventory']);
+        Route::post('/getStatusPerson',[OperationController::class, 'getStatusPerson']);
+        Route::post('/getSatisfactionClient',[OperationController::class, 'getSatisfactionClient']);
+        Route::post('/statusAdm',[OperationController::class, 'statusAdm']);
+
+
+    });
+
+    Route::prefix('/quiz')->group(function(){
+        Route::post('/getStats',[QuizController::class, 'getStats']);
+    });
+
 
 
 });

@@ -24,6 +24,7 @@ use App\Models\Advances;
 use App\Models\AccountVA;
 use App\Models\OrderVA;
 use App\Models\OrderLogVA;
+use App\Models\Promotion;
 use App\Models\partitionRequisition;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,7 @@ class CashController extends Controller
         if($res && $res->cashier){
             $response = [
                 "rules"=>$rules,
+                "promotions"=>Promotion::with('products')->get(),
                 "cash"=>$res,
                 "methods"=>$methods,
                 "providers"=>$providers,
@@ -492,7 +494,7 @@ class CashController extends Controller
         $uid = $request->uid;
 
         $cashier = CashCashier::find($caja['cashier']['id']);
-        if($cashier){;
+        if($cashier){
             $closeCash = http::post($caja['store']['ip_address'].'/storetools/public/api/sales/closeCash',$request->all());
             if($closeCash->status() == 200){
                 $cashier->cash_close = $declarec;
@@ -544,11 +546,11 @@ class CashController extends Controller
     public function addWitrawal(Request $request){
         $cash = $request->cash;
         $with = $request->withdrawal;
-        $addWith = http::post($cash['store']['ip_address'].'/storetools/public/api/Cashier/addWithdrawal',$request->all());
+        // $addWith = http::post($cash['store']['ip_address'].'/storetools/public/api/Cashier/addWithdrawal',$request->all());
         // $addWith = http::post('192.168.10.160:1619'.'/storetools/public/api/Cashier/addWithdrawal',$request->all());
-        if($addWith->status() == 200){
+        // if($addWith->status() == 200){
             $newWith = new Withdrawal;
-            $newWith->fs_id = $addWith['folio'];
+            // $newWith->fs_id = $addWith['folio'];
             $newWith->concept = $with['concept'];
             $newWith->_providers = $with['providers']['val']['id'];
             $newWith->import = $with['import'];
@@ -558,9 +560,9 @@ class CashController extends Controller
             $cellerPrinter = new PrinterController();
             $printed = $cellerPrinter->printret($res);
             return response()->json(["printed"=>$printed,"retirada"=>$res],200);
-        }else{
-            return response()->json('No se logro insertar la retirada',500);
-        }
+        // }else{
+            // return response()->json('No se logro insertar la retirada',500);
+        // }
     }
 
     public function getWithdrawals(Request $request){

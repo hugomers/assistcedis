@@ -1295,6 +1295,50 @@ class InvoicesController extends Controller
         return response()->json($res,200);
     }
 
+    public function addMassiveProductsInvoice(Request $request){
+        $added = [];
+        $notFound = [];
+        $requit = $request->_requisition;
+        $parti = $requit['partition'][0];
+        $requisition = Invoice::find($requit['id']);
+        $products = isset($request->codes) ? $request->codes : [];
+        $toSupply = [];
+        foreach($products as $row){
+            $product = ProductVA::with(['stocks' => function($query) use ($requisition){
+                $query->where('id', $requisition->_workpoint_to);
+            }])->where([['code', $row['codigo'],['_status','!=',4]]])->first();
+            if($product){
+                $required = $row['cantidad'];
+                    $toSupply[$product->id] = [
+                        'units' => $required,
+                        "cost" => $product->cost,
+                        "total" =>$product->cost * $required,
+                        'amount' => $required,
+                        "_supply_by" => 1 ,
+                        "toDelivered"=>$required,
+                        "ipack"=>$product->pieces,
+                        "checkout"=>1,
+                        'comments' => '',
+                        "_suplier"=>$parti['_suplier'],
+                        "_suplier_id"=>$parti['_suplier_id'],
+                        "_partition"=>$parti['id'],
+                        "stock" => count($product->stocks) > 0 ? $product->stocks[0]->pivot->stock : 0];
+            }else{
+                $notFound[] = $row['codigo'];
+            }
+        }
+        if(count($toSupply) > 0){ $requisition->products()->attach($toSupply); }
+        $simon = $requisition->load([
+            'products.units',
+            'products.stocks' => fn($q) => $q->where('id', $requisition->_workpoint_to)
+        ]);
+        $res = [
+            "products"=>$simon->products,
+            "notFound"=>$notFound
+        ];
+        return response()->json($res,200);
+    }
+
     public function newRequisitionPreventa(Request $request){
         $createdBy = $request->created_by;
         $num_ticket = Invoice::where('_workpoint_to', $request->suply_by['id'])

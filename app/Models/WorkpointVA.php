@@ -18,4 +18,7 @@ class WorkpointVA extends Model
     public function productSeason(){
         return $this->belongsToMany('App\Models\ProductVA', 'product_store', '_workpoint', '_product');
     }
+    public function cyclecounts(){
+        return $this->hasMany('App\Models\CycleCountVA', '_workpoint', 'id');
+    }
 }
