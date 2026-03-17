@@ -197,7 +197,7 @@ class RefundController extends Controller
             'type',
             'createdby',
             'receiptby',
-            'bodie' => function($q){ $q->where('to_delivered','!=','to_received');}
+            'bodie',
             ])
             ->where([['_store_to',$sid],['_status',4]])
             ->whereHas('bodie', function($q){   $q->whereColumn('to_delivered', '!=', 'to_received');})
