@@ -329,6 +329,7 @@ class InvoicesController extends Controller
 
     public function indexDashboard(Request $request){
             $fechas = $request->date;
+            $storeTo = $request->sid();
             $now = CarbonImmutable::now();
             if(isset($fechas['from'])){
                 $from = $fechas['from'];
@@ -342,28 +343,6 @@ class InvoicesController extends Controller
                 $from,
                 $to
             ];
-
-            // $query = Invoice::with(['status', 'to', 'from', 'created_by','log','partition.status', 'partition.log'])
-            //     ->withCount(["products"])
-            //     ->whereBetween(DB::raw('DATE(created_at)'),[$from,$to])->where(function ($q2) use ($request) {
-            //             $q2->where('_workpoint_to', $request->storeTo)
-            //             ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
-            //     })->get();
-            // // $partitions =partitionRequisition::with(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])->whereHas('requisition',function ($q) use($dates,$request)  {$q->whereBetween(DB::raw('DATE(created_at)'),$dates)->where('_workpoint_to',$request->storeTo); })->get();
-
-            // $partitions =partitionRequisition::with(['status','log','requisition.to','products.prices','requisition.from','requisition.created_by','requisition.log'])
-            //     ->whereHas('requisition',function ($q) use($dates,$request)  {
-            //         $q->whereBetween(DB::raw('DATE(created_at)'),$dates)
-            //         ->where(function ($q2) use ($request) {
-            //             $q2->where('_workpoint_to', $request->storeTo)
-            //             ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
-            //     }); })->get();
-            // foreach ($partitions as $partition) {
-            //     $partition->verified = $partition->getOutVerifiedStaff();
-            //     $partition->receipt  = $partition->getCheckStaff();
-            //     $partition->driving  = $partition->getOutDrivingStaff();
-            // }
-
             $query = Invoice::with([
                     'status', 'to', 'from', 'created_by', 'log',
                     'partition.status',
@@ -375,9 +354,11 @@ class InvoicesController extends Controller
                 ])
                 ->withCount(['products'])
                 ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
-                ->where(function ($q2) use ($request) {
-                    $q2->where('_workpoint_to', $request->storeTo)
-                        ->orWhere('_workpoint_from', $request->storeTo);
+                ->whereHas('to', function($q) use($storeTo){
+                    $q->where('_store',$storeTo);
+                })
+                ->orWhereHas('from', function($q) use($storeTo){
+                    $q->where('_store',$storeTo);
                 })
                 ->get();
 
@@ -390,45 +371,44 @@ class InvoicesController extends Controller
                 $partition->driving  = $partition->getOutDrivingStaff();
             }
 
-            $pdss = DB::connection('vizapi')->select(
-                    "SELECT
-                        COUNT(PS._product) as total
-                    FROM product_stock PS
-                    WHERE
-                        PS._status=1 AND
-                        PS._workpoint=1 AND
-                        PS.stock=0 AND (SELECT sum(stock) FROM product_stock WHERE _workpoint=2 and _product=PS._product)=0; ");
+            // $pdss = DB::connection('vizapi')->select(
+            //         "SELECT
+            //             COUNT(PS._product) as total
+            //         FROM product_stock PS
+            //         WHERE
+            //             PS._status=1 AND
+            //             PS._workpoint=1 AND
+            //             PS.stock=0 AND (SELECT sum(stock) FROM product_stock WHERE _workpoint=2 and _product=PS._product)=0; ");
 
-            $pndcs = DB::connection('vizapi')->select("
-                    SELECT
-                        COUNT(*) AS total
-                    FROM products P
-                        INNER JOIN product_stock PS ON PS._product = P.id AND PS._workpoint IN (1)
-                        LEFT JOIN product_status S ON S.id = PS._status AND PS._workpoint = 1
-                        INNER JOIN product_categories PC ON PC.id = P._category
-                    WHERE
-                        PS._status NOT IN (1,4)
-                        AND
-                        P._status != 4 AND ((SELECT SUM(stock) FROM product_stock WHERE _workpoint = 2 AND _product = P.id) +  PS.stock ) > 0");
+            // $pndcs = DB::connection('vizapi')->select("
+            //         SELECT
+            //             COUNT(*) AS total
+            //         FROM products P
+            //             INNER JOIN product_stock PS ON PS._product = P.id AND PS._workpoint IN (1)
+            //             LEFT JOIN product_status S ON S.id = PS._status AND PS._workpoint = 1
+            //             INNER JOIN product_categories PC ON PC.id = P._category
+            //         WHERE
+            //             PS._status NOT IN (1,4)
+            //             AND
+            //             P._status != 4 AND ((SELECT SUM(stock) FROM product_stock WHERE _workpoint = 2 AND _product = P.id) +  PS.stock ) > 0");
 
-            $resume[] = [ "key"=>"pdss", "name"=>"Productos disponibles sin stock", "total"=>$pdss[0]->total ];
-            $resume[] = [ "key"=>"pndcs", "name"=>"Productos no disponibles con stock", "total"=>$pndcs[0]->total ];
+            // $resume[] = [ "key"=>"pdss", "name"=>"Productos disponibles sin stock", "total"=>$pdss[0]->total ];
+            // $resume[] = [ "key"=>"pndcs", "name"=>"Productos no disponibles con stock", "total"=>$pndcs[0]->total ];
 
-            $printers = WorkpointVA::with("printers")->where("id",$request->storeTo)->get();
+            $printers = Stores::with("printers")->where("id",$storeTo)->get();
 
-            $users = User::with('staff')->where('_store',$request->storeTo)->whereIn('_rol',[1,2,4,15,16])->get();
+            $users = User::where('_store',$storeTo)->get();
 
             return response()->json([
                 "orders"=>$query,
                 "from"=>$from,
                 "to"=>$to,
-                "resume"=>$resume,
+                // "resume"=>$resume,
                 "printers"=>$printers,
                 "staff"=>$users,
                 "partitions"=>$partitions,
-                'cedis'=>WorkpointVA::where([['_type',1],['active',1]])->get()
+                'cedis'=>Stores::with('warehouses')->where([['_type',1],['_state',1]])->get()
             ]);
-        // } catch (\Error $e) { return response()->json($e,500); }
     }
 
     public function order(Request $request){

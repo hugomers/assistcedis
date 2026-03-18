@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoiceType extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'type_requisition';
+    // protected $connection = 'vizapi';
+    protected $table = 'requisition_types';
 }

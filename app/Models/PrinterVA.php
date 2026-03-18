@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PrinterVA extends Model
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
     protected $table = 'printers';
 
 }

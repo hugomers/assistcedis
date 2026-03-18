@@ -26,4 +26,7 @@ class Stores extends Model
     public function warehouses(){
         return $this->hasMany('App\Models\Warehouses','_store');
     }
+    public function printers(){
+        return $this->hasMany('App\Models\PrinterVA','_store');
+    }
 }

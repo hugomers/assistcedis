@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoiceLog extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'requisition_log';
+    // protected $connection = 'vizapi';
+    protected $table = 'requisition_logs';
 }

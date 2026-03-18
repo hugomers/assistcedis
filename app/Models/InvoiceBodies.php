@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoiceBodies extends Model
 {
-    protected $connection = 'vizapi';
-    protected $table = 'product_required';
+    // protected $connection = 'vizapi';
+    protected $table = 'requisition_bodies';
     public $timestamps = false;
 
 }
