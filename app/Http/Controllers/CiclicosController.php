@@ -37,20 +37,20 @@ class CiclicosController extends Controller
                 ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
                 ->where("_workpoint",$store)
                 ->get();
-
             $inventories->each(function ($inv) {
-                $total = 0;
-                $count = 0;
+                $correctos = 0;
+                $contados = 0;
+
                 foreach ($inv->products as $p) {
                     $acc = $p->pivot->stock_acc;
                     $end = $p->pivot->stock_end;
-                    if ($acc > 0 && $end > 0) {
-                        $precision = ($acc / $end);
-                        $total += $precision;
+                    if ($acc == $end) {
+                        $correctos ++;
                     }
-                    $count++;
+                    $contados++;
                 }
-                $inv->precision = $count > 0 ? round($total / $count, 2) * 100 : 0;
+
+                $inv->precision = $contados > 0 ? round(($correctos / $contados) * 100, 2) : 0;
             });
             $responsables = User::with('staff')->where('_store', $storeA)->WhereIn('_rol',[4,8,9,24])->get();
             $seccion = ProductCategoriesVA::where('deep',0)->where('alias','!=',null)->get();
