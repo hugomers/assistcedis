@@ -60,7 +60,7 @@ class CashController extends Controller
             })
             ->get();
             return response()->json($res);
-        }else if(in_array($user->_rol, [1, 2, 5, 6, 12])){
+        }else if(in_array($user->_rol, [1, 2, 31, 6, 12])){
             $cash = CashRegister::with([
                 'store',
                 'status',
