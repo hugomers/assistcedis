@@ -359,6 +359,7 @@ Route::middleware('auth')->group(function(){
         Route::post('/addSale',[CashController::class,'addSale']);
         Route::post('/addSaleStandar',[CashController::class,'addSaleStandar']);
         Route::post('/closeCash',[CashController::class,'closeCash']);
+        Route::post('/countCash',[CashController::class,'countCash']);
         Route::post('/addWitrawal',[CashController::class,'addWitrawal']);
         Route::post('/addIngress',[CashController::class,'addIngress']);
         Route::post('/getIngress',[CashController::class,'getIngress']);

@@ -10,6 +10,7 @@ use App\Models\Stores;
 use App\Models\Position;
 use App\Models\CashRegister;
 use App\Models\CashCashier;
+use App\Models\CashCount;
 use App\Models\User;
 use App\Models\ProviderWithdrawal;
 use App\Models\Withdrawal;
@@ -756,6 +757,47 @@ class CashController extends Controller
         $log->_responsable = $user;
         $log->save();
         return $log;
+    }
+
+    public function countCash(Request $request){
+        $bullet = $request->close;
+        $caja = $request->cash;
+        $declarec = $request->total;
+        $uid = $request->created_by;
+        // $created = User::with('staff')->find($uid);
+        $cashier = CashCashier::find($caja['cashier']['id']);
+        if($cashier){
+            $closeCash = http::post($caja['store']['ip_address'].'/storetools/public/api/sales/countCash',$request->all());
+            // $closeCash = http::post('192.168.10.160:1619/storetools/public/api/sales/countCash',$request->all());
+            if($closeCash->status() == 200){
+                $original = $closeCash->json();
+                $insDetails = [
+                    "retiradas"=>$original['corte']['RETIRADAS'],
+                    "ingresos"=>$original['corte']['INGRESOS'],
+                    "fpa"=>$original['totales'],
+                    "declarado"=>[
+                        "monedas"=>$bullet['Monedas'],
+                        "billetes"=>$bullet['Billetes']
+                    ],
+                    "totalDeclarado"=>$declarec,
+                    "descuadre"=>number_format((floatval($original['corte']['EFEATE']) - $original['totalEfe'] ),2),
+                    "efectivoencaja"=>$original['totalEfe'],
+                ];
+                $insert = [
+                    "_cashier"=>$caja['cashier']['id'],
+                    "_created_by"=>$uid['id'],
+                    "current_cash"=>$declarec,
+                    "counted_cash"=>$original['totalEfe'],
+                    "discrepancy"=>(floatval($original['corte']['EFEATE']) - $original['totalEfe'] ),
+                    "details"=>json_encode($insDetails)
+                ];
+                $cashCount = CashCount::create($insert);
+                $cashCount->save();
+                        return response()->json($cashCount);
+                }else{
+                    return response()->json(["message"=>'No se logro hacer el corte',"status"=>false]);
+                }
+            }
     }
 
 
