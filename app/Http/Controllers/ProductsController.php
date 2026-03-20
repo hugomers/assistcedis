@@ -1113,4 +1113,28 @@ class ProductsController extends Controller
         }
         return response()->json(["success" => false]);
     }
+
+    public function getReportnotPicture(Request $request){
+        $sections = $request->sections;
+
+        $products = ProductVA::with([
+            'stocks'=> fn($q)=> $q->whereNotIn('_workpoint',[12,14,15,22,21]),
+            'category.familia.seccion',
+        ])
+        ->whereHas('category.familia.seccion', function($query) use ($sections) {
+            $query->whereIn('id',$sections);
+        })
+        ->where('_status','!=',4)
+        ->whereNull('imgcover')
+        ->whereHas('stocks', function ($q) {
+            $q->whereRaw('(stock + in_transit) != 0');
+        })
+        ->withSum(['stocks as total_stock' => function ($q) {
+            $q->whereNotIn('_workpoint',[12,14,15,22,21])
+            ->select(DB::raw('SUM(stock + in_transit)'));
+        }], 'stock')
+        ->get();
+
+        return response()->json($products);
+    }
 }

@@ -172,6 +172,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/updateImgProduct',[ProductsController::class, 'updateImgProduct']);
         Route::post('/massiveUpdateImg',[ProductsController::class, 'massiveUpdateImg']);
         Route::post('/updateStatusProduct',[ProductsController::class, 'updateStatusProduct']);
+        Route::post('/getReportnotPicture',[ProductsController::class, 'getReportnotPicture']);
+
 
     });
 
