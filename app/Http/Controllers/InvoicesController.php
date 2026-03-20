@@ -11,6 +11,7 @@ use App\Models\partitionRequisition;
 use App\Models\partitionLog;
 use App\Models\Transfers;
 use App\Models\Warehouses;
+use App\Models\PrinterVA;
 use App\Models\WorkpointVA;
 use App\Models\User;
 use App\Models\ProductVA;
@@ -85,7 +86,7 @@ class InvoicesController extends Controller
             $requisition = Invoice::with(["to", "from", "log", "status", "created_by","partition.status","partition.log","type"])->find($oid);
             $now = CarbonImmutable::now();
             $requisition->log()->attach($moveTo, [ 'details'=>json_encode([ "responsable"=>$requisition->created_by['nick'] ]) ]);
-            $requisition->_status=$moveTo;
+            $requisition->_state=$moveTo;
             $requisition->save();
             $requisition->load(['log','status']);
             return true;
@@ -370,33 +371,8 @@ class InvoicesController extends Controller
                 $partition->receipt  = $partition->getCheckStaff();
                 $partition->driving  = $partition->getOutDrivingStaff();
             }
-
-            // $pdss = DB::connection('vizapi')->select(
-            //         "SELECT
-            //             COUNT(PS._product) as total
-            //         FROM product_stock PS
-            //         WHERE
-            //             PS._status=1 AND
-            //             PS._workpoint=1 AND
-            //             PS.stock=0 AND (SELECT sum(stock) FROM product_stock WHERE _workpoint=2 and _product=PS._product)=0; ");
-
-            // $pndcs = DB::connection('vizapi')->select("
-            //         SELECT
-            //             COUNT(*) AS total
-            //         FROM products P
-            //             INNER JOIN product_stock PS ON PS._product = P.id AND PS._workpoint IN (1)
-            //             LEFT JOIN product_status S ON S.id = PS._status AND PS._workpoint = 1
-            //             INNER JOIN product_categories PC ON PC.id = P._category
-            //         WHERE
-            //             PS._status NOT IN (1,4)
-            //             AND
-            //             P._status != 4 AND ((SELECT SUM(stock) FROM product_stock WHERE _workpoint = 2 AND _product = P.id) +  PS.stock ) > 0");
-
-            // $resume[] = [ "key"=>"pdss", "name"=>"Productos disponibles sin stock", "total"=>$pdss[0]->total ];
-            // $resume[] = [ "key"=>"pndcs", "name"=>"Productos no disponibles con stock", "total"=>$pndcs[0]->total ];
-
-            $printers = Stores::with("printers")->where("id",$storeTo)->get();
-
+            $warehouses = Warehouses::where('_store',$storeTo)->get();
+            $printers = PrinterVA::where('_store',$storeTo)->get();
             $users = User::where('_store',$storeTo)->get();
 
             return response()->json([
@@ -405,6 +381,7 @@ class InvoicesController extends Controller
                 "to"=>$to,
                 // "resume"=>$resume,
                 "printers"=>$printers,
+                "warehouses"=>$warehouses,
                 "staff"=>$users,
                 "partitions"=>$partitions,
                 'cedis'=>Stores::with('warehouses')->where([['_type',1],['_state',1]])->get()
@@ -1048,18 +1025,17 @@ class InvoicesController extends Controller
                 $request->notes = $request->notes ? $request->notes." ".$data['notes'] : $data['notes'];
             break;
         }
-        // return $data;
         if(isset($data['msg'])){
             return response()->json([
                 "success" => false,
                 "msg" => $data['msg']
             ]);
         }
-        $createdBy = $request->created_by;
-        $num_ticket = Invoice::where('_workpoint_to', $request->suply_by['val']['id'])
+        $createdBy = $request->uid();
+        $num_ticket = Invoice::where('_warehouse_to', $request->warehouse['val']['id'])
                                     ->whereDate('created_at',now())
                                     ->count()+1;
-        $num_ticket_store = Invoice::where('_workpoint_from', $request->workpointFrom)
+        $num_ticket_store = Invoice::where('_warehouse_from', $request->warehouseFrom['val']['id'])
                                         ->whereDate('created_at', now())
                                         ->count()+1;
         $requisition = new Invoice;
@@ -1067,16 +1043,14 @@ class InvoicesController extends Controller
         $requisition->num_ticket = $num_ticket;
         $requisition->num_ticket_store = $num_ticket_store;
         $requisition->_created_by = $createdBy;
-        $requisition->_workpoint_from = $request->workpointFrom;
-        $requisition->_workpoint_to = $request->suply_by['val']['id'];
+        $requisition->_warehouse_from = $request->warehouseFrom['val']['id'];
+        $requisition->_warehouse_to = $request->warehouse['val']['id'];
         $requisition->_type = $request->types['val']['id'];
         $requisition->printed = 0;
-        $requisition->_warehouse = $request->warehouse['val']['id'];
-        $requisition->time_life = "00:15:00";
-        $requisition->_status = 1;
+        $requisition->_state = 1;
         $requisition->save();
         $res = $requisition->fresh();
-        $log = $this->logInt($res->id,$res->_status);
+        $log = $this->logInt($res->id,$res->_state);
         if($log){
             if(isset($data['products'])){ $requisition->products()->attach($data['products']); }
             $simon = $requisition->load(['type', 'status', 'to', 'from', 'created_by', 'log']);
@@ -1153,7 +1127,7 @@ class InvoicesController extends Controller
     }
 
     public function getRequired(Request $request){
-        $store = $request->workpoint;
+        // $warehouse = $request->workpoint;
         $folio = $request->folio;
         $order = Invoice::with([
             'type',
@@ -1163,7 +1137,7 @@ class InvoicesController extends Controller
             'created_by',
             'log',
             'products.units',
-        ])->where([['id',$folio],['_workpoint_from',$store]])->first();
+        ])->where([['id',$folio]])->first();
 
         $units = ProductUnitVA::all();
         if($order){
@@ -1175,7 +1149,7 @@ class InvoicesController extends Controller
             'created_by',
             'log',
             'products.units',
-            'products.stocks' => fn($q) => $q->where('id', $order->_workpoint_to)]);
+            'products.stocks' => fn($q) => $q->where('id', $order->_warehouse_to)]);
             $res = [
                 "units"=>$units,
                 "order"=>$order

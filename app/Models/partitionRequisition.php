@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class partitionRequisition extends Model
 {
-    protected $connection = 'vizapi';
+    // protected $connection = 'vizapi';
 
     protected $table = 'requisition_partitions';
     public $timestamps = false;
@@ -39,7 +39,7 @@ class partitionRequisition extends Model
     }
 
     public function log(){
-        return $this->belongsToMany('App\Models\InvoiceStatus', 'partition_logs', '_partition', '_status')
+        return $this->belongsToMany('App\Models\InvoiceStatus', 'partition_logs', '_partition', '_state')
                     ->withPivot('id', 'details')
                     ->withTimestamps();
     }

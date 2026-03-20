@@ -1181,7 +1181,7 @@ class RestockController extends Controller
             ]
         ]);
     }
-//EL OTRO
+
     public function getCedis(){
         $cedis = WorkPointVA::where([['active',1]])->get();
         return response()->json($cedis,200);
@@ -1455,99 +1455,6 @@ class RestockController extends Controller
             ->where('_status','!=',4)->get();
         return response()->json($products);
     }
-
-    // public function nextStepCatalog(Request $request){
-    //     $requisition = $request->requisition;
-    //     $printer = $request->printer;
-    //     $products = $requisition['products'];
-    //     $array_pr = [];
-    //     foreach ($products as $row) {
-    //         $array_pr[$row['id']] = [
-    //             'units' => $row['pivot']['units'],
-    //             "cost" => $row['pivot']['cost'],
-    //             'amount' => $row['pivot']['amount'],
-    //             'total'=> $row['pivot']['total'],
-    //             "_supply_by" => $row['pivot']['_supply_by'],
-    //             'comments' => '',
-    //             "stock" => $row['pivot']['stock'],
-    //         ];
-    //     }
-    //     $requisition = Invoice::find($requisition['id']);
-    //     if(count($array_pr) > 0){
-    //         $requisition->products()->attach($array_pr);
-    //     }
-    //     $_workpoint_to = $requisition->_workpoint_to;
-    //     $requisition->load(['created_by', 'products' => function($query) use ($_workpoint_to){
-    //         $query->with(['locations' => function($query)  use ($_workpoint_to){
-    //             $query->whereHas('celler', function($query) use ($_workpoint_to){
-    //                 $query->where([['_workpoint', $_workpoint_to], ['_type', 1]]);
-    //             });
-    //         }]);
-    //     }, 'status', 'from', 'to']);
-
-    //     if($requisition){
-    //         $created_by = $requisition->created_by;
-    //         $_status = $requisition->_status+1;
-    //         $process =  InvoiceStatus::where('id', $_status)->exists();;
-    //         if($process){
-    //             $responsable = $created_by['names'].' '.$created_by['surname_pat'];
-    //             $previous = null;
-    //             $port = 9100;
-    //             $requisition->log()->attach($_status, [ 'details'=>json_encode([ "responsable"=>$responsable ]), 'created_at' => carbon::now()->format('Y-m-d H:i:s'), 'updated_at' => carbon::now()->format('Y-m-d H:i:s') ]);
-    //             $requisition->_status=$_status; // se prepara el cambio de status del pedido (a por surtir (2))
-    //             $requisition->save(); // se guardan los cambios
-    //             $requisition->fresh(['log']); // se refresca el log del pedido
-    //             $_workpoint_to = $requisition->_workpoint_to;
-    //             $requisition->load(['log', 'products' => function($query) use ($_workpoint_to){
-    //                 $query->with(['locations' => function($query)  use ($_workpoint_to){
-    //                     $query->whereHas('celler', function($query) use ($_workpoint_to){
-    //                         $query->where('_workpoint', $_workpoint_to);
-    //                     });
-    //                 }]);
-    //             }]);
-    //             $ipprinter = env("PRINTER_ARBOL") ;
-    //             $miniprinter = new PrinterController();
-    //             $printed_provider = $miniprinter->requisitionTicketCatalog($ipprinter,$requisition);
-    //             $printed_sucursal = $miniprinter->requisitionTicketCatalog($printer['ip'],$requisition);
-
-    //             if($printed_provider){
-    //                 $requisition->printed = ($requisition->printed+1);
-    //                 $requisition->save();
-    //             }else {
-    //                 $groupvi = "120363185463796253@g.us";
-    //                 $mess = "El pedido ".$requisition->id." no se logro imprimir, favor de revisarlo";
-    //                 $this->sendWhatsapp($groupvi, $mess);
-    //             }
-
-    //         $requisition->refresh('log');
-
-    //         $log = $requisition->log->filter(function($event) use($_status){
-    //             return $event->id >= $_status;
-    //         })->values()->map(function($event){
-    //             return [
-    //                 "id" => $event->id,
-    //                 "name" => $event->name,
-    //                 "active" => $event->active,
-    //                 "allow" => $event->allow,
-    //                 "details" => json_decode($event->pivot->details),
-    //                 "created_at" => $event->pivot->created_at->format('Y-m-d H:i'),
-    //                 "updated_at" => $event->pivot->updated_at->format('Y-m-d H:i')
-    //             ];
-    //         });
-
-    //             $msg = count($log)>0 ? "" : "No se pudo cambiar el status";
-    //             $server_status = count($log)>0 ? 200 : 500;
-    //         }else{
-    //             $msg = "Status no válido";
-    //             $server_status = 400;
-    //         }
-    //     return response()->json([
-    //         "requisition"=>$requisition,
-    //     ]);
-    //     }else{
-    //         return response()->json(['mssg'=>'El pedido no se encuentra'],500);
-    //     }
-    // }
 
     public function nextStepCatalog(Request $request){
         $reqData    = $request->requisition;

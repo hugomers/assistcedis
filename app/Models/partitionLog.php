@@ -12,7 +12,7 @@ class partitionLog extends Model
     protected $fillable = [
         "_requisition",
         "_partition",
-        "_status",
+        "_state",
         "details",
         "created_at",
         "updated_at",

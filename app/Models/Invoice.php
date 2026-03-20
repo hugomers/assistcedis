@@ -33,7 +33,7 @@ class Invoice extends Model
 
     public function products(){
         return $this->belongsToMany('App\Models\ProductVA', 'requisition_bodies', '_requisition', '_product')
-                    ->withPivot('amount', '_supply_by', 'units', 'cost', 'total', 'comments', 'stock', 'toDelivered', 'toReceived', 'ipack', 'checkout','_suplier_id');
+                    ->withPivot('amount', '_supply_by', 'units', 'cost', 'total', 'comments', 'stock_from','stock_to', 'toDelivered', 'toReceived', 'ipack', 'checkout');
     }
 
     public function to(){
@@ -45,11 +45,11 @@ class Invoice extends Model
     }
 
     public function created_by(){
-        return $this->belongsTo('App\Models\AccountVA', '_created_by');
+        return $this->belongsTo('App\Models\User', '_created_by');
     }
 
     public function log(){
-        return $this->belongsToMany('App\Models\InvoiceStatus', 'requisition_logs', '_order', '_status')
+        return $this->belongsToMany('App\Models\InvoiceStatus', 'requisition_logs', '_requisition', '_state')
                     ->withPivot('id', 'details')
                     ->withTimestamps();
     }
