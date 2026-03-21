@@ -28,4 +28,7 @@ class CashRegister extends Model
     public function cashers(){
         return $this->hasMany('App\Models\CashCashier', '_cash');
     }
+    public function receipt(){
+        return $this->belongsTo('App\Models\CashReceipt','id','_cash');
+    }
 }

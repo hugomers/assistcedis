@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\Restock;
 use App\Models\partitionRequisition;
 use App\Models\SalesVA;
+use App\Models\Printer;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\Snappy\Facades\SnappyImage;
@@ -364,5 +365,27 @@ class SalesController extends Controller
             "current_sales"=>$sales,
             "last_sales"=>$lastSales,
         ]);
+    }
+
+    public function getOpenCash(Request $request){
+        $id = $request->sid;
+        $stores = Stores::with([
+            'cashs' => function($q) use($request) {
+                $q->with(['cashier' => function($q) use($request) {
+                    $q->whereDate('open_date',$request->date);
+                },
+                'receipt' => function($q) use($request) {
+                    $q->whereDate('open_date',$request->date);
+                }
+                ]);
+            }
+        ])->whereNotIn('id',[1,2,5,6,14,15,21,22])->get();
+        $printers = Printer::where('_store',$id)->get();
+
+        $res = [
+            "stores"=>$stores,
+            "printers"=>$printers
+        ];
+        return response()->json($res);
     }
 }

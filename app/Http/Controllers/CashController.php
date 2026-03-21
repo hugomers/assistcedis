@@ -11,6 +11,7 @@ use App\Models\Position;
 use App\Models\CashRegister;
 use App\Models\CashCashier;
 use App\Models\CashCount;
+use App\Models\CashReceipt;
 use App\Models\User;
 use App\Models\ProviderWithdrawal;
 use App\Models\Withdrawal;
@@ -798,6 +799,23 @@ class CashController extends Controller
                     return response()->json(["message"=>'No se logro hacer el corte',"status"=>false]);
                 }
             }
+    }
+
+    public function updateReceipt(Request $request){
+        $val = $request->val;
+        $cash = $request->cash;
+        $insDat = [
+            "_cash"=>$cash['id'],
+            "_cashiser"=>isset($cash['cashier']) ? $cash['cashier']['id']  : null,
+            "cash_receipt"=>floatval($val),
+            "cash_send"=>floatval($cash['corte']['RETIRADAS']),
+            "discrepancy"=>floatval(floatval($val) - floatval($cash['corte']['RETIRADAS'])),
+            "open_date"=>$cash['corte']['FECHA'],
+            "details"=>json_encode($request->all())
+        ];
+        $cashCount = CashReceipt::create($insDat);
+        $cashCount->save();
+        return response()->json($cashCount);
     }
 
 

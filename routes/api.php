@@ -261,6 +261,8 @@ Route::middleware('auth')->group(function(){
 
     Route::prefix('/sales')->group(function(){
         Route::get('/getSale',[SalesController::class, 'Index']);
+        Route::post('/getOpenCash',[SalesController::class, 'getOpenCash']);
+        Route::post('/updateReceipt',[CashController::class, 'updateReceipt']);
         Route::get('/getStores',[SalesController::class, 'getStores']);
         Route::get('/generate',[SalesController::class, 'generate']);
         Route::get('/GetReportVhelp/{month}',[SalesController::class, 'GetReportVhelp']);
