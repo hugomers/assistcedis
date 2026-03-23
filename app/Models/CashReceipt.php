@@ -12,6 +12,7 @@ class CashReceipt extends Model
         "_cash",
         "_cashier",
         "cash_receipt",
+        "cash_expenses",
         "cash_send",
         "discrepancy",
         "open_date",
