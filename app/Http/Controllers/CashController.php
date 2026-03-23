@@ -810,6 +810,7 @@ class CashController extends Controller
             "cash_receipt"=>floatval($val['ingreso']),
             "cash_expenses"=>floatval($val['gasto']),
             "cash_send"=>floatval(floatval($cash['corte']['RETIRADAS']) - floatval($val['gasto'])),
+            "withdrawal"=>floatval($cash['corte']['RETIRADAS']),
             "discrepancy"=>floatval(floatval($val['ingreso']) - (floatval($cash['corte']['RETIRADAS'] - floatval($val['gasto'])))),
             "open_date"=>$cash['corte']['FECHA'],
             "details"=>json_encode($request->all())
@@ -817,6 +818,38 @@ class CashController extends Controller
         $cashCount = CashReceipt::create($insDat);
         $cashCount->save();
         return response()->json($cashCount);
+    }
+
+    public function ModifyReceipt(Request $request){
+        $val = $request->val;
+        $receipt = $request->receipt;
+        // return $receipt;
+        $res = CashReceipt::find($receipt);
+        if($res){
+            $res->cash_receipt = $val;
+            $res->discrepancy = floatval(floatval($val) - floatval($res->cash_send));
+            $res->save();
+            $retur = $res->fresh();
+            return response()->json($retur,200);
+        }else{
+            return response()->json('No se encontro el Receipt',404);
+        }
+    }
+
+    public function ModifyExpense(Request $request){
+        $val = $request->val;
+        $receipt = $request->receipt;
+        $res = CashReceipt::find($receipt);
+        if($res){
+            $res->cash_expenses = $val;
+            $res->cash_send = (floatval($res->withdrawal - floatval($val)));
+            $res->discrepancy = floatval(floatval($res->cash_receipt) -  (floatval($res->withdrawal - floatval($val))));
+            $res->save();
+            $retur = $res->fresh();
+            return response()->json($retur,200);
+        }else{
+            return response()->json('No se encontro el Receipt',404);
+        }
     }
 
 
