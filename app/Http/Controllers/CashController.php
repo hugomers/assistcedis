@@ -807,9 +807,10 @@ class CashController extends Controller
         $insDat = [
             "_cash"=>$cash['id'],
             "_cashiser"=>isset($cash['cashier']) ? $cash['cashier']['id']  : null,
-            "cash_receipt"=>floatval($val),
+            "cash_receipt"=>floatval($val['ingreso']),
+            "cash_receipt"=>floatval($val['gasto']),
             "cash_send"=>floatval($cash['corte']['RETIRADAS']),
-            "discrepancy"=>floatval(floatval($val) - floatval($cash['corte']['RETIRADAS'])),
+            "discrepancy"=>floatval(floatval($val['ingreso']) - floatval($cash['corte']['RETIRADAS'])),
             "open_date"=>$cash['corte']['FECHA'],
             "details"=>json_encode($request->all())
         ];
