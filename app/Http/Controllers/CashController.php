@@ -809,8 +809,8 @@ class CashController extends Controller
             "_cashiser"=>isset($cash['cashier']) ? $cash['cashier']['id']  : null,
             "cash_receipt"=>floatval($val['ingreso']),
             "cash_expenses"=>floatval($val['gasto']),
-            "cash_send"=>floatval($cash['corte']['RETIRADAS']),
-            "discrepancy"=>floatval(floatval($val['ingreso']) - floatval($cash['corte']['RETIRADAS'])),
+            "cash_send"=>floatval(floatval($cash['corte']['RETIRADAS']) - floatval($val['gasto'])),
+            "discrepancy"=>floatval(floatval($val['ingreso']) - (floatval($cash['corte']['RETIRADAS'] - floatval($val['gasto'])))),
             "open_date"=>$cash['corte']['FECHA'],
             "details"=>json_encode($request->all())
         ];
