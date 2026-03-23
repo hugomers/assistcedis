@@ -372,7 +372,7 @@ class SalesController extends Controller
         $stores = Stores::with([
             'cashs' => function($q) use($request) {
                 $q->with(['cashier' => function($q) use($request) {
-                    $q->whereDate('open_date',$request->date);
+                    $q->with('user.staff')->whereDate('open_date',$request->date);
                 },
                 'receipt' => function($q) use($request) {
                     $q->whereDate('open_date',$request->date);
@@ -380,6 +380,30 @@ class SalesController extends Controller
                 ]);
             }
         ])->whereNotIn('id',[1,2,5,6,14,15,21,22])->get();
+        foreach ($stores as $store) {
+            if (!$store->ip_address) {
+                $store->setRelation('cashs', collect([]));
+                continue;
+            }
+            try {
+                $cashs = $store->cashs->toArray();
+                $response = Http::timeout(10)->post(
+                    "http://{$store->ip_address}/storetools/public/api/reports/OpenBoxes",
+                    [
+                        "filt" => $request->date,
+                        "cash" => $cashs
+                    ]
+                );
+                $store->setRelation(
+                    'cashs',
+                    $response->successful()
+                        ? collect($response->json())
+                        : collect([])
+                );
+            } catch (\Exception $e) {
+                $store->setRelation('cashs', collect([]));
+            }
+        }
         $printers = Printer::where('_store',$id)->get();
 
         $res = [
