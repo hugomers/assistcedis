@@ -17,6 +17,11 @@ class CashReceipt extends Model
         "withdrawal",
         "discrepancy",
         "open_date",
-        "details"
+        "details",
+        "mismatch_observation",
+        "card_receipt",
+        "card_send",
+        "card_discrepancy",
+        "card_observation"
     ];
 }

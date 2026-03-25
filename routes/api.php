@@ -271,6 +271,11 @@ Route::middleware('auth')->group(function(){
         Route::post('/updateReceipt',[CashController::class, 'updateReceipt']);
         Route::post('/ModifyReceipt',[CashController::class, 'ModifyReceipt']);
         Route::post('/ModifyExpense',[CashController::class, 'ModifyExpense']);
+        Route::post('/ModifyReceiptCard',[CashController::class, 'ModifyReceiptCard']);
+        Route::post('/addCommentCard',[CashController::class, 'addCommentCard']);
+        Route::post('/addCommentMismatch',[CashController::class, 'addCommentMismatch']);
+
+
 
     });
 

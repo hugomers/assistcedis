@@ -812,6 +812,9 @@ class CashController extends Controller
             "cash_send"=>floatval(floatval($cash['corte']['RETIRADAS']) - floatval($val['gasto'])),
             "withdrawal"=>floatval($cash['corte']['RETIRADAS']),
             "discrepancy"=>floatval(floatval($val['ingreso']) - (floatval($cash['corte']['RETIRADAS'] - floatval($val['gasto'])))),
+            "card_receipt"=>floatval($val['tarjetas']),
+            "card_send"=>floatval($cash['corte']['tarjetas']),
+            "card_discrepancy"=>floatval(floatval($val['tarjetas']) - floatval($cash['corte']['tarjetas']) ),
             "open_date"=>$cash['corte']['FECHA'],
             "details"=>json_encode($request->all())
         ];
@@ -844,6 +847,48 @@ class CashController extends Controller
             $res->cash_expenses = $val;
             $res->cash_send = (floatval($res->withdrawal - floatval($val)));
             $res->discrepancy = floatval(floatval($res->cash_receipt) -  (floatval($res->withdrawal - floatval($val))));
+            $res->save();
+            $retur = $res->fresh();
+            return response()->json($retur,200);
+        }else{
+            return response()->json('No se encontro el Receipt',404);
+        }
+    }
+
+    public function ModifyReceiptCard(Request $request){
+        $val = $request->val;
+        $receipt = $request->receipt;
+        $res = CashReceipt::find($receipt);
+        if($res){
+            $res->card_receipt = $val;
+            $res->card_discrepancy = (floatval(floatval($val) - floatval($res->card_send)));
+            $res->save();
+            $retur = $res->fresh();
+            return response()->json($retur,200);
+        }else{
+            return response()->json('No se encontro el Receipt',404);
+        }
+    }
+
+    public function addCommentCard(Request $request){
+        $val = $request->val;
+        $receipt = $request->receipt;
+        $res = CashReceipt::find($receipt);
+        if($res){
+            $res->card_observation = $val;
+            $res->save();
+            $retur = $res->fresh();
+            return response()->json($retur,200);
+        }else{
+            return response()->json('No se encontro el Receipt',404);
+        }
+    }
+    public function addCommentMismatch(Request $request){
+        $val = $request->val;
+        $receipt = $request->receipt;
+        $res = CashReceipt::find($receipt);
+        if($res){
+            $res->mismatch_observation = $val;
             $res->save();
             $retur = $res->fresh();
             return response()->json($retur,200);
