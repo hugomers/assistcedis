@@ -754,7 +754,7 @@ class CiclicosController extends Controller
         // $settings = $request->settings;
         if($inventory){
             $inventory->products()->updateExistingPivot($request->_product, ['stock_acc' => $request->stock , "details" => json_encode(["editor" => $account])]);
-            return response()->json(["success" => true]);
+            return response()->json(["success" => true, "details"=>json_encode(["editor" => $account])]);
         }
         return response()->json(["success" => false, "message" => "Folio de inventario no encontrado"]);
     }
