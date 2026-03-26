@@ -13,7 +13,7 @@ class Requisition extends Model
         return $this->belongsTo('App\Models\Stores', '_stores', 'id');
     }
     public function status(){
-        return $this->belongsTo('App\Models\RequisitionState', '_status', 'id');
+        return $this->belongsTo('App\Models\RequisitionState', '_state', 'id');
     }
     public function user(){
         return $this->belongsTo('App\Models\Staff', '_user', 'id');
