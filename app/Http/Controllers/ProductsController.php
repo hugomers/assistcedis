@@ -527,20 +527,22 @@ class ProductsController extends Controller
             ->where('barcode', $autocomplete)
             ->first();
         if ($variant) {
-            return ProductVA::where('id', $variant->_product)
-                ->where('_status', 1)
-                ->first();
+            $product = ProductVA::where('id', $variant->_product)
+                    ->where('_status', 1)
+                    ->first();
+            return response()->json($product->load('category.familia.seccion','prices'));
         }
+
         $product = ProductVA::where('barcode', $autocomplete)
             ->where('_status', 1)
             ->first();
+        if ($product) return response()->json($product->load('category.familia.seccion','prices'));
 
-        if ($product) return $product;
         $product = ProductVA::where('code', $autocomplete)
             ->where('_status', 1)
             ->first();
+        if ($product) return response()->json($product->load('category.familia.seccion','prices'));
 
-        return response()->json($product->load('category.familia.seccion','prices'));
     }
 
     public function genshortCode(){
