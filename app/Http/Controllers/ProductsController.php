@@ -495,29 +495,50 @@ class ProductsController extends Controller
         }
     }
 
+    // public function autoComplete(Request $request){
+    //     $autocomplete = $request->autocomplete;
+
+    //     $product = ProductVA::where('code', $autocomplete)
+    //         ->where('_status', 1)
+    //         ->first();
+    //     if (!$product) {
+    //         $product = ProductVA::where('barcode', $autocomplete)
+    //             ->where('_status', 1)
+    //             ->first();
+    //     }
+    //     if (!$product) {
+    //         $product = ProductVA::whereHas('variants', function ($q) use ($autocomplete) {
+    //             $q->where('barcode', $autocomplete);
+    //         })
+    //         ->where('_status', 1)
+    //         ->first();
+    //     }
+    //     if (!$product) {
+    //         $product = ProductVA::where('name', $autocomplete)
+    //             ->where('_status', 1)
+    //             ->first();
+    //     }
+    //     return response()->json($product->load('category.familia.seccion','prices'));
+    // }
+
     public function autoComplete(Request $request){
         $autocomplete = $request->autocomplete;
+        $variant = DB::connection('vizapi')->table('product_variants')
+            ->where('barcode', $autocomplete)
+            ->first();
+        if ($variant) {
+            return ProductVA::where('id', $variant->_product)
+                ->where('_status', 1)
+                ->first();
+        }
+        $product = ProductVA::where('barcode', $autocomplete)
+            ->where('_status', 1)
+            ->first();
 
+        if ($product) return $product;
         $product = ProductVA::where('code', $autocomplete)
             ->where('_status', 1)
             ->first();
-        if (!$product) {
-            $product = ProductVA::where('barcode', $autocomplete)
-                ->where('_status', 1)
-                ->first();
-        }
-        if (!$product) {
-            $product = ProductVA::whereHas('variants', function ($q) use ($autocomplete) {
-                $q->where('barcode', $autocomplete);
-            })
-            ->where('_status', 1)
-            ->first();
-        }
-        if (!$product) {
-            $product = ProductVA::where('name', $autocomplete)
-                ->where('_status', 1)
-                ->first();
-        }
         return response()->json($product->load('category.familia.seccion','prices'));
     }
 
