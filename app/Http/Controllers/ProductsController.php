@@ -535,16 +535,12 @@ class ProductsController extends Controller
             ->where('_status', 1)
             ->first();
 
-        if ($product)
+        if ($product) return $product;
         $product = ProductVA::where('code', $autocomplete)
             ->where('_status', 1)
             ->first();
-        if($product){
-            return response()->json($product->load('category.familia.seccion','prices'));
 
-        }else{
-            return response()->json($product,200);
-        }
+        return response()->json($product->load('category.familia.seccion','prices'));
     }
 
     public function genshortCode(){
