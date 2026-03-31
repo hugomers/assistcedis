@@ -497,34 +497,28 @@ class ProductsController extends Controller
 
     public function autoComplete(Request $request){
         $autocomplete = $request->autocomplete;
-        // $query = ProductVA::with([
-        //     'category.familia.seccion',
-        //     'prices'
-        //     ])
-        //         ->where('code', $autocomplete)
-        //         ->orWhereHas('variants', fn($q) => $q->where('barcode', $autocomplete))
-        //         ->orWhere('name', $autocomplete)
-        //         ->orWhere('barcode', $autocomplete)
-        //         ->where('_status', '!=', 4)
 
-        //     // })
-        //     ->first();
-        // return response()->json($query);
-
-
-        $query = ProductVA::where(function ($q) use ($autocomplete) {
-            $q->where('code', $autocomplete)
-            ->orWhere('name', $autocomplete)
-            ->orWhere('barcode', $autocomplete)
-            ->orWhereHas('variants', fn($q2) =>
-                $q2->where('barcode', $autocomplete)
-            );
-        })
-        ->where('_status', 1)
-        ->first();
-
-        return response()->json($query->load('category.familia.seccion',
-            'prices'));
+        $product = ProductVA::where('code', $autocomplete)
+            ->where('_status', 1)
+            ->first();
+        if (!$product) {
+            $product = ProductVA::where('barcode', $autocomplete)
+                ->where('_status', 1)
+                ->first();
+        }
+        if (!$product) {
+            $product = ProductVA::whereHas('variants', function ($q) use ($autocomplete) {
+                $q->where('barcode', $autocomplete);
+            })
+            ->where('_status', 1)
+            ->first();
+        }
+        if (!$product) {
+            $product = ProductVA::where('name', $autocomplete)
+                ->where('_status', 1)
+                ->first();
+        }
+        return response()->json($product->load('category.familia.seccion','prices'));
     }
 
     public function genshortCode(){
