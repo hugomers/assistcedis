@@ -38,6 +38,9 @@ class ProductVA extends Model
         return $this->belongsToMany('App\Models\WorkpointVA', 'product_stock', '_product', '_workpoint')
                     ->withPivot('min', 'max', 'stock', 'gen', 'exh', 'des', 'fdt', 'V23', 'LRY', 'in_transit', '_status');
     }
+    public function stock(){
+        return $this->hasOne('App\Models\ProductStockVA', '_product');
+    }
 
     public function salesPerWorkpoints(){
         return $this->belongsToMany('App\Models\WorkpointVA', 'cash_register', '_cash', '_workpoint')

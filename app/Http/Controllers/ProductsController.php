@@ -6,7 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\Builder;
+
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
+
 use App\Models\ProductVA;
 use App\Models\ProvidersVA;
 use App\Models\ProductStockVA;
@@ -14,6 +17,7 @@ use App\Models\MakersVA;
 use App\Models\ProductCategoriesVA;
 use App\Models\ProductUnitVA;
 use App\Models\Stores;
+
 use App\Models\WorkpointVA;
 use App\Models\ControlFigures;
 use App\Models\historyPricesVA;
@@ -495,34 +499,106 @@ class ProductsController extends Controller
         }
     }
 
-    // public function autoComplete(Request $request){
-    //     $autocomplete = $request->autocomplete;
+    public function getProducts(Request $request){
+        $workpoint = $request->_workpoint;
+        $query = ProductVA::with(['category.familia.seccion','prices','units', 'status', 'variants']);
+        if(isset($request->autocomplete) && $request->autocomplete){
+            if(strlen($request->autocomplete)>1){
+                $query = $query->whereHas('variants', function(Builder $query) use ($request){
+                    $query->where('barcode', 'like', '%'.$request->autocomplete.'%');
+                })
+                ->orWhere(function($query) use($request){
+                    $query->orWhere('name', $request->autocomplete)
+                    ->orWhere('barcode', $request->autocomplete)
+                    ->orWhere('code', $request->autocomplete)
+                    ->orWhere('name', 'like','%'.$request->autocomplete.'%')
+                    ->orWhere('code', 'like','%'.$request->autocomplete.'%');
+                });
+            }
+        }
+        $query = $query->where("_status", "!=", 4);
 
-    //     $product = ProductVA::where('code', $autocomplete)
-    //         ->where('_status', 1)
-    //         ->first();
-    //     if (!$product) {
-    //         $product = ProductVA::where('barcode', $autocomplete)
-    //             ->where('_status', 1)
-    //             ->first();
-    //     }
-    //     if (!$product) {
-    //         $product = ProductVA::whereHas('variants', function ($q) use ($autocomplete) {
-    //             $q->where('barcode', $autocomplete);
-    //         })
-    //         ->where('_status', 1)
-    //         ->first();
-    //     }
-    //     if (!$product) {
-    //         $product = ProductVA::where('name', $autocomplete)
-    //             ->where('_status', 1)
-    //             ->first();
-    //     }
-    //     return response()->json($product->load('category.familia.seccion','prices'));
-    // }
+        if(isset($request->_workpoint_status) && $request->_workpoint_status){
+            if($request->_workpoint_status == "all"){
+                $query = $query->with(['stocks'  => function($query){ $query->where('active',1);} ]);
+            }else{
+                $workpoints = $request->_workpoint_status;
+                $workpoints[] = 1; // Siempre se agrega el status de la sucursal
+                $query = $query->with(['stocks' => function($query) use($workpoints){ //Se obtienen los stocks de todas las sucursales que se pasa el arreglo
+                    $query->whereIn('_workpoint', $workpoints)->distinct();
+                }]);
+            }
+        }else{
+            if(isset($request->with_stock_cedis) && $request->with_stock_cedis){
+                $query = $query->with(['stocks' => function($query) use($request){
+                    $query->whereIn('_workpoint',[$request->with_stock_cedis,$request->_workpoint]); //Con stock
+                }]);
+            }else{
+                $query = $query->with(['stocks' => function($query) use($workpoint){ //Se obtiene el stock de la sucursal
+                    $query->where('_workpoint', $workpoint)->distinct();
+                }]);
+            }
+
+        }
+        if(isset($request->with_locations) && $request->with_locations){ //Se puede agregar todas las ubicaciones de la sucursal
+            $query = $query->with(['locations' => function($query) use ($workpoint) {
+                $query->where('deleted_at',null)
+                ->whereHas('celler', function($query) use ($workpoint) {
+                    $query->where([['_workpoint', $workpoint]]);
+                });
+            }]);
+        }
+        if(isset($request->with_locations_loc) && $request->with_locations_loc){ //Se puede agregar todas las ubicaciones de la sucursal
+            $data = [
+                "workpoint"=>$workpoint,
+                "rol"=>$request->with_locations_loc
+            ];
+            $query = $query->with(['locations' => function($query) use ($data) {
+                $query->with('celler')
+                ->where('deleted_at',null)
+                ->whereHas('celler', function($query) use ($data) {
+                    $rol = $data['rol'];
+                    $query->where([['_workpoint', $data['workpoint']]]);
+                    if(in_array($rol, [1,2,5,6,12,22,18])){//admins
+                        $query = $query;
+                    }else if(in_array($rol, [24,4,17,15,16,20])){//almacen
+                        $query = $query->where('_type',1);
+                    }else if(in_array($rol, [8,9,27,28])){//ventas
+                        $query = $query->where('_type',2);
+                    }
+                    ;
+                });
+            }]);
+        }
+
+        if(isset($request->check_stock) && $request->check_stock){ //Se puede agregar el filtro de busqueda para validar si tienen o no stocks los productos
+            if($request->with_stock){
+                $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
+                    $query->where('_workpoint', $workpoint)->where('stock', '>', 0); //Con stock
+                });
+            }else{
+                $query = $query->whereHas('stocks', function(Builder $query) use($workpoint){
+                    $query->where('_workpoint', $workpoint)->where('stock', '<=', 0); //Sin stock
+                });
+            }
+        }
+
+        if(isset($request->with_prices) && $request->with_prices){
+            $query = $query->with(['prices' => function($query){
+                $query->whereIn('_type', [1, 2, 3, 4])->orderBy('id');
+            }]);
+        }
+        if(isset($request->with_prices_Invoice) && $request->with_prices_Invoice){
+            $query = $query->with(['prices' => function($q) { $q->where('id',7); } ]);
+        }
+
+        $products = $query->orderBy('_status', 'asc')->get();
+        return response()->json($products);
+    }
 
     public function autoComplete(Request $request){
         $autocomplete = $request->autocomplete;
+        $workpoints = $request->_workpoint;
         $variant = DB::connection('vizapi')->table('product_variants')
             ->where('barcode', $autocomplete)
             ->first();
@@ -530,27 +606,29 @@ class ProductsController extends Controller
             $product = ProductVA::where('id', $variant->_product)
                     ->where('_status', 1)
                     ->first();
-            return response()->json($product->load('category.familia.seccion','prices'));
+            return response()->json($product->load(['category.familia.seccion','prices','stock' => function($query) use($workpoints){
+                    $query->where('_workpoint', $workpoints);
+        }]));
         }
 
         $product = ProductVA::where('barcode', $autocomplete)
             ->where('_status', 1)
             ->first();
-        if ($product) return response()->json($product->load('category.familia.seccion','prices'));
+        if ($product) return response()->json($product->load(['category.familia.seccion','prices','stock' => function($query) use($workpoints){
+                    $query->where('_workpoint', $workpoints);
+        }]));
 
         $product = ProductVA::where('code', $autocomplete)
             ->where('_status', 1)
             ->first();
-        if ($product) return response()->json($product->load('category.familia.seccion','prices'));
-
+        if ($product) return response()->json($product->load(['category.familia.seccion','prices','stock' => function($query) use($workpoints){
+                    $query->where('_workpoint', $workpoints);
+        }]));
     }
 
     public function genshortCode(){
         do {
-            // Genera un número aleatorio de 5 dígitos (no comienza con 0)
             $shortcode = mt_rand(10000, 99999);
-
-            // Verifica si ya existe en code, name o barcode de alguna variante
             $exists = ProductVA::where('code', $shortcode)
                 ->orWhere('name', $shortcode)
                 ->orWhereHas('variants', function ($q) use ($shortcode) {

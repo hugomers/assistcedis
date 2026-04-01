@@ -154,6 +154,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/replacecode',[ProductsController::class, 'replacecode']);
         Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
         Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
+        Route::post('/getProducts',[ProductsController::class,'getProducts']);
+
         Route::post('/autoCompleteProduct',[ProductsController::class,'autoCompleteProduct']);
         Route::post('/exactSearch',[ProductsController::class,'exactSearch']);
         Route::post('/scanSearch',[ProductsController::class,'scanSearch']);
@@ -383,6 +385,9 @@ Route::middleware('auth')->group(function(){
         Route::post('/getPartitionCash',[CashController::class,'getPartitionCash']);
         Route::post('/getPresupuestoCash',[CashController::class,'getPresupuestoCash']);
         Route::post('/getticketCash',[CashController::class,'getticketCash']);
+        Route::post('/testPrintCash',[CashController::class,'testPrintCash']);
+        Route::post('/changePrint',[CashController::class,'changePrint']);
+
     });
 
     Route::prefix('/invoices')->group(function(){

@@ -19,6 +19,7 @@ use App\Models\Sale;
 use App\Models\SaleBodie;
 use App\Models\SalePayment;
 use App\Models\PaymentMethod;
+use App\Models\StorePayment;
 use App\Models\IngressClient;
 use App\Models\Ingress;
 use App\Models\SeasonsVA;
@@ -126,7 +127,9 @@ class CashController extends Controller
         $cash = $request->cash;
         $sid = $request->sid;
         $user = User::find($uid);
-        $methods = PaymentMethod::where('id','!=',5)->get();
+        // $methods = PaymentMethod::where('id','!=',5)->get();
+        $methods = Stores::with('methods')->where('id',$sid)->first();
+        // return $methods;
         $providers = ProviderWithdrawal::all();
         $clientIngress = IngressClient::all();
         $rules = SeasonsVA::with('rules')->get();
@@ -895,6 +898,18 @@ class CashController extends Controller
         }else{
             return response()->json('No se encontro el Receipt',404);
         }
+    }
+
+    public function testPrintCash(Request $request){
+        $cellerPrinter = new PrinterController();
+        $printed = $cellerPrinter->testPrint($request->all());
+        return response()->json($printed);
+    }
+    public function changePrint(Request $request){
+         $cashier = CashCashier::find($request->cashier);
+         $cashier->_tck_print = $request->print;
+         $cashier->save();
+         return response()->json($cashier);
     }
 
 

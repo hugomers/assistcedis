@@ -10,7 +10,7 @@ class PaymentMethod extends Model
     protected $table = "payment_methods";
     public $timestamps = false;
 
-        public function sales(){
+    public function sales(){
         return $this->hasMany('App\Models\SalePayment', '_payment', 'id');
     }
 

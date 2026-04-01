@@ -2792,4 +2792,38 @@ class PrinterController extends Controller
         return true;
     }
 
+    public function testPrint($header){
+        try{
+            $connector = new NetworkPrintConnector($header['cashier']['ip_address'], 9100, 3);
+            $printer = new Printer($connector);
+        }catch(\Exception $e){ return null;}
+        try {
+            try{
+                $printer->setJustification(printer::JUSTIFY_LEFT);
+                $printer->text("------------------------------------------------\n");
+                $printer->text(" \n");
+                $printer->text(" \n");
+                $printer->text(" \n");
+                $printer->text("------------------------------------------------\n");
+                $printer->setTextSize(2,1);
+
+                $printer->text("Prueba de Impresion Correcta"." \n");
+                $printer->text(" \n");
+                $printer->text(" \n");
+                $printer->text($header['cashier']['name']." \n");
+                $printer->text(" \n");
+                $printer->text("GVC"." \n");
+                 $printer->setTextSize(1,1);
+                $printer->text("------------------------------------------------\n");
+                $printer -> cut();
+                $printer -> close();
+            }catch(Exception $e){}
+
+        } finally {
+            $printer -> close();
+            return true;
+        }
+            return false;
+    }
+
 }
