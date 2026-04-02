@@ -617,6 +617,12 @@ class ProductsController extends Controller
         if ($product) return response()->json($product->load(['category.familia.seccion','prices','stock' => function($query) use($workpoints){
                     $query->where('_workpoint', $workpoints);
         }]));
+        $product = ProductVA::where('name', $autocomplete)
+            ->where('_status', 1)
+            ->first();
+        if ($product) return response()->json($product->load(['category.familia.seccion','prices','stock' => function($query) use($workpoints){
+                    $query->where('_workpoint', $workpoints);
+        }]));
 
         $product = ProductVA::where('code', $autocomplete)
             ->where('_status', 1)
@@ -624,6 +630,7 @@ class ProductsController extends Controller
         if ($product) return response()->json($product->load(['category.familia.seccion','prices','stock' => function($query) use($workpoints){
                     $query->where('_workpoint', $workpoints);
         }]));
+
     }
 
     public function genshortCode(){
