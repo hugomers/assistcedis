@@ -404,8 +404,8 @@ class CiclicosController extends Controller
                     $query->where('barcode',$request->target);
                 })
                 ->orWhere(function($query) use($request){
-                    $query->orWhere('name', $request->target)
-                    ->orWhere('barcode', $request->target)
+                    // $query->orWhere('name', $request->target)
+                    $query->orWhere('barcode', $request->target)
                     ->orWhere('code', $request->target)
                     ->orWhere('id',$request->target);
                 });
