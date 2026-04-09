@@ -386,7 +386,8 @@ class SalesController extends Controller
                 continue;
             }
             try {
-                $cashs = $store->cashs->toArray();
+                // $cashs = $store->cashs->toArray();
+                $cashs = $store->cashs ? $store->cashs->toArray() : [];
                 $response = Http::timeout(10)->post(
                     "http://{$store->ip_address}/storetools/public/api/reports/OpenBoxes",
                     [
