@@ -57,7 +57,7 @@ class UserController extends Controller
     public function trySignin(Request $request){
         $nick = $request->nick; // recibe el nick
         $pass = $request->pass; // recibe el pass
-        $user = User::with(['staff','store','rol','zone.stores'])->where('nick',$nick)->first();
+        $user = User::with(['staff','store','rol.modules','rol.area','zone.stores','stores.store'])->where('nick',$nick)->first();
 
         if(($nick&&$pass)&&$user&&Hash::check($pass,$user->password)){ // comparacion de contraseña y carga de datos para la cuenta
                 $datafortoken = ["uid"=>$user->id, "complete_name"=>$user->staff['complete_name'], "rol" => $user->rol['alias']];
@@ -83,30 +83,9 @@ class UserController extends Controller
         $user = User::with([
             'zone.stores',
             'stores.store',
-            'rol.modules' => function($q) {
-                $q->orderBy('_modules', 'asc');
-            },
-            'rol.modules.module._modul'
+            'rol.modules'
         ])->find($uid);
-        $groupedModules = [];
-
-        foreach ($user->rol->modules as $rolModule) {
-            $module = $rolModule->module;
-
-            if ($module && $module->_modul) {
-                $modulId = $module->_modul->id;
-                if (!isset($groupedModules[$modulId])) {
-                    $groupedModules[$modulId] = $module->_modul->toArray();
-                    $groupedModules[$modulId]['modules'] = [];
-                }
-
-                $groupedModules[$modulId]['modules'][] = $module;
-            }
-        }
-
-        $user->grouped_modules = array_values($groupedModules); // resetear índices
-                return response()->json($user);
-
+        return response()->json($user);
     }
 
     public function changeAvatar(Request $request){
