@@ -62,7 +62,7 @@ class CashController extends Controller
             })
             ->get();
             return response()->json($res);
-        }else if(in_array($user->_rol, [1, 2, 31, 6, 12])){
+        }else if(in_array($user->_rol, [1, 2, 31, 6, 12, 22])){
             $cash = CashRegister::with([
                 'store',
                 'status',
@@ -144,7 +144,7 @@ class CashController extends Controller
            $res  = $query->whereHas('cashier', function($q) use ($uid) {
                     $q->where('_user',$uid);
             })->first();
-        }else if(in_array($user->_rol, [1, 2, 5, 6])){
+        }else if(in_array($user->_rol, [1, 2, 5, 6, 22])){
            $res =  $query->first();
         }
         if($res && $res->cashier){
