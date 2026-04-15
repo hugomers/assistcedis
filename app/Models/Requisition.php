@@ -16,7 +16,7 @@ class Requisition extends Model
         return $this->belongsTo('App\Models\RequisitionState', '_status', 'id');
     }
     public function user(){
-        return $this->belongsTo('App\Models\Staff', '_user', 'id');
+        return $this->belongsTo('App\Models\User', '_user', 'id');
     }
 
     public function bodie(){

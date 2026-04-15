@@ -44,16 +44,16 @@ class partitionRequisition extends Model
                     ->withTimestamps();
     }
 
-    public function getOutVerifiedStaff(){
-        return \App\Models\Staff::where('id', $this->_out_verified)->first();
+    public function getOutVerifiedUser(){
+        return \App\Models\User::where('id', $this->_out_verified)->first();
     }
-    public function getOutDrivingStaff(){
-        return \App\Models\Staff::where('id', $this->_driver)->first();
+    public function getOutDrivingUser(){
+        return \App\Models\User::where('id', $this->_driver)->first();
     }
-    public function getSupplyStaff(){
-        return \App\Models\Staff::where('id', $this->_suplier_id)->first();
+    public function getSupplyUser(){
+        return \App\Models\User::where('id', $this->_suplier_id)->first();
     }
-    public function getCheckStaff(){
-        return \App\Models\Staff::where('id', $this->_in_verified)->first();
+    public function getCheckUser(){
+        return \App\Models\User::where('id', $this->_in_verified)->first();
     }
 }

@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Solicitudes;
 use App\Models\Stores;
 use App\Models\transfer;
-use App\Models\Staff;
 use App\Models\ReplyClient;
 use App\Models\Flight;
 use App\Models\ClientVA;
+use App\Models\User;
+
 
 
 use Illuminate\Support\Facades\Http;
@@ -185,7 +186,7 @@ class ResourcesController extends Controller
     }
 
     public function Index(){
-        $agent = Staff::where('acitve',1)->get();
+        $agent = User::where('_active',1)->get();
         $client = ClientVA::where('id','>=',36)->get();
         $res = [
             "agents"=>$agent,

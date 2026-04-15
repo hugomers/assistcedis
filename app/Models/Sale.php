@@ -17,9 +17,6 @@ class Sale extends Model
     return $this->hasMany('App\Models\SalePayment',  '_sale', 'id');
     }
 
-    public function staff(){
-    return $this->belongsTo('App\Models\Staff',  '_staff');
-    }
     public function cashier(){
     return $this->belongsTo('App\Models\CashCashier','_cashier');
     }

@@ -52,7 +52,7 @@ class CiclicosController extends Controller
 
                 $inv->precision = $contados > 0 ? round(($correctos / $contados) * 100, 2) : 0;
             });
-            $responsables = User::with('staff')->where('_store', $storeA)->WhereIn('_rol',[4,8,9,24])->get();
+            $responsables = User::where('_store', $storeA)->WhereIn('_rol',[4,8,9,24])->get();
             $seccion = ProductCategoriesVA::where('deep',0)->where('alias','!=',null)->get();
             $cellers = CellerVA::with(['sections' => fn($q) => $q->whereNull('deleted_at')])->where('_workpoint',$store)->get();
 
@@ -657,9 +657,9 @@ class CiclicosController extends Controller
                     $this->log(1, $counter, $created_by);
 
                     if ($warehouse['id'] === 'GEN') {
-                        $responsables = $request->collect('resgen')->pluck('staff.id_va')->filter()->values()->all();
+                        $responsables = $request->collect('resgen')->pluck('id_va')->filter()->values()->all();
                     } else {
-                        $responsables = $request->collect('resexh')->pluck('staff.id_va')->filter()->values()->all();
+                        $responsables = $request->collect('resexh')->pluck('id_va')->filter()->values()->all();
                     }
 
                     if (!empty($responsables)) {
@@ -684,13 +684,10 @@ class CiclicosController extends Controller
                         $stock = 0;
                         if ($product->relationLoaded('stocks') && $product->stocks->count() > 0) {
                             if ($warehouse['id'] === 'GEN') {
-                                // $responsables = $request->collect('resgen')->pluck('staff.id_va')->filter()->values()->all();
                                 $stock = $product->stocks[0]->pivot->gen ?? 0;
                             } else if ($warehouse['id'] === 'EXH') {
-                                // $responsables = $request->collect('resexh')->pluck('staff.id_va')->filter()->values()->all();
                                 $stock = $product->stocks[0]->pivot->exh ?? 0;
                             }
-                            // $stock = $product->stocks[0]->pivot->stock ?? 0;
                         }
 
                         $counter->products()->attach($product->id, [

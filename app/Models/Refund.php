@@ -22,10 +22,10 @@ class Refund extends Model
         return $this->belongsTo('App\Models\RefundType', '_type', 'id');
     }
     public function createdby(){
-        return $this->belongsTo('App\Models\Staff', '_created_by', 'id');
+        return $this->belongsTo('App\Models\User', '_created_by', 'id');
     }
     public function receiptby(){
-        return $this->belongsTo('App\Models\Staff', '_receipt_by', 'id');
+        return $this->belongsTo('App\Models\User', '_receipt_by', 'id');
     }
     public function bodie(){return $this->hasMany('\App\Models\RefundBodie','_refund','id'); }
 

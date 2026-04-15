@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Mike42\Escpos\EscposImage;
+use App\Models\User;
 use App\Requisition;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 use Mike42\Escpos\Printer;
@@ -157,8 +158,8 @@ class PrinterController extends Controller
                     $printer->text(" \n");
                     $printer->text("N Articulos: ".array_sum($arti)." \n");
                     $printer->text(" \n");
-                    $printer->text("Vendedor :".$sale['staff']['complete_name']." \n");
-                    $printer->text("Cajero :".$sale['cashier']['user']['staff']['complete_name']." \n");
+                    $printer->text("Vendedor :".$sale['complete_name']." \n");
+                    $printer->text("Cajero :".$sale['cashier']['user']['complete_name']." \n");
                     $printer->text(" \n");
                     $printer->text(isset($sale["obsertvations"]) ? $sale["obsertvations"] :"" ." \n");
                     // $printer->text("-------------------Grupo-Vizcarra---------------"." \n");
@@ -204,7 +205,7 @@ class PrinterController extends Controller
                 $printer->text("------------------------------------------------\n");
                 $printer->text("SALIDA DE TERMINAL".$header['_terminal']." \n");
                 $printer->text("N° ".$header['fs_id']." Fecha: ".$header["created_at"] ." \n");
-                $printer->text("creado Por :".$header["cashier"]['user']['staff']['complete_name']." \n");
+                $printer->text("creado Por :".$header["cashier"]['user']['complete_name']." \n");
                 $printer->text("------------------------------------------------\n");
                 $printer->text($header['provider']['name']." \n");
                 $printer->text(" \n");
@@ -249,7 +250,7 @@ class PrinterController extends Controller
                 $printer->text("------------------------------------------------\n");
                 $printer->text("ENTRADA DE TERMINAL".$header['cashier']['cash']['_terminal']." \n");
                 $printer->text("N° ".$header['fs_id']." Fecha: ".$header["created_at"] ." \n");
-                $printer->text("creado Por :".$header["cashier"]['user']['staff']['complete_name']." \n");
+                $printer->text("creado Por :".$header["cashier"]['user']['complete_name']." \n");
                 $printer->text("------------------------------------------------\n");
                 $printer->text($header['client']['name']." \n");
                 $printer->text(" \n");
@@ -293,7 +294,7 @@ class PrinterController extends Controller
                 $printer->text(" \n");
                 $printer->text("------------------------------------------------\n");
                 $printer->text("N° ".$header['fs_id']." Fecha: ".$header["created_at"] ." \n");
-                $printer->text("creado Por :".$header["cashier"]['user']['staff']['complete_name']." \n");
+                $printer->text("creado Por :".$header["cashier"]['user']['complete_name']." \n");
                 $printer->text("------------------------------------------------\n");
                 $printer->text($header['client_name']." \n");
                 $printer->text(" \n");
@@ -332,7 +333,7 @@ class PrinterController extends Controller
             $printer->text(str_repeat("─", 48) . "\n");
             $printer->text("CIERRE DE TERMINAL"." \n");
             $printer->text($cash['store']['name']." \n");
-            $printer->text($cash['cashier']['user']['staff']['complete_name']." \n");
+            $printer->text($cash['cashier']['user']['complete_name']." \n");
             $printer->text(str_repeat("─", 48) . "\n");
             $printer->text("Terminal: ".$cash['name']." \n");
             $printer->text("Fecha: ".$cash['cashier']['close_date']." \n");
@@ -1095,7 +1096,7 @@ class PrinterController extends Controller
         // return 'holi';
         $amount = $request->amount;
         $ip = $request->print;
-        $staff = $request->staff;
+        $user = $request->user;
         try{
             $connector = new NetworkPrintConnector($ip, 9100, 3);
             $printer = new Printer($connector);
@@ -1109,10 +1110,10 @@ class PrinterController extends Controller
             $printer->text("------------------------------------------------\n");
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->setTextSize(1,2);
-            $printer->text("\n AGENTE:".$staff['complete_name']."\n");
+            $printer->text("\n AGENTE:".$user['complete_name']."\n");
             $printer->setJustification(Printer::JUSTIFY_CENTER);
             $printer->setTextSize(3,2);
-            $printer->text("\n ID:".$staff['id_tpv']."\n");
+            $printer->text("\n ID:".$user['id_tpv']."\n");
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->setTextSize(1,1);
             $printer->text("------------------------------------------------\n\n");
@@ -1120,7 +1121,7 @@ class PrinterController extends Controller
             $printer->setJustification(Printer::JUSTIFY_CENTER);
             $printer->setBarcodeHeight(155);
             $printer->setBarcodeWidth(255);
-            $printer->barcode($staff['id_tpv']);
+            $printer->barcode($user['id_tpv']);
             $printer->feed(1);
             $printer->text("GRUPO VIZCARRA\n");
             $printer->feed(1);

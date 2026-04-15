@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Staff;
+use App\Models\User;
 use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
@@ -246,48 +246,6 @@ class SalesController extends Controller
         return response()->json($sales,200);
     }
 
-    // public function getMonthSale(Request $request){
-    //     $from = Carbon::parse($request->from)->startOfDay();
-    //     $to   = Carbon::parse($request->to)->endOfDay();
-    //     $lastYearFrom = $from->copy()->subYear();
-    //     $lastYearTo   = $to->copy()->subYear();
-    //     $sales = SalesVA::with([
-    //         'cashRegister' => function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);},
-    //         'products.providers',
-    //         'products.makers',
-    //         'products.category.familia.seccion',
-    //         'client'
-    //     ])
-    //     ->whereHas('cashRegister', function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);})
-    //     ->whereBetween('created_at',[$from,$to])
-    //     ->get();
-    //     $staffIds = $sales->pluck('_seller')->unique();
-    //     $staff = Staff::whereIn('id_tpv', $staffIds)
-    //     ->get()
-    //     ->keyBy('id_tpv');
-    //     $sales->transform(function ($sale) use ($staff) {
-    //         $sale->staff = $staff[$sale->_seller] ?? null;
-    //         return $sale;
-    //     });
-
-    //     $lastSales =   SalesVA::with([
-    //         'cashRegister' => function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);},
-    //         'products.providers',
-    //         'products.makers',
-    //         'products.category.familia.seccion',
-    //         'client'
-    //     ])
-    //     ->whereHas('cashRegister', function($q) use ($request)  {$q->where('_workpoint',$request->id_viz);})
-    //     ->whereBetween('created_at',[$lastYearFrom,$lastYearTo])
-    //     ->get();
-
-    //     $res = [
-    //         "current_sales"=>$sales,
-    //         "last_sales"=>$lastSales,
-    //     ];
-    //     return response()->json($res);
-    // }
-
     public function getMonthSale(Request $request){
 
         $week = Carbon::now()->isoWeek();
@@ -328,14 +286,14 @@ class SalesController extends Controller
         })
         ->whereBetween('created_at',[$from,$to])
         ->get();
-        $staffIds = $sales->pluck('_seller')->unique();
+        $UserIds = $sales->pluck('_seller')->unique();
 
-        $staff = Staff::whereIn('id_tpv', $staffIds)
+        $user = User::whereIn('id_tpv', $UserIds)
             ->get()
             ->keyBy('id_tpv');
 
-        $sales->transform(function ($sale) use ($staff) {
-            $sale->staff = $staff[$sale->_seller] ?? null;
+        $sales->transform(function ($sale) use ($user) {
+            $sale->user = $user[$sale->_seller] ?? null;
             return $sale;
         });
         $lastSales = SalesVA::with([
@@ -372,7 +330,7 @@ class SalesController extends Controller
         $stores = Stores::with([
             'cashs' => function($q) use($request) {
                 $q->with(['cashier' => function($q) use($request) {
-                    $q->with('user.staff')->whereDate('open_date',$request->date);
+                    $q->with('user')->whereDate('open_date',$request->date);
                 },
                 'receipt' => function($q) use($request) {
                     $q->whereDate('open_date',$request->date);
