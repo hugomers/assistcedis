@@ -11,4 +11,5 @@ use Illuminate\Support\Facades\View;
 
 class MondayController extends Controller
 {
+
 }
