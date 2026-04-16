@@ -12,9 +12,6 @@ class User extends Authenticatable
 {
     protected $table = "users";
 
-    public function staff(){
-        return $this->belongsTo('App\Models\Staff','_staff');
-    }
     public function rol(){
         return $this->belongsTo('App\Models\UserRol','_rol');
     }

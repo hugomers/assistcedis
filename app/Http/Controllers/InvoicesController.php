@@ -107,7 +107,7 @@ class InvoicesController extends Controller
                 $partition->entry_key = md5($idParti);
                 $partition->save();
                 $partition->load('requisition.from','requisition.to','status','products.prices','log');
-                $partition->verified = $partition->getOutVerifiedStaff();
+                $partition->verified = $partition->getOutVerifiedUser();
                 $products = $partition->products;
                 $from = $partition->requisition['from']['id'];
                 $transit  = $this->modifyTransit($products,$from);
@@ -117,7 +117,7 @@ class InvoicesController extends Controller
                     '_requisition'=>$request->id,
                     '_partition'=>$request->partition[0]['id'],
                     '_status'=>$moveTo,
-                    'details'=>json_encode(['responsable'=>$partition->getOutVerifiedStaff()->complete_name]),
+                    'details'=>json_encode(['responsable'=>$partition->getOutVerifiedUser()->complete_name]),
                 ];
                 $inslog = partitionLog::insert($inslo);
                 $logs = $requisition->log->toArray();
@@ -230,8 +230,8 @@ class InvoicesController extends Controller
                 $partition = partitionRequisition::find($request->id);
                 $partition->invoice = $folio['folio'];
                 $partition->save();
-                $partition->verified = $partition->getOutVerifiedStaff();
-                $partition->receipt  = $partition->getCheckStaff();
+                $partition->verified = $partition->getOutVerifiedUser();
+                $partition->receipt  = $partition->getCheckUser();
 
                 $res = $partition->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
                 return response()->json($res,200);
@@ -359,9 +359,9 @@ class InvoicesController extends Controller
             //             ->orWhere('_workpoint_from', $request->storeTo); // ejemplo adicional
             //     }); })->get();
             // foreach ($partitions as $partition) {
-            //     $partition->verified = $partition->getOutVerifiedStaff();
-            //     $partition->receipt  = $partition->getCheckStaff();
-            //     $partition->driving  = $partition->getOutDrivingStaff();
+            //     $partition->verified = $partition->getOutVerifiedUser();
+            //     $partition->receipt  = $partition->getCheckUser();
+            //     $partition->driving  = $partition->getOutDrivingUser();
             // }
 
             $query = Invoice::with([
@@ -385,9 +385,9 @@ class InvoicesController extends Controller
             $partitions = $query->pluck('partition')->filter()->flatten();
 
             foreach ($partitions as $partition) {
-                $partition->verified = $partition->getOutVerifiedStaff();
-                $partition->receipt  = $partition->getCheckStaff();
-                $partition->driving  = $partition->getOutDrivingStaff();
+                $partition->verified = $partition->getOutVerifiedUser();
+                $partition->receipt  = $partition->getCheckUser();
+                $partition->driving  = $partition->getOutDrivingUser();
             }
 
             $pdss = DB::connection('vizapi')->select(
@@ -416,7 +416,7 @@ class InvoicesController extends Controller
 
             $printers = WorkpointVA::with("printers")->where("id",$request->storeTo)->get();
 
-            $users = User::with('staff')->where('_store',$request->storeTo)->whereIn('_rol',[1,2,4,15,16])->get();
+            $users = User::where('_store',$request->storeTo)->whereIn('_rol',[1,2,4,15,16])->get();
 
             return response()->json([
                 "orders"=>$query,
@@ -424,7 +424,7 @@ class InvoicesController extends Controller
                 "to"=>$to,
                 "resume"=>$resume,
                 "printers"=>$printers,
-                "staff"=>$users,
+                "users"=>$users,
                 "partitions"=>$partitions,
                 'cedis'=>WorkpointVA::where([['_type',1],['active',1]])->get()
             ]);
@@ -587,9 +587,9 @@ class InvoicesController extends Controller
         $id = $request->route("pid");
         $order = partitionRequisition::with(['status','log','products.variants','products.prices','products.stocks' => fn($q) => $q->whereIn('id',[1,2]),'products.locations' => fn($qq) => $qq->whereHas('celler', function($qqq){ $qqq->where('_workpoint', 1); }),'products.prices','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log'])
         ->find($id);
-        $order->verified = $order->getOutVerifiedStaff();
-        $order->receipt  = $order->getCheckStaff();
-        $order->driving  = $order->getOutDrivingStaff();
+        $order->verified = $order->getOutVerifiedUser();
+        $order->receipt  = $order->getCheckUser();
+        $order->driving  = $order->getOutDrivingUser();
 
         return response()->json(["oid"=>$id,"order"=>$order]);
     }
@@ -651,7 +651,7 @@ class InvoicesController extends Controller
         $partition = partitionRequisition::with()->find($idParti);
         // $partition->_status = 6;;
         $partition->load('requisition.from','requisition.to','status','products.prices','log');
-        $partition->verified = $partition->getOutVerifiedStaff();
+        $partition->verified = $partition->getOutVerifiedUser();
         return response()->json(["requisition"=>$partition]);
     }
 
@@ -663,7 +663,7 @@ class InvoicesController extends Controller
         $partition->entry_key = md5($idParti);
         $partition->save();
         $partition->load('requisition.from','requisition.to','status','products.prices','log');
-        $partition->verified = $partition->getOutVerifiedStaff();
+        $partition->verified = $partition->getOutVerifiedUser();
         return response()->json(["requisition"=>$partition]);
     }
 

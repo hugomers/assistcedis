@@ -18,7 +18,7 @@ class QuizController extends Controller
         $month = $request->month ?? now()->month;
         $year  = $request->year ?? now()->year;
 
-        $quiz = Quiz::with(['seller','cashier.staff'])
+        $quiz = Quiz::with(['seller','cashier'])
             ->where('_store',$request->store)
             ->whereYear('created_at',$year)
             ->whereMonth('created_at',$month)
@@ -78,7 +78,7 @@ class QuizController extends Controller
                 });
                 return [
                     'id'=>$items->first()->cashier?->id,
-                    'name'=>$items->first()->cashier?->staff?->complete_name ?? 'Sin Nombre',
+                    'name'=>$items->first()->cashier?->complete_name ?? 'Sin Nombre',
                     'score'=>round($avg,2)
                 ];
             })

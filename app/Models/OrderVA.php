@@ -52,7 +52,7 @@ class OrderVA extends Model
                     ->using('App\Models\ProductOrderedPivot')
                     ->withPivot('kit', 'units', 'price', '_price_list', "comments", "total", "amount", '_supply_by', 'toDelivered', 'ipack', 'amountDelivered');
     }
-    public function getStaff(){
-        return \App\Models\Staff::where('id_va', $this->_created_by)->first();
+    public function getUser(){
+        return \App\Models\User::where('id_va', $this->_created_by)->first();
     }
 }

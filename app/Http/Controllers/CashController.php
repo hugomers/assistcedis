@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Staff;
 use App\Models\CashPrinter;
 use App\Models\CashLog;
 use App\Models\Stores;
@@ -53,7 +52,7 @@ class CashController extends Controller
            $res['cashes'] = CashRegister::with([
                 'store',
                 'status',
-                'cashier' => fn($q) =>  $q->with('user.staff','print')->whereDate('open_date', now()->format('Y-m-d')),
+                'cashier' => fn($q) =>  $q->with('user','print')->whereDate('open_date', now()->format('Y-m-d')),
             ])
             ->where('_store',$sid)
             ->where('_status',1)
@@ -66,14 +65,14 @@ class CashController extends Controller
             $cash = CashRegister::with([
                 'store',
                 'status',
-                'cashier' => fn($q) =>  $q->with('user.staff','print')->max('open_date'),
+                'cashier' => fn($q) =>  $q->with('user','print')->max('open_date'),
             ])
             ->where('_store',$sid)
             ->get();
             $res = [
                 "cashes"=>$cash,
-                "cashiers"=>User::with(['staff'])->where([['_rol',3],['_store',$sid]])->get(),
-                // "cashiers"=>User::with(['staff'])->where([['_rol',13],['_store',$sid]])->get(),
+                "cashiers"=>User::where([['_rol',3],['_store',$sid]])->get(),
+                // "cashiers"=>User::where([['_rol',13],['_store',$sid]])->get(),
 
                 "printers"=>CashPrinter::where('_store',$sid)->get(),
             ];
@@ -93,7 +92,7 @@ class CashController extends Controller
         $nwcashier->open_date = now();
         $nwcashier->close_date = now();
         $nwcashier->save();
-        $res = $nwcashier->load(['user.staff','print']);
+        $res = $nwcashier->load(['user','print']);
         if($res){
             $nwLog = new CashLog;
             $nwLog->_type = 1;
@@ -109,7 +108,7 @@ class CashController extends Controller
                 $response = $updState->load([
                     'store',
                     'status',
-                    'cashier' => fn($q) =>  $q->with('user.staff','print')->max('open_date'),
+                    'cashier' => fn($q) =>  $q->with('user','print')->max('open_date'),
                 ]);
                 $openCashFS = http::post($cashier['store']['ip_address'].'/storetools/public/api/sales/openCash',$cashier);
                 // return $openCashFS;
@@ -137,7 +136,7 @@ class CashController extends Controller
         $query = CashRegister::with([
             'store',
             'status',
-            'cashier' => fn($q) =>  $q->with('user.staff','print','cash.tpv','cash.store')->whereDate('open_date', now()->format('Y-m-d')),
+            'cashier' => fn($q) =>  $q->with('user','print','cash.tpv','cash.store')->whereDate('open_date', now()->format('Y-m-d')),
         ])->where([['_status',1],['id',$cash],['_store',$sid]]);
 
         if($user->_rol == 3){
@@ -173,11 +172,11 @@ class CashController extends Controller
         DB::transaction(function() use ($cash, &$nwSale, $sale) {
             $payments = $sale['payments'];
             $nextDocumentId = Sale::where('_cash', $cash['id'])->max('document_id') + 1;
-            $staff = Staff::where('id_va',$sale['created_by']['id'])->first();
+            $user = User::where('id_va',$sale['created_by']['id'])->first();
             $nwSale = new Sale;
             $nwSale->_client = $sale['_client'];
             $nwSale->client_name = $sale['client']['name'];
-            $nwSale->_staff = $staff->id;
+            $nwSale->_user = $user->id;//cambiar en sale por el id de el usuario
             $nwSale->_cashier = $cash['cashier']['id'];
             $nwSale->_order = $sale['id'];
             $nwSale->_state = 1;
@@ -292,7 +291,7 @@ class CashController extends Controller
                 }, $filtered);
                 $nrwPaym =  SalePayment::insert($insPay);
                 if($nrwPaym && $nrwBodi){
-                    $res->load(['bodie','cashier.cash.tpv','cashier.print','cashier.user.staff','cashier.cash.store','payments','staff']);
+                    $res->load(['bodie','cashier.cash.tpv','cashier.print','cashier.user','cashier.cash.store','payments']);
                     $cellerPrinter = new PrinterController();
                     $printed = $cellerPrinter->printck($res,$payments);
                 }
@@ -308,11 +307,11 @@ class CashController extends Controller
         DB::transaction(function() use ($cash, &$nwSale, $sale, &$res) {
             $payments = $sale['payments'];
             $nextDocumentId = Sale::where('_cash', $cash['id'])->max('document_id') + 1;
-            $staff = Staff::find($sale['dependiente']['id']);
+            $user = User::find($sale['dependiente']['id']);
             $nwSale = new Sale;
             $nwSale->_client = $sale['client']['id'];
             $nwSale->client_name = $sale['client']['name'];
-            $nwSale->_staff = $staff->id;
+            $nwSale->_user = $user->id;
             $nwSale->_cashier = $cash['cashier']['id'];
             $nwSale->_state = 1;
             $nwSale->iva = isset($sale['iva']) ? $sale['iva'] : null;;
@@ -429,7 +428,7 @@ class CashController extends Controller
                 }, $filtered);
                 $nrwPaym =  SalePayment::insert($insPay);
                 if($nrwPaym && $nrwBodi){
-                    $res->load(['bodie','cashier.cash.tpv','cashier.print','cashier.user.staff','cashier.cash.store','payments','staff']);
+                    $res->load(['bodie','cashier.cash.tpv','cashier.print','cashier.user','cashier.cash.store','payments']);
                     $cellerPrinter = new PrinterController();
                     $printed = $cellerPrinter->printck($res,$payments);
                 }
@@ -484,7 +483,7 @@ class CashController extends Controller
     public function getDependiente(Request $request){
         $val = $request->val;
         $store = $request->sto;
-        $buscar = Staff::where('_store',$store)
+        $buscar = User::where('_store',$store)
             ->where('complete_name', 'like', '%' . $val . '%')
             ->orWhere('id_tpv', $val)
             ->orWhere('id', $val)
@@ -535,7 +534,7 @@ class CashController extends Controller
                             'store',
                             'status',
                             'cashier' => fn($q) => $q
-                                ->with('user.staff', 'print', 'withdrawal','sale','ingress','addvances')
+                                ->with('user', 'print', 'withdrawal','sale','ingress','addvances')
                                 ->where('id', $caja['cashier']['id']),
                         ]);
                         return response()->json($response);
@@ -589,12 +588,12 @@ class CashController extends Controller
         $cash = $request->cash;
         $id = isset($request->val) ? $request->val : null;
         if($type == 1){
-            $sale = Sale::with(['payments.payment', 'bodie', 'cashier.cash.tpv', 'cashier.print', 'cashier.user.staff', 'cashier.cash.store', 'staff','pfpa','sfpa','val'])->find($id);
+            $sale = Sale::with(['payments.payment', 'bodie', 'cashier.cash.tpv', 'cashier.print', 'cashier.user', 'cashier.cash.store','pfpa','sfpa','val'])->find($id);
             if (!$sale) {
                 return response()->json(['error' => 'Sale not found'], 404);
             }
         }else if($type == 2){
-            $sale = Sale::with(['payments.payment', 'bodie', 'cashier.cash.tpv', 'cashier.print', 'cashier.user.staff', 'cashier.cash.store', 'staff','pfpa','sfpa','val'])->where('_cashier',$cash['cashier']['id'])->orderBy('id', 'desc')->first();
+            $sale = Sale::with(['payments.payment', 'bodie', 'cashier.cash.tpv', 'cashier.print', 'cashier.user', 'cashier.cash.store','pfpa','sfpa','val'])->where('_cashier',$cash['cashier']['id'])->orderBy('id', 'desc')->first();
         }
         $formattedPayments = [
             "PFPA"=>[
@@ -683,10 +682,10 @@ class CashController extends Controller
             'bodie',
             'cashier.cash.tpv',
             'cashier.print',
-            'cashier.user.staff',
+            'cashier.user',
             'cashier.cash.store',
             'payments',
-            'staff'])
+            ])
         ->where('_cashier',$cash['cashier']['id'])
         ->get();
         return response($sales,200);
@@ -700,10 +699,10 @@ class CashController extends Controller
         $sales = Stores::with([
             'sale.bodie',
             'sale.cashier.cash.tpv',
-            'sale.cashier.user.staff',
+            'sale.cashier.user',
             'sale.cashier.cash.store',
             'sale.payments.payment',
-            'sale.staff',
+            'sale',
             'sale.pfpa',
             'sale.sfpa',
             'sale.val',
@@ -741,7 +740,7 @@ class CashController extends Controller
                 $order->_status = 9;
                 $order->save();
                 $res = $order->load(['products.category.familia.seccion','client','created_by','products.prices']);
-                $res->staff= $res->getStaff();
+                $res->user= $res->getUser();
                 $this->createLog($order->id, 9, ['user' => $user, 'ip' => $ip], 'App\User', $user->id);
                 return response()->json($res);
             }else{
@@ -768,7 +767,6 @@ class CashController extends Controller
         $caja = $request->cash;
         $declarec = $request->total;
         $uid = $request->created_by;
-        // $created = User::with('staff')->find($uid);
         $cashier = CashCashier::find($caja['cashier']['id']);
         if($cashier){
             $closeCash = http::post($caja['store']['ip_address'].'/storetools/public/api/sales/countCash',$request->all());

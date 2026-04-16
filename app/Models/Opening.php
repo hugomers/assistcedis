@@ -31,10 +31,10 @@ class Opening extends Model
 
 
     public function createdby(){
-        return $this->belongsTo('App\Models\Staff', '_created_by', 'id');
+        return $this->belongsTo('App\Models\User', '_created_by', 'id');
     }
     public function cashier(){
-        return $this->belongsTo('App\Models\Staff', '_cashier', 'id');
+        return $this->belongsTo('App\Models\User', '_cashier', 'id');
     }
     public function type(){
         return $this->belongsTo('App\Models\OpeningType', '_type', 'id');

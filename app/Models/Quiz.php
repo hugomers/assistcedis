@@ -32,7 +32,7 @@ class Quiz extends Model
 
     public function seller()
     {
-        return $this->belongsTo(Staff::class,'_seller');
+        return $this->belongsTo(User::class,'_seller');
     }
 
     public function cashier()

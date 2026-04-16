@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Staff;
 use App\Models\Opening;
 use App\Models\OpeningType;
 use App\Models\Stores;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use App\Models\Printer;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
@@ -17,8 +17,8 @@ use Mike42\Escpos\Printer as EscposPrinter;
 class CashierController extends Controller
 {
     public function getStaff($id){
-        $staff = Staff::where([['_store',$id], ['_position',11]])->get();
-        return $staff;
+        $user = User::where([['_store',$id], ['_rol',3]])->get();
+        return $user;
     }
 
     public function AddFile(Request $request){
@@ -46,8 +46,8 @@ class CashierController extends Controller
         // if($opening->save()){
             $tipo = $form['_type'];
             $store = Stores::find($form['_store']);
-            $solicita = Staff::find($form['_created_by']);
-            $cajero = Staff::find($form['_cashier']);
+            $solicita = User::find($form['_created_by']);
+            $cajero = User::find($form['_cashier']);
             $ip = $store->ip_address;
             // $ip = "192.168.10.160:1619";
             if($tipo == 1 || $tipo == 2){//descuadre
@@ -224,7 +224,7 @@ class CashierController extends Controller
     }
 
     public function getDependients($sid){
-        $opens = Staff::where([['_store',$sid],['acitve',1]])->get();
+        $opens = User::where([['_store',$sid],['_active',1]])->get();
         return response()->json($opens);
     }
 }

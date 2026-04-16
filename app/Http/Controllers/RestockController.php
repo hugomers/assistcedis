@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Staff;
 use App\Models\Stores;
 use App\Models\Position;
 use App\Models\Restock;
@@ -30,8 +29,8 @@ class RestockController extends Controller
 {
     public function getSupply($sid){
         $id = $sid == 24 ? 12 : $sid;
-        $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[6,3,2,46])->where('acitve',1)->get();
-        return $staff;
+        $user = User::whereIn('_store',[$id])->whereIn('_rol',[17,15,16])->where('_active',1)->get();
+        return $user;
     }
     public function saveSupply(Request $request){
         $partition = $request->partition;
@@ -53,7 +52,7 @@ class RestockController extends Controller
                 '_requisition'=>$freshPartition->_requisition,
                 '_partition'=>$freshPartition->id,
                 '_status'=>$status,
-                'details'=>json_encode(['responsable'=>$freshPartition->getSupplyStaff()->complete_name]),
+                'details'=>json_encode(['responsable'=>$freshPartition->getSupplyUser()->complete_name]),
             ];
 
             $logs = partitionLog::insert($inslo);
@@ -259,7 +258,7 @@ class RestockController extends Controller
             '_requisition'=>$freshPartition->_requisition,
             '_partition'=>$freshPartition->id,
             '_status'=>$status,
-            'details'=>json_encode(['responsable'=>$freshPartition->getOutVerifiedStaff()->complete_name]),
+            'details'=>json_encode(['responsable'=>$freshPartition->getOutVerifiedUser()->complete_name]),
         ];
 
         $logs = partitionLog::insert($inslo);
@@ -318,8 +317,8 @@ class RestockController extends Controller
 
     public function getVerified($sid){
         $id = $sid == 24 ? 12 : $sid;
-        $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[6,10,1])->where('acitve',1)->get();
-        return $staff;
+        $user = User::whereIn('_store',[$id])->whereIn('_position',[18,16])->where('_active',1)->get();
+        return $user;
     }
 
     public function saveChofi(Request $request){
@@ -339,13 +338,13 @@ class RestockController extends Controller
             '_requisition'=>$partition->_requisition,
             '_partition'=>$partition->id,
             '_status'=>$status,
-            'details'=>json_encode(['responsable'=>$partition->getOutDrivingStaff()->complete_name]),
+            'details'=>json_encode(['responsable'=>$partition->getOutDrivingUser()->complete_name]),
         ];
         $logs = partitionLog::insert($inslo);
         $endpart = $this->verifyPartition($partition->_requisition);
 
         if($change){
-            $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' transporta el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+            $message = 'El colaborador '.$partition->getOutDrivingUser()->complete_name.' transporta el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
             $to = '120363194490127898@g.us';
             // $to = '5573461022';
             $sendMessage = $this->envMssg($message,$to);
@@ -373,12 +372,12 @@ class RestockController extends Controller
             '_requisition'=>$partition->_requisition,
             '_partition'=>$partition->id,
             '_status'=>$status,
-            'details'=>json_encode(['responsable'=>$partition->getOutDrivingStaff()->complete_name]),
+            'details'=>json_encode(['responsable'=>$partition->getOutDrivingUser()->complete_name]),
         ];
         $logs = partitionLog::insert($inslo);
         $endpart = $this->verifyPartition($partition->_requisition);
         if($change){
-            $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+            $message = 'El colaborador '.$partition->getOutDrivingUser()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
             $to = '120363194490127898@g.us';
             // $to = '5573461022';
             $sendMessage = $this->envMssg($message,$to);
@@ -392,16 +391,16 @@ class RestockController extends Controller
 
     public function getChof($sid){
         $id = $sid == 24 ? 12 : $sid;
-        $staff = Staff::whereIn('_store',[$id])->whereIn('_position',[3])->where('acitve',1)->get();
+        $user = User::whereIn('_store',[$id])->whereIn('_rol',[15])->where('_active',1)->get();
 
-        return $staff;
+        return $user;
     }
 
     public function getCheck($cli){
-        $store = Stores::with('Staff')->where('_client',$cli)->value('id');
-        $staff = Staff::where('_store',$store,)->whereIn('_position',[7,8,16,17,23])->get();
+        $store = Stores::where('_client',$cli)->value('id');
+        $user = User::where('_store',$store,)->whereIn('_rol',[1,2,14])->get();
 
-        return $staff;
+        return $user;
     }
 
     public function saveCheck(Request $request){
@@ -419,8 +418,8 @@ class RestockController extends Controller
             $change->save();
             $partition = $change->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
             if($bfore == 7){
-                if($partition->getOutDrivingStaff()){
-                $message = 'El colaborador '.$partition->getOutDrivingStaff()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
+                if($partition->getOutDrivingUser()){
+                $message = 'El colaborador '.$partition->getOutDrivingUser()->complete_name.' entrego el pedido '.$partition->id.' de la sucursal '.$partition->requisition['from']['name'];
                 $to = '120363194490127898@g.us';
                 // $to = '5573461022';
                 $sendMessage = $this->envMssg($message,$to);
@@ -434,7 +433,7 @@ class RestockController extends Controller
                 '_requisition'=>$partition->_requisition,
                 '_partition'=>$partition->id,
                 '_status'=>$status,
-                'details'=>json_encode(['responsable'=> $partition->getCheckStaff() !== null ? $partition->getCheckStaff()->complete_name : 'Directo' ]),
+                'details'=>json_encode(['responsable'=> $partition->getCheckUser() !== null ? $partition->getCheckUser()->complete_name : 'Directo' ]),
             ];
             $logs = partitionLog::insert($inslo);
             $endpart = $this->verifyPartition($partition->_requisition);
@@ -488,10 +487,10 @@ class RestockController extends Controller
         $partition = $partitions->load(['status','log','products','requisition.type','requisition.status','requisition.to','requisition.from','requisition.created_by','requisition.log']);
         switch ($status) {
             // case 6:
-            //  $responsable = $partition->getOutVerifiedStaff()->complete_name;
+            //  $responsable = $partition->getOutVerifiedUser()->complete_name;
             //     break;
             case 10:
-            $responsable =  $partition->getCheckStaff()->complete_name;
+            $responsable =  $partition->getCheckUser()->complete_name;
                 break;
             default:
             $responsable =  'Vizapp';
@@ -521,7 +520,7 @@ class RestockController extends Controller
         $token = env('WATO');
         $pedido = $request->id;
         $suply = $request->suply;
-        $chofer = Staff::where('id',$suply)->first();
+        $chofer = User::where('id',$suply)->first();
         $sucursal = $request->store;
 
         $response = Http::withOptions([
