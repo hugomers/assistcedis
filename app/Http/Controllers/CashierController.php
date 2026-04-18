@@ -224,7 +224,7 @@ class CashierController extends Controller
     }
 
     public function getDependients($sid){
-        $opens = User::where([['_store',$sid],['_active',1]])->get();
+        $opens = User::where([['_store',$sid],['_state','!=',4]])->get();
         return response()->json($opens);
     }
 }

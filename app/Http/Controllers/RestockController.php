@@ -29,7 +29,7 @@ class RestockController extends Controller
 {
     public function getSupply($sid){
         $id = $sid == 24 ? 12 : $sid;
-        $user = User::whereIn('_store',[$id])->whereIn('_rol',[17,15,16])->where('_active',1)->get();
+        $user = User::whereIn('_store',[$id])->whereIn('_rol',[17,15,16])->where('_state','!=',4)->get();
         return $user;
     }
     public function saveSupply(Request $request){
@@ -317,7 +317,7 @@ class RestockController extends Controller
 
     public function getVerified($sid){
         $id = $sid == 24 ? 12 : $sid;
-        $user = User::whereIn('_store',[$id])->whereIn('_position',[18,16])->where('_active',1)->get();
+        $user = User::whereIn('_store',[$id])->whereIn('_position',[18,16])->where('_state','!=',4)->get();
         return $user;
     }
 
@@ -391,7 +391,7 @@ class RestockController extends Controller
 
     public function getChof($sid){
         $id = $sid == 24 ? 12 : $sid;
-        $user = User::whereIn('_store',[$id])->whereIn('_rol',[15])->where('_active',1)->get();
+        $user = User::whereIn('_store',[$id])->whereIn('_rol',[15])->where('_state','!=',4)->get();
 
         return $user;
     }

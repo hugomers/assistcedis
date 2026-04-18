@@ -186,7 +186,7 @@ class ResourcesController extends Controller
     }
 
     public function Index(){
-        $agent = User::where('_active',1)->get();
+        $agent = User::where('_state','!=',4)->get();
         $client = ClientVA::where('id','>=',36)->get();
         $res = [
             "agents"=>$agent,

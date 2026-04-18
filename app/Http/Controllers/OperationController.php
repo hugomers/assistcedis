@@ -36,7 +36,7 @@ class OperationController extends Controller
         $month = $request->_month;
 
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+            $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22])->get();
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore)->get();
@@ -129,7 +129,7 @@ class OperationController extends Controller
         $month = $request->_month;
 
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22]);
+            $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22]);
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore);
@@ -168,7 +168,7 @@ class OperationController extends Controller
     public function getStatusInventory(Request $request){
          $month = $request->_month;
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+            $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22])->get();
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore)->get();
@@ -275,7 +275,7 @@ class OperationController extends Controller
     public function getStatusPerson(Request $request){
         $month = $request->_month;
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+            $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22])->get();
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore)->get();
@@ -294,7 +294,7 @@ class OperationController extends Controller
     // public function getSatisfactionClient(Request $request){
     //     $month = $request->_month;
     //     if($request->zone == "all"){
-    //         $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22]);
+    //         $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22]);
     //     }else{
     //         $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
     //         $stores = Stores::whereIn('id',$zoneStore);
@@ -310,7 +310,7 @@ class OperationController extends Controller
     public function getSatisfactionClient(Request $request){
        $month = $request->_month;
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22]);
+            $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22]);
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore);
@@ -354,7 +354,7 @@ class OperationController extends Controller
     public function statusAdm(Request $request){
         $month = $request->_month;
         if($request->zone == "all"){
-            $stores = Stores::where([['_active',1]])->WhereNotIn('id',[1,2,21,22])->get();
+            $stores = Stores::where([['_state','!=',4]])->WhereNotIn('id',[1,2,21,22])->get();
         }else{
             $zoneStore = ZoneStore::where('zone_id',$request->zone)->pluck('store_id');
             $stores = Stores::whereIn('id',$zoneStore)->get();

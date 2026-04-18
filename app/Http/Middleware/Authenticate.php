@@ -22,17 +22,28 @@ class Authenticate
             if (Carbon::parse($payload['exp'])->isPast()) {
                 return response('Token expired.', 401);
             }
-            // $request->merge(['authUser' => $payload]);
-
-
         } catch (\Exception $e) {
             return response('Invalid token.', 401);
         }
         $user = $payload;
         $listUser = User::find($user['uid']);
-        if($listUser->_active == 0){
+
+        if ($listUser->_state == 3) {
             return response()->json([
-                'error' => 'Acceso denegado',
+                'state' => 3,
+                'error' => 'Usuario Bloqueado, Favor de acercarce a un encargado :0'
+            ], 403);
+        }
+        if ($listUser->_state == 4) {
+            return response()->json([
+                'state' => 4,
+                'error' => 'Usuario dado de Baja x_x'
+            ], 403);
+        }
+        if ($listUser->_state == 5) {
+            return response()->json([
+                'state' => 5,
+                'error' => 'Inicia sesion de nuevo :)'
             ], 401);
         }
         // $segmentaciones = StoreSegment::all();
