@@ -337,7 +337,7 @@ class SalesController extends Controller
                 }
                 ]);
             }
-        ])->whereNotIn('id',[1,2,5,6,14,15,21,22])->get();
+        ])->whereNotIn('id',[1,2,5,14,15,21,22,23])->get();
         foreach ($stores as $store) {
             if (!$store->ip_address) {
                 $store->setRelation('cashs', collect([]));
