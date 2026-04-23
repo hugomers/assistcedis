@@ -64,19 +64,19 @@ Route::middleware('auth')->group(function(){
         Route::post('/restock',[WappController::class, 'restock']);
     });
 
-    Route::prefix('/zkt')->group(function(){
-        Route::get('/Reportcomplete',[ZktecoController::class, 'completeReport']);
-        Route::get('/Index',[ZktecoController::class, 'Index']);
-        Route::get('/Ping/{d}',[ZktecoController::class, 'Ping']);
-        Route::get('/getDate/{d}',[ZktecoController::class, 'getDate']);
-        Route::get('/getRegister/{d}',[ZktecoController::class, 'getRegistros']);
-        Route::get('/getRegisDevice/{d}',[ZktecoController::class, 'getRegisDevice']);
-        Route::get('/changeDate/{d}',[ZktecoController::class, 'changeDate']);
-        Route::delete('/deleteAttendance/{d}',[ZktecoController::class, 'deleteAttendance']);
-        Route::post('/Edit',[ZktecoController::class, 'edit']);
-        Route::delete('/delete',[ZktecoController::class, 'delete']);
+    // Route::prefix('/zkt')->group(function(){
+    //     Route::get('/Reportcomplete',[ZktecoController::class, 'completeReport']);
+    //     Route::get('/Index',[ZktecoController::class, 'Index']);
+    //     Route::get('/Ping/{d}',[ZktecoController::class, 'Ping']);
+    //     Route::get('/getDate/{d}',[ZktecoController::class, 'getDate']);
+    //     Route::get('/getRegister/{d}',[ZktecoController::class, 'getRegistros']);
+    //     Route::get('/getRegisDevice/{d}',[ZktecoController::class, 'getRegisDevice']);
+    //     Route::get('/changeDate/{d}',[ZktecoController::class, 'changeDate']);
+    //     Route::delete('/deleteAttendance/{d}',[ZktecoController::class, 'deleteAttendance']);
+    //     Route::post('/Edit',[ZktecoController::class, 'edit']);
+    //     Route::delete('/delete',[ZktecoController::class, 'delete']);
 
-    });
+    // });
 
     Route::prefix('/reports')->group(function(){
         Route::get('',[ReportsController::class, 'Index']);
@@ -131,6 +131,15 @@ Route::middleware('auth')->group(function(){
 
     Route::prefix('/assist')->group(function(){
         Route::get('/report',[AssistController::class, 'report']);
+        Route::get('ping/{d}',[AssistController::class, 'ping']);
+        Route::post('/getDevices',[AssistController::class, 'getDevices']);
+        Route::post('Resourcesform',[AssistController::class, 'Resourcesform']);
+        Route::post('getJustifications',[AssistController::class, 'getJustifications']);
+        Route::post('addForm',[AssistController::class, 'addForm']);
+        Route::post('changeStatus',[AssistController::class, 'changeStatus']);
+        Route::post('getRegisDevice/{d}',[AssistController::class, 'getRegisDevice']);
+        Route::post('changeDate/{d}',[AssistController::class, 'changeDate']);
+        Route::post('deleteAttendance/{d}',[AssistController::class, 'deleteAttendance']);
     });
 
     Route::prefix('/Products')->group(function(){

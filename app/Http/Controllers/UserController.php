@@ -138,7 +138,7 @@ class UserController extends Controller
         }
         $user = User::with(['store','rol.modules','rol.area','zone.stores','stores'])->where('nick',$nick)->first();
         if(!$user){
-            return response()->json(['message'=> 'El Usuario No existe'],404);
+            return response()->json(['message'=> 'El Usuario No existe'],403);
         }
 
         if(!Hash::check($pass,$user->password)){

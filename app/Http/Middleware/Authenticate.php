@@ -14,16 +14,16 @@ class Authenticate
     {
         $header = $request->header('Authorization');
         if (!$header || !str_starts_with($header, 'Bearer ')) {
-            return response('Unauthorized.', 401);
+            return response(['error' => 'Unauthorized.'], 403);
         }
         $token = substr($header, 7);
         try {
             $payload = json_decode(Crypt::decryptString($token), true);
             if (Carbon::parse($payload['exp'])->isPast()) {
-                return response('Token expired.', 401);
+                return response(['error' => 'Tu sesión expiró, favor de ingresar de nuevo'], 403);
             }
         } catch (\Exception $e) {
-            return response('Invalid token.', 401);
+            return response(['error' => 'Token Invalido'], 403);
         }
         $user = $payload;
         $listUser = User::find($user['uid']);
@@ -44,7 +44,7 @@ class Authenticate
             return response()->json([
                 'state' => 5,
                 'error' => 'Inicia sesion de nuevo :)'
-            ], 401);
+            ], 403);
         }
         // $segmentaciones = StoreSegment::all();
         // $ips = null;

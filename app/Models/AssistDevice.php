@@ -10,6 +10,5 @@ class AssistDevice extends Model
     protected $table = "assist_devices";
     public $timestamps = false;
 
-
     public function store(){ return $this->hasOne('App\Models\Stores','id','_store'); }
 }
