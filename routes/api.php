@@ -126,6 +126,8 @@ Route::middleware('auth')->group(function(){
         Route::post('/invoiceReceived',[ProductsController::class, 'invoiceReceived']);
         Route::post('/autoComplete',[ProductsController::class,'autoComplete']);
         Route::post('/getProducts',[ProductsController::class,'getProducts']);
+        Route::post('/previewModels',[ProductsController::class,'previewModels']);
+        Route::post('/confirmPreview',[ProductsController::class,'confirmPreview']);
 
         Route::post('/autoCompleteProduct',[ProductsController::class,'autoCompleteProduct']);
         Route::post('/exactSearch',[ProductsController::class,'exactSearch']);
