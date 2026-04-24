@@ -1254,4 +1254,82 @@ class ProductsController extends Controller
 
         return response()->json($products);
     }
+
+    public function previewModels(Request $request){
+
+    $response = [
+        "sucursales" => [
+            "preview" => [
+                "goal" => [],
+                "fails" => []
+            ]
+        ]
+    ];
+
+    $payload = [
+        'modelo' => (array) $request->modelo,
+        'colores' => (array) $request->colores
+    ];
+
+    $stores = WorkpointVA::where('active',1)
+        ->whereIn('id',[1])
+        ->get();
+
+    foreach($stores as $store){
+
+        try {
+
+            $preview = Http::timeout(50)->post(
+                rtrim($store->dominio, '/') . '/storetools/public/api/Products/previewModels',
+                $payload
+            );
+
+            if($preview->status() == 200){
+
+                $response['sucursales']['preview']['goal'][] = [
+                    $store->alias => $preview->json()
+                ];
+
+            }else{
+
+                $response['sucursales']['preview']['fails'][] = [
+                    $store->alias => [
+                        'Con error',
+                        'status' => $preview->status(),
+                        'detalle' => $preview->body()
+                    ]
+                ];
+            }
+
+        } catch (\Throwable $e) {
+
+            $response['sucursales']['preview']['fails'][] = [
+                $store->alias => [
+                    'Sin conexión',
+                    'error' => $e->getMessage()
+                ]
+            ];
+        }
+    }
+
+    foreach ($response['sucursales']['preview']['goal'] as $sucursalData) {
+
+        foreach ($sucursalData as $alias => $data) {
+
+            return response()->json([
+                "modelo_base" => $data["modelo_base"] ?? [],
+                "descripcion_original" => $data["descripcion_original"] ?? null,
+                "cb_base" => $data["cb_base"] ?? null,
+                "total_modelos" => $data["total_modelos"] ?? 0,
+                "productos" => $data["productos"] ?? []
+            ], 200);
+
+        }
+    }
+
+    return response()->json([
+        "error" => "No se pudo obtener preview de ninguna sucursal",
+        "fails" => $response['sucursales']['preview']['fails']
+    ], 500);
+}
 }
