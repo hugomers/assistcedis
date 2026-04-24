@@ -24,9 +24,14 @@ use Carbon\Carbon;
 class AssistController extends Controller
 {
     public function getReport(Request $request){
-
-        if(($request->filled('data'))){
-            $yearandweek = (object) $request->data;
+        $rol = $request->rid;
+        $userRol = UserRol::find($rol);
+        $store = $request->sid;
+        $user = $request->uid;
+        $zone = $request->zone;
+        $stores = Stores::where('_active',1);
+        if(($request->filled('ranges'))){
+            $yearandweek = (object) $request->ranges;
         }else{
             $currentDate = Fechas::whereDate('fecha', now())->first();
             $yearandweek = (object)[
@@ -66,6 +71,7 @@ class AssistController extends Controller
                 'employee_id' => $first->id,
                 'employee' => $first->complete_name,
                 'store' => $first->name,
+                '_store' => $first->_store,
                 'turn' => $first->turno,
                 'lunes' => null,
                 'martes' => null,
@@ -108,10 +114,18 @@ class AssistController extends Controller
             }
             return $row;
         })->values();
+        if($userRol->_type == 2){
+            $stpres = $stores->where('id',$store);
+            $report = $report->where('_store',$store)->values();
+        }
+        if($zone){
+            $stores = $stores->whereIn('id',$zone);
+            $report = $report->whereIn('_store',$zone)->values();
+        }
         $res = [
             "report"=>$report,
             "dates"=>Fechas::orderBy('fecha','asc')->get(),
-            "devices"=>Stores::where('_active',1)->get()
+            "devices"=>$stores->get()
         ];
 
         return response()->json($res) ;
