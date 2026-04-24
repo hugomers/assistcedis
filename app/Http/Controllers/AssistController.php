@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\AssistDevice;
 use App\Models\UserRol;
 use App\Models\Assist;
+use App\Models\Fechas;
+use App\Models\Stores;
 use App\Models\AssistJustification;
 use App\Models\JustificationState;
 use App\Models\JustificationType;
@@ -15,15 +17,104 @@ use App\Models\User;
 use Rats\Zkteco\Lib\ZKTeco;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Carbon\CarbonImmutable;
+use Carbon\Carbon;
 
 
 class AssistController extends Controller
 {
-    public function report(){
-            $semana = now()->format('W');
-            $anio = now()->format('Y');
-            $name = "reporteasistencia_sem_".$semana;
-            return Excel::download(new AssistExport, $name.'.xlsx');
+    public function getReport(Request $request){
+
+        if(($request->filled('data'))){
+            $yearandweek = (object) $request->data;
+        }else{
+            $currentDate = Fechas::whereDate('fecha', now())->first();
+            $yearandweek = (object)[
+                '_year' => $currentDate->_year,
+                'start_week' => $currentDate->_week,
+                'end_week' => $currentDate->_week
+            ];
+        }
+
+        $data = collect(DB::select("CALL report_assist(?, ?, ?)", [ $yearandweek->_year,  $yearandweek->start_week, $yearandweek->end_week ]));
+        $data = $data->map(function ($item) {
+        if ($item->justifications) {
+            $item->status = $item->justifications;
+        } elseif (!$item->register_time) {
+            if (Carbon::parse($item->fecha)->dayOfWeek === Carbon::SUNDAY) {
+                $item->status = 'DESCANSO';
+            } else {
+                $item->status = 'FALTA';
+            }
+        } elseif ($item->register_time > $item->turno) {
+            $item->status = $item->register_time . ' R';
+        } else {
+            $item->status = $item->register_time;
+        }
+
+        return $item;
+        });
+        $grouped = $data->groupBy(function ($item) {
+            return $item->id . '-' . $item->_week;
+        });
+
+        $report = $grouped->map(function ($days) {
+            $first = $days->first();
+            $row = [
+                'year' => $first->_year,
+                'week' => $first->_week,
+                'employee_id' => $first->id,
+                'employee' => $first->complete_name,
+                'store' => $first->name,
+                'turn' => $first->turno,
+                'lunes' => null,
+                'martes' => null,
+                'miercoles' => null,
+                'jueves' => null,
+                'viernes' => null,
+                'sabado' => null,
+                'domingo' => null,
+                'vacaciones'=>0,
+                'faltas'=>0,
+                'retardos'=>0,
+            ];
+            foreach ($days as $day) {
+                $dayName = Carbon::parse($day->fecha)
+                    ->locale('es')
+                    ->dayName;
+                $dayName = str_replace(
+                    ['miércoles', 'sábado'],
+                    ['miercoles', 'sabado'],
+                    strtolower($dayName)
+                );
+                $row[$dayName] = $day->status;
+                if (str_contains($day->status, 'VACACIONES')) {
+                    $row['vacaciones']++;
+                }
+
+                if ($day->status === 'FALTA') {
+                    $row['faltas'] += 1;
+
+                } elseif (str_contains($day->status, '-0%')) {
+                    $row['faltas'] += 1;
+
+                } elseif (str_contains($day->status, '-50%')) {
+                    $row['faltas'] += 0.5;
+                }
+
+                if (str_contains($day->status, ' R')) {
+                    $row['retardos']++;
+                }
+            }
+            return $row;
+        })->values();
+        $res = [
+            "report"=>$report,
+            "dates"=>Fechas::orderBy('fecha','asc')->get(),
+            "devices"=>Stores::where('_active',1)->get()
+        ];
+
+        return response()->json($res) ;
     }
 
     public function getDevices(Request $request){
