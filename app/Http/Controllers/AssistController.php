@@ -435,12 +435,12 @@ class AssistController extends Controller
             foreach($devices as $device){
                 $inicio = microtime(true);
                 echo 'actualizando '.$device->nick_name." \n";
-                $zk = new ZKTeco($device->ip);
+                $zk = new ZKTeco($device->ip_address);
                 $exist = Assist::with('user')->where('_device',$device->id)->get()->toArray();
                 $rexist  = array_map(function($val)
                 { return [
                         'auid'=>$val['auid'],
-                        'id'=>$val['user']['RC_id'],
+                        'id'=>$val['user']['id_rc'],
                         'state'=>$val['_class'],
                         'timestamp'=>$val['register'],
                         'type'=>$val['_type']
@@ -458,15 +458,15 @@ class AssistController extends Controller
                         // return $diferencias;
                         if($diferencias){
                             foreach($diferencias as $assist){
-                                $user = User::where('RC_id',$assist[1])->first();
+                                $user = User::where('id_rc',$assist[1])->first();
                                 if($user){
                                     $report [] = [
-                                        "auid" => $assist['0'],//id checada checador
-                                        "register" => $assist['3'], //horario
+                                        "auid" => $assist[0],//id checada checador
+                                        "register" => $assist[3], //horario
                                         "_user" => $user->id,//id del usuario
                                         "_store"=> $device->_store,
-                                        "_type"=>$assist['4'],//entrada y salida
-                                        "_class"=>$assist['2'],//condedo o contrasena
+                                        "_type"=>$assist[4],//entrada y salida
+                                        "_class"=>$assist[2],//condedo o contrasena
                                         "_device"=>$device->id,
                                     ];
                                 }
@@ -492,12 +492,12 @@ class AssistController extends Controller
                 }else{
                     $termino = microtime(true);
                     $message = 'El dispositivo '.$device->nick_name.' no tiene conexion :('." \n";
-                    $msg = $this->msg($message);
-                    if($msg){
-                        echo 'Mensaje Enviado'.' tiempo :'.round($termino-$inicio)." \n";
-                    }else{
-                        echo 'No se envio el mensaje'." \n";
-                    }
+                    // $msg = $this->msg($message);
+                    // if($msg){
+                    //     echo 'Mensaje Enviado'.' tiempo :'.round($termino-$inicio)." \n";
+                    // }else{
+                    //     echo 'No se envio el mensaje'." \n";
+                    // }
                 }
                 $goals=[];
                 $fails=[];
@@ -508,9 +508,5 @@ class AssistController extends Controller
             echo 'No hay Dispositivos brou';
         }
     }
-
-
-
-
 
 }

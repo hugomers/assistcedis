@@ -208,6 +208,8 @@ class UserController extends Controller
         $rol = $request->rid;
         $store = $request->sid;
         $user = $request->uid;
+        $zone = $request->zone;
+
         $userRol = UserRol::find($rol);
         $areas = Area::with('roles');
         $users = User::with(['rol.area','state','store','media','stores','enterprise']);
@@ -216,6 +218,11 @@ class UserController extends Controller
             $users = $users->where('_store',$store);
             $areas = $areas->wherehas('roles', function($q)use($rol){$q->where('id',$rol);});
             $stores = $stores->where('id',$store);
+        }
+        if($zone){
+            $users = $users->whereIn('_store',$zone);
+            // $areas = $areas->wherehas('roles', function($q)use($rol){$q->where('id',$rol);});
+            $stores = $stores->whereIn('id',$zone);
         }
         $res = [
             "rol"=>$userRol,
@@ -349,10 +356,19 @@ class UserController extends Controller
         ], 200);
     }
 
-    public function getUserWorkpoints(){
+    public function getUserWorkpoints(Request $request){
+        $store = $request->sid;
+        $user = $request->uid;
+        $zone = $request->zone;
+        $users = User::with(['store','rol.area','state','stores','media'])->where('_state','!=',4);
+        $stores = Stores::where('_active',1);
+        if($zone){
+            $stores = $stores->whereIn('id',$zone);
+            $users = $users->whereIn('_store',$zone);
+        }
         return response()->json([
-            "users"=>User::with(['store','rol.area','state','stores','media'])->where('_state','!=',4)->get(),
-            "stores"=>Stores::where('_active',1)->get(),
+            "users"=>$users->get(),
+            "stores"=>$stores->get(),
             "areas"=>Area::with('roles')->get(),
             "states"=>UserState::all(),
         ],200);
