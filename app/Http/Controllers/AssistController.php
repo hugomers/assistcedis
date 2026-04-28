@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\AssistDevice;
 use App\Models\UserRol;
 use App\Models\Assist;
+use App\Models\Fechas;
+use App\Models\Stores;
 use App\Models\AssistJustification;
 use App\Models\JustificationState;
 use App\Models\JustificationType;
@@ -15,15 +17,118 @@ use App\Models\User;
 use Rats\Zkteco\Lib\ZKTeco;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Carbon\CarbonImmutable;
+use Carbon\Carbon;
 
 
 class AssistController extends Controller
 {
-    public function report(){
-            $semana = now()->format('W');
-            $anio = now()->format('Y');
-            $name = "reporteasistencia_sem_".$semana;
-            return Excel::download(new AssistExport, $name.'.xlsx');
+    public function getReport(Request $request){
+        $rol = $request->rid;
+        $userRol = UserRol::find($rol);
+        $store = $request->sid;
+        $user = $request->uid;
+        $zone = $request->zone;
+        $stores = Stores::where('_active',1);
+        if(($request->filled('ranges'))){
+            $yearandweek = (object) $request->ranges;
+        }else{
+            $currentDate = Fechas::whereDate('fecha', now())->first();
+            $yearandweek = (object)[
+                '_year' => $currentDate->_year,
+                'start_week' => $currentDate->_week,
+                'end_week' => $currentDate->_week
+            ];
+        }
+
+        $data = collect(DB::select("CALL report_assist(?, ?, ?)", [ $yearandweek->_year,  $yearandweek->start_week, $yearandweek->end_week ]));
+        $data = $data->map(function ($item) {
+        if ($item->justifications) {
+            $item->status = $item->justifications;
+        } elseif (!$item->register_time) {
+            if (Carbon::parse($item->fecha)->dayOfWeek === Carbon::SUNDAY) {
+                $item->status = 'DESCANSO';
+            } else {
+                $item->status = 'FALTA';
+            }
+        } elseif ($item->register_time > $item->turno) {
+            $item->status = $item->register_time . ' R';
+        } else {
+            $item->status = $item->register_time;
+        }
+
+        return $item;
+        });
+        $grouped = $data->groupBy(function ($item) {
+            return $item->id . '-' . $item->_week;
+        });
+
+        $report = $grouped->map(function ($days) {
+            $first = $days->first();
+            $row = [
+                'year' => $first->_year,
+                'week' => $first->_week,
+                'employee_id' => $first->id,
+                'employee' => $first->complete_name,
+                'store' => $first->name,
+                '_store' => $first->_store,
+                'turn' => $first->turno,
+                'lunes' => null,
+                'martes' => null,
+                'miercoles' => null,
+                'jueves' => null,
+                'viernes' => null,
+                'sabado' => null,
+                'domingo' => null,
+                'vacaciones'=>0,
+                'faltas'=>0,
+                'retardos'=>0,
+            ];
+            foreach ($days as $day) {
+                $dayName = Carbon::parse($day->fecha)
+                    ->locale('es')
+                    ->dayName;
+                $dayName = str_replace(
+                    ['miércoles', 'sábado'],
+                    ['miercoles', 'sabado'],
+                    strtolower($dayName)
+                );
+                $row[$dayName] = $day->status;
+                if (str_contains($day->status, 'VACACIONES')) {
+                    $row['vacaciones']++;
+                }
+
+                if ($day->status === 'FALTA') {
+                    $row['faltas'] += 1;
+
+                } elseif (str_contains($day->status, '-0%')) {
+                    $row['faltas'] += 1;
+
+                } elseif (str_contains($day->status, '-50%')) {
+                    $row['faltas'] += 0.5;
+                }
+
+                if (str_contains($day->status, ' R')) {
+                    $row['retardos']++;
+                }
+            }
+            return $row;
+        })->values();
+        if($userRol->_type == 2){
+            $stpres = $stores->where('id',$store);
+            $report = $report->where('_store',$store)->values();
+        }
+        if($zone){
+            $stores = $stores->whereIn('id',$zone);
+            $report = $report->whereIn('_store',$zone)->values();
+        }
+        $res = [
+            "report"=>$report,
+            "dates"=>Fechas::orderBy('fecha','asc')->get(),
+            "devices"=>$stores->get()
+        ];
+
+        return response()->json($res) ;
     }
 
     public function getDevices(Request $request){
@@ -330,12 +435,12 @@ class AssistController extends Controller
             foreach($devices as $device){
                 $inicio = microtime(true);
                 echo 'actualizando '.$device->nick_name." \n";
-                $zk = new ZKTeco($device->ip);
+                $zk = new ZKTeco($device->ip_address);
                 $exist = Assist::with('user')->where('_device',$device->id)->get()->toArray();
                 $rexist  = array_map(function($val)
                 { return [
                         'auid'=>$val['auid'],
-                        'id'=>$val['user']['RC_id'],
+                        'id'=>$val['user']['id_rc'],
                         'state'=>$val['_class'],
                         'timestamp'=>$val['register'],
                         'type'=>$val['_type']
@@ -353,15 +458,15 @@ class AssistController extends Controller
                         // return $diferencias;
                         if($diferencias){
                             foreach($diferencias as $assist){
-                                $user = User::where('RC_id',$assist[1])->first();
+                                $user = User::where('id_rc',$assist[1])->first();
                                 if($user){
                                     $report [] = [
-                                        "auid" => $assist['0'],//id checada checador
-                                        "register" => $assist['3'], //horario
+                                        "auid" => $assist[0],//id checada checador
+                                        "register" => $assist[3], //horario
                                         "_user" => $user->id,//id del usuario
                                         "_store"=> $device->_store,
-                                        "_type"=>$assist['4'],//entrada y salida
-                                        "_class"=>$assist['2'],//condedo o contrasena
+                                        "_type"=>$assist[4],//entrada y salida
+                                        "_class"=>$assist[2],//condedo o contrasena
                                         "_device"=>$device->id,
                                     ];
                                 }
@@ -387,12 +492,12 @@ class AssistController extends Controller
                 }else{
                     $termino = microtime(true);
                     $message = 'El dispositivo '.$device->nick_name.' no tiene conexion :('." \n";
-                    $msg = $this->msg($message);
-                    if($msg){
-                        echo 'Mensaje Enviado'.' tiempo :'.round($termino-$inicio)." \n";
-                    }else{
-                        echo 'No se envio el mensaje'." \n";
-                    }
+                    // $msg = $this->msg($message);
+                    // if($msg){
+                    //     echo 'Mensaje Enviado'.' tiempo :'.round($termino-$inicio)." \n";
+                    // }else{
+                    //     echo 'No se envio el mensaje'." \n";
+                    // }
                 }
                 $goals=[];
                 $fails=[];
@@ -403,9 +508,5 @@ class AssistController extends Controller
             echo 'No hay Dispositivos brou';
         }
     }
-
-
-
-
 
 }

@@ -100,7 +100,7 @@ Route::middleware('auth')->group(function(){
     Route::prefix('/users')->group(function(){
         //aqui empieza la nueva
         Route::get('getAreas',[UserController::class, 'getAreas']);
-        Route::get('getUserWorkpoints',[UserController::class, 'getUserWorkpoints']);
+        Route::post('getUserWorkpoints',[UserController::class, 'getUserWorkpoints']);
         Route::post('getUsers',[UserController::class, 'getUsers']);
         Route::post('resetpass',[UserController::class, 'resetpass']);
         Route::post('chagePassword',[UserController::class, 'chagePassword']);
@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function(){
         Route::post('getJustifications',[AssistController::class, 'getJustifications']);
         Route::post('addForm',[AssistController::class, 'addForm']);
         Route::post('changeStatus',[AssistController::class, 'changeStatus']);
+        Route::post('getReport',[AssistController::class, 'getReport']);
         Route::post('getRegisDevice/{d}',[AssistController::class, 'getRegisDevice']);
         Route::post('changeDate/{d}',[AssistController::class, 'changeDate']);
         Route::post('deleteAttendance/{d}',[AssistController::class, 'deleteAttendance']);

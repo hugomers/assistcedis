@@ -6,6 +6,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Http\Controllers\CashController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\AssistController;
 use App\Http\Controllers\InvoicesReceived;
 
 
@@ -32,6 +33,24 @@ class Kernel extends ConsoleKernel
             $controller = new InvoicesReceived();
             $controller->replyInvoices();
         })->dailyAt('20:00')->name("Replicacion de Compras :)");//Respaldo solo de el ejercico actual
+
+
+            $schedule->call(function () {
+            // \Log::info('Tarea finalizada. s');
+            $controller = new AssistController();
+            $controller->ReplyAssistAut();
+            // \Log::info('Tarea finalizada. s');
+        })
+        ->everyTenMinutes()
+        // ->everyMinute()
+        ->between('09:00', '11:00')
+        ->name("Replicacion de asistencia cada 5 min");
+
+        $schedule->call(function () {
+            $controller = new AssistController();
+            $controller->ReplyAssistAut();
+        })->everyTwoHours($minutes = 0)->between('11:30', '20:30')->name("Replicacion de asistencia cada 2 horas");
+
 
     }
 
